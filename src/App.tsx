@@ -6,17 +6,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
+import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
+import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
+import { SupabaseNewsletterProvider } from "@/contexts/SupabaseNewsletterContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { NewsProvider } from "@/contexts/NewsContext";
 import { ContactProvider } from "@/contexts/ContactContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { RadioPlayerProvider } from "@/contexts/RadioPlayerContext";
-import { BannerProvider } from "@/contexts/BannerContext";
-import { ContactInfoProvider } from "@/contexts/ContactInfoContext";
 import { UsersProvider } from "@/contexts/UsersContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
-import { NewsletterProvider } from "@/contexts/NewsletterContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { useBannerSync } from "@/hooks/useBannerSync";
 import Index from "./pages/Index";
@@ -79,33 +78,31 @@ const App = () => (
     <HelmetProvider>
       <SupabaseAuthProvider>
         <SupabaseNewsProvider>
-          <ThemeProvider>
-            <UsersProvider>
-              <AuthProvider>
-                <NewsProvider>
-                  <ContactProvider>
-                    <ContactInfoProvider>
-                      <ProgrammingProvider>
-                        <RadioPlayerProvider>
-                          <BannerProvider>
+          <SupabaseBannerProvider>
+            <SupabaseContactInfoProvider>
+              <SupabaseNewsletterProvider>
+                <ThemeProvider>
+                  <UsersProvider>
+                    <AuthProvider>
+                      <ContactProvider>
+                        <ProgrammingProvider>
+                          <RadioPlayerProvider>
                             <CommentsProvider>
-                              <NewsletterProvider>
-                                <NotificationsProvider>
-                                  <TooltipProvider>
-                                    <AppContent />
-                                  </TooltipProvider>
-                                </NotificationsProvider>
-                              </NewsletterProvider>
+                              <NotificationsProvider>
+                                <TooltipProvider>
+                                  <AppContent />
+                                </TooltipProvider>
+                              </NotificationsProvider>
                             </CommentsProvider>
-                          </BannerProvider>
-                        </RadioPlayerProvider>
-                      </ProgrammingProvider>
-                    </ContactInfoProvider>
-                  </ContactProvider>
-                </NewsProvider>
-              </AuthProvider>
-            </UsersProvider>
-          </ThemeProvider>
+                          </RadioPlayerProvider>
+                        </ProgrammingProvider>
+                      </ContactProvider>
+                    </AuthProvider>
+                  </UsersProvider>
+                </ThemeProvider>
+              </SupabaseNewsletterProvider>
+            </SupabaseContactInfoProvider>
+          </SupabaseBannerProvider>
         </SupabaseNewsProvider>
       </SupabaseAuthProvider>
     </HelmetProvider>

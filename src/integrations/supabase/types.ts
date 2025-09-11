@@ -104,6 +104,60 @@ export type Database = {
           },
         ]
       }
+      banners: {
+        Row: {
+          category: string | null
+          click_url: string | null
+          columnist_id: string | null
+          created_at: string
+          duration: number | null
+          end_date: string | null
+          gif_url: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          position: string
+          sequence: number | null
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          click_url?: string | null
+          columnist_id?: string | null
+          created_at?: string
+          duration?: number | null
+          end_date?: string | null
+          gif_url: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          position: string
+          sequence?: number | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          click_url?: string | null
+          columnist_id?: string | null
+          created_at?: string
+          duration?: number | null
+          end_date?: string | null
+          gif_url?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          position?: string
+          sequence?: number | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           article_id: string
@@ -154,6 +208,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contact_info: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          email1: string
+          email2: string | null
+          facebook_url: string | null
+          id: string
+          instagram_url: string | null
+          phone1: string
+          phone2: string | null
+          saturday_hours: string
+          state: string
+          sunday_hours: string
+          twitter_url: string | null
+          updated_at: string
+          weekdays_hours: string
+          youtube_url: string | null
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          email1: string
+          email2?: string | null
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          phone1: string
+          phone2?: string | null
+          saturday_hours: string
+          state: string
+          sunday_hours: string
+          twitter_url?: string | null
+          updated_at?: string
+          weekdays_hours: string
+          youtube_url?: string | null
+          zip_code: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          email1?: string
+          email2?: string | null
+          facebook_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          phone1?: string
+          phone2?: string | null
+          saturday_hours?: string
+          state?: string
+          sunday_hours?: string
+          twitter_url?: string | null
+          updated_at?: string
+          weekdays_hours?: string
+          youtube_url?: string | null
+          zip_code?: string
+        }
+        Relationships: []
       }
       contact_messages: {
         Row: {
