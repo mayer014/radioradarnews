@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://yoursite.lovable.app/</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Main Categories -->
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/politica</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/policial</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/entretenimento</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/internacional</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/esportes</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/tecnologia</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/categoria/ciencia-saude</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Special Pages -->
+  <url>
+    <loc>https://yoursite.lovable.app/colunistas</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/radio</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/ao-vivo</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/contato</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/privacidade</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/termos</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <!-- Sample Article URLs with News tags -->
+  <url>
+    <loc>https://yoursite.lovable.app/artigo/1</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.6</priority>
+    <news:news>
+      <news:publication>
+        <news:name>Portal News</news:name>
+        <news:language>pt</news:language>
+      </news:publication>
+      <news:publication_date>2024-12-09</news:publication_date>
+      <news:title>CPI investiga irregularidades em contratos da prefeitura</news:title>
+      <news:keywords>política, cpi, prefeitura, contratos, investigação</news:keywords>
+    </news:news>
+    <image:image>
+      <image:loc>https://images.unsplash.com/photo-1529107386315-e1a2ed48a08b?w=800&h=400&fit=crop</image:loc>
+      <image:title>CPI investiga irregularidades em contratos da prefeitura</image:title>
+      <image:caption>Comissão Parlamentar de Inquérito descobre superfaturamento em obras públicas</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Sample Columnist URLs -->
+  <url>
+    <loc>https://yoursite.lovable.app/colunista/ana-costa</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://yoursite.lovable.app/colunista/ana-costa/artigo/ana-1</loc>
+    <lastmod>2024-12-09</lastmod>
+    <changefreq>never</changefreq>
+    <priority>0.6</priority>
+    <news:news>
+      <news:publication>
+        <news:name>Portal News</news:name>
+        <news:language>pt</news:language>
+      </news:publication>
+      <news:publication_date>2024-12-09</news:publication_date>
+      <news:title>Mercado financeiro: oportunidades e riscos em 2025</news:title>
+      <news:keywords>economia, mercado financeiro, investimentos, 2025</news:keywords>
+    </news:news>
+  </url>
+  
+</urlset>
