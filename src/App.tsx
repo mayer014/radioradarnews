@@ -28,6 +28,7 @@ import ArticlePage from "./pages/ArticlePage";
 import AdminLogin from "./pages/AdminLogin";
 import SupabaseAdminLogin from "./pages/SupabaseAdminLogin";
 import AdminPanel from "./pages/AdminPanel";
+import AccountSecurity from "./pages/AccountSecurity";
 import NewsPage from "./pages/NewsPage";
 import RadioPage from "./pages/RadioPage";
 import LivePage from "./pages/LivePage";
@@ -65,6 +66,7 @@ const AppContent = () => {
           <Route path="/termos-uso" element={<TermsOfService />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/supabase-login" element={<SupabaseAdminLogin />} />
+          <Route path="/admin/security" element={<AccountSecurity />} />
           <Route path="/admin" element={
             <PrivateRoute>
               <AdminPanel />
