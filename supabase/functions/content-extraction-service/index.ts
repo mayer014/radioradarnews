@@ -1,15 +1,9 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface ExtractedContent {
   title: string;
@@ -19,64 +13,75 @@ interface ExtractedContent {
   domain: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { url } = await req.json();
-    
+
     if (!url) {
-      throw new Error('URL is required');
+      return new Response(
+        JSON.stringify({ error: 'URL is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`Extracting content from: ${url}`);
-
-    // Extract content using multiple strategies
+    console.log('Extracting content from:', url);
     const extractedContent = await extractContentFromUrl(url);
-
-    return new Response(JSON.stringify({
-      success: true,
-      data: extractedContent
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    
+    console.log('Content extracted successfully:', {
+      title: extractedContent.title,
+      contentLength: extractedContent.content.length,
+      hasImage: !!extractedContent.mainImage
     });
 
+    return new Response(
+      JSON.stringify(extractedContent),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Error in content extraction:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to extract content',
+        details: error.message 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
 
 async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
-  const strategies = [
-    () => fetchWithJsoup(url),
-    () => fetchWithReadability(url),
-    () => fetchWithDirect(url)
-  ];
-
-  let lastError: Error | null = null;
-
-  for (const strategy of strategies) {
-    try {
-      console.log('Trying extraction strategy...');
-      const htmlContent = await strategy();
-      return extractContentFromHTML(htmlContent, url);
-    } catch (error) {
-      console.warn('Strategy failed:', error.message);
-      lastError = error instanceof Error ? error : new Error('Strategy failed');
-      continue;
+  console.log('Starting content extraction for:', url);
+  
+  try {
+    console.log('Fetching HTML directly...');
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Content-Extractor/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    
+    const html = await response.text();
+    console.log('HTML fetched successfully, length:', html.length);
+    
+    return extractContentFromHTML(html, url);
+  } catch (error) {
+    console.error('Direct fetch failed:', error);
+    throw new Error(`Failed to extract content: ${error.message}`);
   }
-
-  throw new Error(`All extraction strategies failed. Last error: ${lastError?.message}`);
 }
 
 async function fetchWithJsoup(url: string): Promise<string> {
@@ -167,59 +172,184 @@ async function fetchWithDirect(url: string): Promise<string> {
 }
 
 function extractContentFromHTML(html: string, originalUrl: string): ExtractedContent {
-  // Basic HTML parsing - in production, you'd use a proper DOM parser
-  const urlObj = new URL(originalUrl);
-  const domain = urlObj.hostname;
-
-  // Extract title
-  const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i) ||
-                     html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]*)"[^>]*>/i) ||
-                     html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
-  const title = titleMatch?.[1]?.trim() || 'Título não encontrado';
-
-  // Extract main image
-  const imageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/i) ||
-                     html.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-  let mainImage = imageMatch?.[1]?.trim();
+  console.log('Parsing HTML content with DOMParser...');
   
-  if (mainImage && !mainImage.startsWith('http')) {
-    try {
-      mainImage = new URL(mainImage, originalUrl).href;
-    } catch {
-      mainImage = undefined;
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    
+    if (!doc) {
+      throw new Error('Failed to parse HTML document');
     }
+    
+    // Extract title
+    let title = '';
+    const titleElement = doc.querySelector('title');
+    const ogTitleElement = doc.querySelector('meta[property="og:title"]');
+    const h1Element = doc.querySelector('h1');
+    
+    if (ogTitleElement) {
+      title = ogTitleElement.getAttribute('content') || '';
+    } else if (titleElement) {
+      title = titleElement.textContent || '';
+    } else if (h1Element) {
+      title = h1Element.textContent || '';
+    }
+    
+    title = title.trim() || 'Artigo Importado';
+    
+    // Extract main image
+    let mainImage = '';
+    const ogImageElement = doc.querySelector('meta[property="og:image"]');
+    const twitterImageElement = doc.querySelector('meta[name="twitter:image"]');
+    const firstImg = doc.querySelector('article img, main img, .content img, img');
+    
+    if (ogImageElement) {
+      mainImage = ogImageElement.getAttribute('content') || '';
+    } else if (twitterImageElement) {
+      mainImage = twitterImageElement.getAttribute('content') || '';
+    } else if (firstImg) {
+      mainImage = firstImg.getAttribute('src') || '';
+    }
+    
+    // Make relative URLs absolute
+    if (mainImage && !mainImage.startsWith('http')) {
+      try {
+        const baseUrl = new URL(originalUrl);
+        mainImage = new URL(mainImage, baseUrl.origin).href;
+      } catch (e) {
+        console.warn('Failed to resolve image URL:', e);
+        mainImage = '';
+      }
+    }
+    
+    // Extract content - try multiple selectors
+    let contentElement;
+    const selectors = [
+      'article',
+      'main',
+      '[role="main"]',
+      '.content',
+      '.post-content',
+      '.entry-content',
+      '.article-content',
+      '.story-body',
+      '.post-body'
+    ];
+    
+    for (const selector of selectors) {
+      contentElement = doc.querySelector(selector);
+      if (contentElement) {
+        console.log(`Found content using selector: ${selector}`);
+        break;
+      }
+    }
+    
+    // Fallback: find the element with most text content
+    if (!contentElement) {
+      const candidates = doc.querySelectorAll('div, section');
+      let bestCandidate = null;
+      let maxTextLength = 0;
+      
+      for (const candidate of candidates) {
+        const textContent = candidate.textContent || '';
+        if (textContent.length > maxTextLength) {
+          maxTextLength = textContent.length;
+          bestCandidate = candidate;
+        }
+      }
+      
+      if (bestCandidate && maxTextLength > 200) {
+        contentElement = bestCandidate;
+        console.log('Using best candidate with', maxTextLength, 'characters');
+      }
+    }
+    
+    let content = '';
+    if (contentElement) {
+      // Remove unwanted elements
+      const unwantedSelectors = [
+        'script', 'style', 'nav', 'header', 'footer', 
+        '.advertisement', '.ads', '.social-share',
+        '.comments', '.related-posts', '.sidebar'
+      ];
+      
+      for (const selector of unwantedSelectors) {
+        const elements = contentElement.querySelectorAll(selector);
+        for (const element of elements) {
+          element.remove();
+        }
+      }
+      
+      // Extract paragraphs and headings
+      const contentElements = contentElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li');
+      const contentParts = [];
+      
+      for (const element of contentElements) {
+        const text = element.textContent?.trim();
+        if (text && text.length > 10) {
+          contentParts.push(text);
+        }
+      }
+      
+      content = contentParts.join('\n\n');
+      
+      // If no structured content found, use all text
+      if (!content || content.length < 100) {
+        content = contentElement.textContent?.trim() || '';
+      }
+    }
+    
+    // Final fallback
+    if (!content || content.length < 50) {
+      const bodyText = doc.body?.textContent?.trim();
+      if (bodyText && bodyText.length > 200) {
+        content = bodyText.substring(0, 1000) + '...';
+      } else {
+        content = 'Conteúdo não pôde ser extraído automaticamente. Por favor, adicione o conteúdo manualmente.';
+      }
+    }
+    
+    // Clean and limit content
+    content = content.replace(/\s+/g, ' ').trim();
+    if (content.length > 3000) {
+      content = content.substring(0, 3000) + '...';
+    }
+    
+    const domain = new URL(originalUrl).hostname;
+    
+    console.log('Extraction completed:', {
+      title: title.substring(0, 50) + '...',
+      contentLength: content.length,
+      hasImage: !!mainImage,
+      domain
+    });
+    
+    return {
+      title,
+      content,
+      mainImage: mainImage || undefined,
+      url: originalUrl,
+      domain
+    };
+    
+  } catch (error) {
+    console.error('DOM parsing failed:', error);
+    
+    // Fallback to regex-based extraction
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : 'Artigo Importado';
+    
+    const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/i);
+    const mainImage = ogImageMatch ? ogImageMatch[1] : undefined;
+    
+    const domain = new URL(originalUrl).hostname;
+    
+    return {
+      title,
+      content: 'Conteúdo não pôde ser extraído automaticamente. Por favor, adicione o conteúdo manualmente.',
+      mainImage,
+      url: originalUrl,
+      domain
+    };
   }
-
-  // Extract content - simplified approach
-  let content = html;
-  
-  // Remove unwanted elements
-  content = content.replace(/<script[^>]*>.*?<\/script>/gis, '');
-  content = content.replace(/<style[^>]*>.*?<\/style>/gis, '');
-  content = content.replace(/<!--.*?-->/gs, '');
-  
-  // Try to find main content
-  const articleMatch = content.match(/<article[^>]*>(.*?)<\/article>/is) ||
-                      content.match(/<main[^>]*>(.*?)<\/main>/is) ||
-                      content.match(/<div[^>]*class="[^"]*content[^"]*"[^>]*>(.*?)<\/div>/is);
-  
-  if (articleMatch) {
-    content = articleMatch[1];
-  }
-
-  // Clean up content
-  content = content
-    .replace(/<(?:br|hr)\s*\/?>/gi, '\n')
-    .replace(/\s*\n\s*/g, '\n')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
-  return {
-    title,
-    content,
-    mainImage,
-    url: originalUrl,
-    domain
-  };
 }

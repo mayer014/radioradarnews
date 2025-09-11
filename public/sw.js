@@ -1,6 +1,6 @@
-const CACHE_NAME = 'portal-news-v1.0.0';
-const STATIC_CACHE = 'static-v1.0.0';
-const DYNAMIC_CACHE = 'dynamic-v1.0.0';
+const CACHE_NAME = 'portal-news-v1.0.1';
+const STATIC_CACHE = 'static-v1.0.1';
+const DYNAMIC_CACHE = 'dynamic-v1.0.1';
 
 // Recursos essenciais para cache
 const STATIC_ASSETS = [

@@ -951,18 +951,19 @@ export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const addArticle = (articleData: Omit<NewsArticle, 'id' | 'createdAt' | 'updatedAt' | 'views' | 'comments'>, currentUserId?: string) => {
-    // Validação robusta dos dados de entrada
-    if (!articleData.title?.trim() || !articleData.content?.trim() || !articleData.category?.trim()) {
-      console.error('NewsContext - Dados inválidos para criação de artigo:', articleData);
-      throw new Error('Título, conteúdo e categoria são obrigatórios');
-    }
+  const addArticle = useCallback((articleData: Omit<NewsArticle, 'id' | 'createdAt' | 'updatedAt' | 'views' | 'comments'>, currentUserId?: string) => {
+    try {
+      // Validação robusta dos dados de entrada
+      if (!articleData.title?.trim() || !articleData.content?.trim() || !articleData.category?.trim()) {
+        console.error('NewsContext - Dados inválidos para criação de artigo:', articleData);
+        throw new Error('Título, conteúdo e categoria são obrigatórios');
+      }
 
-    const now = new Date().toISOString();
-    const newArticle: NewsArticle = {
-      ...articleData,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // ID mais único
-      createdAt: now,
+      const now = new Date().toISOString();
+      const newArticle: NewsArticle = {
+        ...articleData,
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // ID mais único
+        createdAt: now,
       updatedAt: now,
       views: 0,
       comments: 0,
@@ -1071,6 +1072,15 @@ export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 100); // Pequeno delay para garantir que o artigo foi salvo
         }
         
+        // Salvar no localStorage com melhor tratamento de erros
+        try {
+          localStorage.setItem('news_articles', JSON.stringify(updated));
+          console.log('Article saved successfully:', newArticle.id);
+        } catch (storageError) {
+          console.error('Failed to save articles to localStorage:', storageError);
+          alert('Erro ao salvar artigo. Verifique o espaço de armazenamento do navegador.');
+        }
+        
         // Articles list updated successfully
         return updated;
       } catch (error) {
@@ -1078,7 +1088,11 @@ export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [newArticle, ...prev]; // Fallback: pelo menos adiciona o artigo principal
       }
     });
-  };
+    } catch (error) {
+      console.error('Error adding article:', error);
+      alert('Erro ao adicionar artigo. Por favor, tente novamente.');
+    }
+  }, []);
 
   const updateArticle = (id: string, updates: Partial<NewsArticle>) => {
     if (!id?.trim()) {

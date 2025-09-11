@@ -44,12 +44,14 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       console.log('Rádio pausada');
     } else {
       console.log('Tentando reproduzir stream:', radioStreamUrl);
-      audioRef.current.play().catch((error) => {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        console.log('Rádio reproduzindo com sucesso');
+      }).catch((error) => {
         console.error('Erro ao reproduzir:', error);
         setIsPlaying(false);
         alert('Erro ao conectar com o stream da rádio. Verifique a URL no painel admin.');
       });
-      setIsPlaying(true);
     }
   };
 
