@@ -41,7 +41,8 @@ const queryClient = new QueryClient();
 
 // Componente interno para usar o hook de sincronização
 const AppContent = () => {
-  useBannerSync(); // Sincroniza banners com status dos colunistas
+  // Temporarily disable legacy banner sync to avoid provider mismatch during migration
+  // useBannerSync();
   
   return (
     <>
