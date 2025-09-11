@@ -38,7 +38,7 @@ const defaultUsers: User[] = [
     id: 'admin',
     name: 'Administrador',
     username: 'admin',
-    password: 'admin123',
+    password: '25896589Ba@23479612',
     role: 'admin',
   },
   {
