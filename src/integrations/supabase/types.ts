@@ -104,6 +104,75 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          entity: string
+          entity_id: string
+          event: string
+          id: string
+          level: Database["public"]["Enums"]["audit_level"] | null
+          payload_jsonb: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          entity: string
+          entity_id: string
+          event: string
+          id?: string
+          level?: Database["public"]["Enums"]["audit_level"] | null
+          payload_jsonb?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          entity?: string
+          entity_id?: string
+          event?: string
+          id?: string
+          level?: Database["public"]["Enums"]["audit_level"] | null
+          payload_jsonb?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      authors: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          social_jsonb: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          social_jsonb?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          social_jsonb?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           category: string | null
@@ -155,6 +224,39 @@ export type Database = {
           sequence?: number | null
           start_date?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          color_hex: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          color_hex?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          color_hex?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -302,6 +404,54 @@ export type Database = {
           phone?: string | null
           read?: boolean | null
           subject?: string
+        }
+        Relationships: []
+      }
+      media_assets: {
+        Row: {
+          bucket_name: string
+          checksum: string | null
+          created_at: string | null
+          file_path: string
+          file_size: number | null
+          height: number | null
+          id: string
+          meta_jsonb: Json | null
+          mime_type: string
+          original_name: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+          width: number | null
+        }
+        Insert: {
+          bucket_name?: string
+          checksum?: string | null
+          created_at?: string | null
+          file_path: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          meta_jsonb?: Json | null
+          mime_type: string
+          original_name?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Update: {
+          bucket_name?: string
+          checksum?: string | null
+          created_at?: string | null
+          file_path?: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          meta_jsonb?: Json | null
+          mime_type?: string
+          original_name?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+          width?: number | null
         }
         Relationships: []
       }
@@ -482,6 +632,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -502,6 +679,8 @@ export type Database = {
     }
     Enums: {
       article_status: "draft" | "published"
+      audit_level: "info" | "warn" | "error"
+      banner_type: "image" | "html" | "embed"
       campaign_status: "draft" | "scheduled" | "sent"
       comment_status: "pending" | "approved" | "rejected"
       subscriber_status: "active" | "unsubscribed" | "bounced"
@@ -634,6 +813,8 @@ export const Constants = {
   public: {
     Enums: {
       article_status: ["draft", "published"],
+      audit_level: ["info", "warn", "error"],
+      banner_type: ["image", "html", "embed"],
       campaign_status: ["draft", "scheduled", "sent"],
       comment_status: ["pending", "approved", "rejected"],
       subscriber_status: ["active", "unsubscribed", "bounced"],
