@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.media-service]
 verify_jwt = true
+
+[functions.content-extraction-service]
+verify_jwt = false
+
+[functions.ai-image-generation-service]
+verify_jwt = false

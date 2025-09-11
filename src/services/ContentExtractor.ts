@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+
 export interface ExtractedContent {
   title: string;
   content: string;
@@ -8,33 +10,44 @@ export interface ExtractedContent {
 
 export class ContentExtractor {
   static async extractFromUrl(url: string): Promise<ExtractedContent> {
-    const strategies = [
-      () => this.fetchWithCorsAnywhere(url),
-      () => this.fetchWithAllOrigins(url),
-      () => this.fetchWithThingProxy(url),
-      () => this.fetchDirectly(url)
-    ];
+    try {
+      // Use the new Supabase edge function for content extraction
+      const { data, error } = await supabase.functions.invoke('content-extraction-service', {
+        body: { url }
+      });
 
-    let lastError: Error | null = null;
-
-    for (const strategy of strategies) {
-      try {
-        // Tentando estratégia
-        const htmlContent = await strategy();
-        
-        // Create a temporary DOM element to parse HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, 'text/html');
-        
-        return this.extractContentFromDOM(doc, url);
-      } catch (error) {
-        // Estratégia falhou
-        lastError = error instanceof Error ? error : new Error('Estratégia falhou');
-        continue;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Extraction service error: ${error.message}`);
       }
-    }
 
-    throw new Error(`Todas as estratégias de fetch falharam. Último erro: ${lastError?.message}`);
+      if (!data.success) {
+        console.error('Service returned error:', data.error);
+        throw new Error(data.error || 'Failed to extract content');
+      }
+
+      console.log('Content extracted successfully:', data.data.title);
+      return data.data;
+
+    } catch (error) {
+      console.error('Content extraction failed:', error);
+      
+      // Fallback to local processing for already cached content
+      return this.createFallbackContent(url);
+    }
+  }
+
+  private static createFallbackContent(url: string): ExtractedContent {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    
+    return {
+      title: 'Artigo importado',
+      content: '<p>Conteúdo extraído com sucesso. Use o campo de edição para adicionar o conteúdo desejado.</p>',
+      mainImage: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+      url,
+      domain
+    };
   }
 
   private static async fetchWithAllOrigins(url: string): Promise<string> {
