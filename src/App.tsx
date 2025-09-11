@@ -20,6 +20,8 @@ import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { useBannerSync } from "@/hooks/useBannerSync";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { ContactInfoProvider } from "@/contexts/ContactInfoContext";
+import { NewsProvider } from "@/contexts/NewsContext";
+import { NewsletterProvider } from "@/contexts/NewsletterContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -93,11 +95,15 @@ const App = () => (
                             <CommentsProvider>
                               <NotificationsProvider>
                                   <TooltipProvider>
-                                    <ContactInfoProvider>
-                                      <BannerProvider>
-                                        <AppContent />
-                                      </BannerProvider>
-                                    </ContactInfoProvider>
+                                    <NewsProvider>
+                                      <NewsletterProvider>
+                                        <ContactInfoProvider>
+                                          <BannerProvider>
+                                            <AppContent />
+                                          </BannerProvider>
+                                        </ContactInfoProvider>
+                                      </NewsletterProvider>
+                                    </NewsProvider>
                                   </TooltipProvider>
                               </NotificationsProvider>
                             </CommentsProvider>
