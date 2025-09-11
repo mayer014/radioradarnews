@@ -28,21 +28,28 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const togglePlayPause = () => {
     if (!radioStreamUrl) {
+      console.warn('Stream da rádio não configurado');
       alert('Stream da rádio não configurado. Configure no painel admin.');
       return;
     }
 
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
+    if (!audioRef.current) {
+      console.error('AudioRef não disponível');
+      return;
+    }
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      console.log('Rádio pausada');
+    } else {
+      console.log('Tentando reproduzir stream:', radioStreamUrl);
+      audioRef.current.play().catch((error) => {
+        console.error('Erro ao reproduzir:', error);
         setIsPlaying(false);
-      } else {
-        audioRef.current.play().catch((error) => {
-          console.error('Erro ao reproduzir:', error);
-          alert('Erro ao conectar com o stream da rádio.');
-        });
-        setIsPlaying(true);
-      }
+        alert('Erro ao conectar com o stream da rádio. Verifique a URL no painel admin.');
+      });
+      setIsPlaying(true);
     }
   };
 
