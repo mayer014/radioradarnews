@@ -87,31 +87,31 @@ const App = () => (
             <SupabaseContactInfoProvider>
               <SupabaseNewsletterProvider>
                 <ThemeProvider>
-                  <UsersProvider>
-                    <AuthProvider>
-                      <ContactProvider>
-                        <ProgrammingProvider>
-                          <RadioPlayerProvider>
-                            <CommentsProvider>
-                              <NotificationsProvider>
-                                  <TooltipProvider>
-                                    <NewsProvider>
-                                      <NewsletterProvider>
-                                        <ContactInfoProvider>
-                                          <BannerProvider>
-                                            <AppContent />
-                                          </BannerProvider>
-                                        </ContactInfoProvider>
-                                      </NewsletterProvider>
-                                    </NewsProvider>
-                                  </TooltipProvider>
-                              </NotificationsProvider>
-                            </CommentsProvider>
-                          </RadioPlayerProvider>
-                        </ProgrammingProvider>
-                      </ContactProvider>
-                    </AuthProvider>
-                  </UsersProvider>
+                  <NewsProvider>
+                    <NewsletterProvider>
+                      <UsersProvider>
+                        <AuthProvider>
+                          <ContactProvider>
+                            <ProgrammingProvider>
+                              <RadioPlayerProvider>
+                                <CommentsProvider>
+                                  <NotificationsProvider>
+                                    <TooltipProvider>
+                                      <ContactInfoProvider>
+                                        <BannerProvider>
+                                          <AppContent />
+                                        </BannerProvider>
+                                      </ContactInfoProvider>
+                                    </TooltipProvider>
+                                  </NotificationsProvider>
+                                </CommentsProvider>
+                              </RadioPlayerProvider>
+                            </ProgrammingProvider>
+                          </ContactProvider>
+                        </AuthProvider>
+                      </UsersProvider>
+                    </NewsletterProvider>
+                  </NewsProvider>
                 </ThemeProvider>
               </SupabaseNewsletterProvider>
             </SupabaseContactInfoProvider>
