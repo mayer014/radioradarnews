@@ -218,7 +218,23 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const incrementViews = async (id: string) => {
     try {
-      const { error } = await supabase.rpc('increment_article_views', { article_id: id });
+      // Buscar o artigo atual para pegar o número de views
+      const { data: currentArticle, error: fetchError } = await supabase
+        .from('articles')
+        .select('views')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching current views:', fetchError);
+        return;
+      }
+
+      // Incrementar views
+      const { error } = await supabase
+        .from('articles')
+        .update({ views: (currentArticle.views || 0) + 1 })
+        .eq('id', id);
       
       if (error) {
         console.error('Error incrementing views:', error);

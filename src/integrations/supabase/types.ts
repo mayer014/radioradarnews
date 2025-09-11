@@ -370,6 +370,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_article_views: {
+        Args: { article_id: string }
+        Returns: undefined
+      }
       is_active_columnist: {
         Args: { user_id: string }
         Returns: boolean

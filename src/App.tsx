@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
+import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NewsProvider } from "@/contexts/NewsContext";
 import { ContactProvider } from "@/contexts/ContactContext";
@@ -21,6 +23,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
 import AdminLogin from "./pages/AdminLogin";
+import SupabaseAdminLogin from "./pages/SupabaseAdminLogin";
 import AdminPanel from "./pages/AdminPanel";
 import NewsPage from "./pages/NewsPage";
 import RadioPage from "./pages/RadioPage";
@@ -57,6 +60,7 @@ const AppContent = () => {
           <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
           <Route path="/termos-uso" element={<TermsOfService />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/supabase-login" element={<SupabaseAdminLogin />} />
           <Route path="/admin" element={
             <PrivateRoute>
               <AdminPanel />
@@ -73,33 +77,37 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
-      <ThemeProvider>
-        <UsersProvider>
-          <AuthProvider>
-            <NewsProvider>
-              <ContactProvider>
-                <ContactInfoProvider>
-                  <ProgrammingProvider>
-                    <RadioPlayerProvider>
-                      <BannerProvider>
-                        <CommentsProvider>
-                          <NewsletterProvider>
-                            <NotificationsProvider>
-                              <TooltipProvider>
-                                <AppContent />
-                              </TooltipProvider>
-                            </NotificationsProvider>
-                          </NewsletterProvider>
-                        </CommentsProvider>
-                      </BannerProvider>
-                    </RadioPlayerProvider>
-                  </ProgrammingProvider>
-                </ContactInfoProvider>
-              </ContactProvider>
-            </NewsProvider>
-          </AuthProvider>
-        </UsersProvider>
-      </ThemeProvider>
+      <SupabaseAuthProvider>
+        <SupabaseNewsProvider>
+          <ThemeProvider>
+            <UsersProvider>
+              <AuthProvider>
+                <NewsProvider>
+                  <ContactProvider>
+                    <ContactInfoProvider>
+                      <ProgrammingProvider>
+                        <RadioPlayerProvider>
+                          <BannerProvider>
+                            <CommentsProvider>
+                              <NewsletterProvider>
+                                <NotificationsProvider>
+                                  <TooltipProvider>
+                                    <AppContent />
+                                  </TooltipProvider>
+                                </NotificationsProvider>
+                              </NewsletterProvider>
+                            </CommentsProvider>
+                          </BannerProvider>
+                        </RadioPlayerProvider>
+                      </ProgrammingProvider>
+                    </ContactInfoProvider>
+                  </ContactProvider>
+                </NewsProvider>
+              </AuthProvider>
+            </UsersProvider>
+          </ThemeProvider>
+        </SupabaseNewsProvider>
+      </SupabaseAuthProvider>
     </HelmetProvider>
   </QueryClientProvider>
 );
