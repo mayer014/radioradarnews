@@ -205,31 +205,31 @@ const RobustArticleEditor: React.FC<RobustArticleEditorProps> = ({
     if (!file) return;
 
     try {
-      // Convert to base64
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]); // Remove data:image/...;base64, prefix
-        };
-        reader.readAsDataURL(file);
-      });
+      // Upload directly to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `articles/${fileName}`;
 
-      const result = await serviceLayer.uploadMedia(base64, file.name, file.type);
+      const { data, error } = await supabase.storage
+        .from('article-images')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('article-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ 
+        ...prev, 
+        cover_image_url: publicUrl 
+      }));
       
-      if (result.success && result.data) {
-        setFormData(prev => ({ 
-          ...prev, 
-          cover_image_url: result.data.public_url 
-        }));
-        
-        toast({
-          title: "Imagem carregada",
-          description: "Imagem de capa carregada com sucesso",
-        });
-      } else {
-        throw new Error(result.error);
-      }
+      toast({
+        title: "Imagem carregada",
+        description: "Imagem de capa carregada com sucesso",
+      });
 
     } catch (error: any) {
       console.error('Error uploading image:', error);
