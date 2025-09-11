@@ -76,7 +76,11 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Se não for admin, mostrar apenas artigos publicados e próprios artigos
       if (profile?.role !== 'admin') {
-        query = query.or(`status.eq.published,author_id.eq.${profile?.id || 'none'}`);
+        if (profile?.id) {
+          query = query.or(`status.eq.published,author_id.eq.${profile.id}`);
+        } else {
+          query = query.eq('status', 'published');
+        }
       }
 
       const { data, error } = await query;
