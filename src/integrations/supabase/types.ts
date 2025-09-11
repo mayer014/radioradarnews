@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      article_tags: {
+        Row: {
+          article_id: string
+          created_at: string | null
+          tag_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string | null
+          tag_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string | null
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "article_tags_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "article_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles: {
         Row: {
           author_id: string | null
@@ -104,6 +137,97 @@ export type Database = {
           },
         ]
       }
+      articles_normalized: {
+        Row: {
+          author_id: string
+          body_richtext: string
+          category_id: string
+          comments_count: number | null
+          cover_image_url: string | null
+          cover_media_id: string | null
+          created_at: string | null
+          excerpt: string
+          featured: boolean | null
+          id: string
+          meta_jsonb: Json | null
+          published_at: string | null
+          scheduled_for: string | null
+          seo_jsonb: Json | null
+          slug: string
+          status: Database["public"]["Enums"]["article_status"] | null
+          subtitle: string | null
+          title: string
+          updated_at: string | null
+          views: number | null
+        }
+        Insert: {
+          author_id: string
+          body_richtext: string
+          category_id: string
+          comments_count?: number | null
+          cover_image_url?: string | null
+          cover_media_id?: string | null
+          created_at?: string | null
+          excerpt: string
+          featured?: boolean | null
+          id?: string
+          meta_jsonb?: Json | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          seo_jsonb?: Json | null
+          slug: string
+          status?: Database["public"]["Enums"]["article_status"] | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string | null
+          views?: number | null
+        }
+        Update: {
+          author_id?: string
+          body_richtext?: string
+          category_id?: string
+          comments_count?: number | null
+          cover_image_url?: string | null
+          cover_media_id?: string | null
+          created_at?: string | null
+          excerpt?: string
+          featured?: boolean | null
+          id?: string
+          meta_jsonb?: Json | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          seo_jsonb?: Json | null
+          slug?: string
+          status?: Database["public"]["Enums"]["article_status"] | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_normalized_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_normalized_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_normalized_cover_media_id_fkey"
+            columns: ["cover_media_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           context: Json | null
@@ -173,6 +297,95 @@ export type Database = {
         }
         Relationships: []
       }
+      banner_schedule: {
+        Row: {
+          banner_id: string | null
+          created_at: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          slot_id: string | null
+          starts_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          banner_id?: string | null
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          slot_id?: string | null
+          starts_at: string
+          updated_at?: string | null
+        }
+        Update: {
+          banner_id?: string | null
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          slot_id?: string | null
+          starts_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banner_schedule_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "banners_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banner_schedule_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "banner_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      banner_slots: {
+        Row: {
+          created_at: string | null
+          default_banner_id: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          slot_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_banner_id?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          slot_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_banner_id?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          slot_key?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_banner_slots_default_banner"
+            columns: ["default_banner_id"]
+            isOneToOne: false
+            referencedRelation: "banners_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banners: {
         Row: {
           category: string | null
@@ -224,6 +437,45 @@ export type Database = {
           sequence?: number | null
           start_date?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      banners_normalized: {
+        Row: {
+          active: boolean | null
+          click_url: string | null
+          created_at: string | null
+          id: string
+          meta_jsonb: Json | null
+          name: string
+          payload_jsonb: Json
+          priority: number | null
+          type: Database["public"]["Enums"]["banner_type"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          click_url?: string | null
+          created_at?: string | null
+          id?: string
+          meta_jsonb?: Json | null
+          name: string
+          payload_jsonb?: Json
+          priority?: number | null
+          type?: Database["public"]["Enums"]["banner_type"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          click_url?: string | null
+          created_at?: string | null
+          id?: string
+          meta_jsonb?: Json | null
+          name?: string
+          payload_jsonb?: Json
+          priority?: number | null
+          type?: Database["public"]["Enums"]["banner_type"] | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -664,6 +916,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_publish_scheduled_articles: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       increment_article_views: {
         Args: { article_id: string }
         Returns: undefined
