@@ -100,9 +100,14 @@ const RobustArticleEditor: React.FC<RobustArticleEditorProps> = ({
 
         if (error) throw error;
         if (article) {
+          // Properly cast seo_jsonb to match our interface
+          const seoData = article.seo_jsonb && typeof article.seo_jsonb === 'object' && !Array.isArray(article.seo_jsonb) 
+            ? article.seo_jsonb as { meta_title?: string; meta_description?: string; keywords?: string[]; }
+            : {};
+          
           setFormData({
             ...article,
-            seo_jsonb: typeof article.seo_jsonb === 'object' ? article.seo_jsonb : {}
+            seo_jsonb: seoData
           });
         }
       } else {
