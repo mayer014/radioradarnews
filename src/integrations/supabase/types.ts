@@ -14,16 +14,377 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      articles: {
+        Row: {
+          author_id: string | null
+          category: string
+          columnist_avatar: string | null
+          columnist_bio: string | null
+          columnist_id: string | null
+          columnist_name: string | null
+          columnist_specialty: string | null
+          comments_count: number | null
+          content: string
+          created_at: string | null
+          excerpt: string
+          featured: boolean | null
+          featured_image: string | null
+          id: string
+          is_column_copy: boolean | null
+          original_article_id: string | null
+          source_domain: string | null
+          source_url: string | null
+          status: Database["public"]["Enums"]["article_status"] | null
+          title: string
+          updated_at: string | null
+          views: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          category: string
+          columnist_avatar?: string | null
+          columnist_bio?: string | null
+          columnist_id?: string | null
+          columnist_name?: string | null
+          columnist_specialty?: string | null
+          comments_count?: number | null
+          content: string
+          created_at?: string | null
+          excerpt: string
+          featured?: boolean | null
+          featured_image?: string | null
+          id?: string
+          is_column_copy?: boolean | null
+          original_article_id?: string | null
+          source_domain?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["article_status"] | null
+          title: string
+          updated_at?: string | null
+          views?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          category?: string
+          columnist_avatar?: string | null
+          columnist_bio?: string | null
+          columnist_id?: string | null
+          columnist_name?: string | null
+          columnist_specialty?: string | null
+          comments_count?: number | null
+          content?: string
+          created_at?: string | null
+          excerpt?: string
+          featured?: boolean | null
+          featured_image?: string | null
+          id?: string
+          is_column_copy?: boolean | null
+          original_article_id?: string | null
+          source_domain?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["article_status"] | null
+          title?: string
+          updated_at?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_original_article_id_fkey"
+            columns: ["original_article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          article_id: string
+          content: string
+          created_at: string | null
+          email: string
+          id: string
+          ip_address: unknown | null
+          name: string
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"] | null
+        }
+        Insert: {
+          article_id: string
+          content: string
+          created_at?: string | null
+          email: string
+          id?: string
+          ip_address?: unknown | null
+          name: string
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["comment_status"] | null
+        }
+        Update: {
+          article_id?: string
+          content?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: unknown | null
+          name?: string
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["comment_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_messages: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          read: boolean | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          read?: boolean | null
+          subject: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          read?: boolean | null
+          subject?: string
+        }
+        Relationships: []
+      }
+      newsletter_campaigns: {
+        Row: {
+          click_count: number | null
+          content: string
+          created_at: string | null
+          html_content: string
+          id: string
+          open_count: number | null
+          recipient_count: number | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["campaign_status"] | null
+          subject: string
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          click_count?: number | null
+          content: string
+          created_at?: string | null
+          html_content: string
+          id?: string
+          open_count?: number | null
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"] | null
+          subject: string
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          click_count?: number | null
+          content?: string
+          created_at?: string | null
+          html_content?: string
+          id?: string
+          open_count?: number | null
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["campaign_status"] | null
+          subject?: string
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          email: string
+          id: string
+          name: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["subscriber_status"] | null
+          subscribed_at: string | null
+          tags: string[] | null
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          email: string
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["subscriber_status"] | null
+          subscribed_at?: string | null
+          tags?: string[] | null
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          email?: string
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["subscriber_status"] | null
+          subscribed_at?: string | null
+          tags?: string[] | null
+          unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
+      newsletter_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          html_content: string
+          id: string
+          name: string
+          subject: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          html_content: string
+          id?: string
+          name: string
+          subject: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          html_content?: string
+          id?: string
+          name?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          allowed_categories: string[] | null
+          avatar: string | null
+          bio: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialty: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          allowed_categories?: string[] | null
+          avatar?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id: string
+          is_active?: boolean | null
+          name: string
+          role?: Database["public"]["Enums"]["user_role"]
+          specialty?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          allowed_categories?: string[] | null
+          avatar?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          specialty?: string | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_active_columnist: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      article_status: "draft" | "published"
+      campaign_status: "draft" | "scheduled" | "sent"
+      comment_status: "pending" | "approved" | "rejected"
+      subscriber_status: "active" | "unsubscribed" | "bounced"
+      user_role: "admin" | "colunista"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +511,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      article_status: ["draft", "published"],
+      campaign_status: ["draft", "scheduled", "sent"],
+      comment_status: ["pending", "approved", "rejected"],
+      subscriber_status: ["active", "unsubscribed", "bounced"],
+      user_role: ["admin", "colunista"],
+    },
   },
 } as const
