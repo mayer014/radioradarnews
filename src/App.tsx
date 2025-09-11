@@ -18,6 +18,8 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { useBannerSync } from "@/hooks/useBannerSync";
+import { BannerProvider } from "@/contexts/BannerContext";
+import { ContactInfoProvider } from "@/contexts/ContactInfoContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -89,9 +91,13 @@ const App = () => (
                           <RadioPlayerProvider>
                             <CommentsProvider>
                               <NotificationsProvider>
-                                <TooltipProvider>
-                                  <AppContent />
-                                </TooltipProvider>
+                                  <TooltipProvider>
+                                    <ContactInfoProvider>
+                                      <BannerProvider>
+                                        <AppContent />
+                                      </BannerProvider>
+                                    </ContactInfoProvider>
+                                  </TooltipProvider>
                               </NotificationsProvider>
                             </CommentsProvider>
                           </RadioPlayerProvider>

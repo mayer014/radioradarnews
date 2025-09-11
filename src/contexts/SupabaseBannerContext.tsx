@@ -30,6 +30,7 @@ interface BannerContextType {
   getDefaultBanner: (position: 'hero' | 'category' | 'columnist', category?: string, columnistId?: string) => Banner | undefined;
   setAsDefault: (id: string) => Promise<void>;
   refreshBanners: () => Promise<void>;
+  syncColumnistBannersWithUsers: (users: any[]) => Promise<void>;
 }
 
 const BannerContext = createContext<BannerContextType | undefined>(undefined);
@@ -202,6 +203,50 @@ export const SupabaseBannerProvider: React.FC<{ children: ReactNode }> = ({ chil
     await fetchBanners();
   };
 
+  const syncColumnistBannersWithUsers = async (users: any[]) => {
+    try {
+      const columnists = (users || []).filter((u: any) => u.role === 'colunista');
+      const existing = banners.filter(b => b.position === 'columnist');
+
+      const missing = columnists
+        .filter((c: any) => !existing.some(b => b.columnist_id === c.id))
+        .map((c: any) => ({
+          name: `Banner ${c.columnistProfile?.name || c.name}`,
+          gif_url: '/src/assets/banner-politica.jpg',
+          position: 'columnist' as const,
+          columnist_id: c.id,
+          is_active: c.columnistProfile?.isActive ?? true,
+          click_url: ''
+        }));
+
+      if (missing.length > 0) {
+        const { error } = await supabase.from('banners').insert(missing as any);
+        if (error) throw error;
+      }
+
+      for (const b of existing) {
+        const user = columnists.find((c: any) => c.id === b.columnist_id);
+        const desired = user?.columnistProfile?.isActive ?? false;
+        if (user && b.is_active !== desired) {
+          const { error } = await supabase
+            .from('banners')
+            .update({ is_active: desired })
+            .eq('id', b.id);
+          if (error) throw error;
+        }
+      }
+
+      await fetchBanners();
+    } catch (error) {
+      console.error('Error syncing columnist banners:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao sincronizar banners de colunistas',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <BannerContext.Provider value={{
       banners,
@@ -213,6 +258,7 @@ export const SupabaseBannerProvider: React.FC<{ children: ReactNode }> = ({ chil
       getDefaultBanner,
       setAsDefault,
       refreshBanners,
+      syncColumnistBannersWithUsers,
     }}>
       {children}
     </BannerContext.Provider>

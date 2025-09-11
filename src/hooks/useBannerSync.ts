@@ -1,11 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { useBanner } from '@/contexts/BannerContext';
+import { useSupabaseBanner } from '@/contexts/SupabaseBannerContext';
 import { useUsers } from '@/contexts/UsersContext';
 
 // Hook para sincronizar banners de colunistas com o status ativo dos usuários
 export const useBannerSync = () => {
   const { users } = useUsers();
-  const { syncColumnistBannersWithUsers } = useBanner();
+  const { syncColumnistBannersWithUsers } = useSupabaseBanner();
 
   const syncBanners = useCallback(() => {
     if (users && users.length > 0) {
