@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ImageUploadProps {
   value: string;
@@ -51,26 +52,38 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     setIsUploading(true);
 
     try {
-      // Converter para base64 para demonstração
-      // Em produção, você faria upload para um serviço como Supabase, Cloudinary, etc.
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setImageUrl(dataUrl);
-        onChange(dataUrl);
-        setIsUploading(false);
-        
-        toast({
-          title: "Upload concluído",
-          description: "Imagem carregada com sucesso!",
-        });
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('article-images')
+        .upload(filePath, file);
+
+      if (error) {
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('article-images')
+        .getPublicUrl(filePath);
+
+      setImageUrl(publicUrl);
+      onChange(publicUrl);
+      setIsUploading(false);
+      
+      toast({
+        title: "Upload concluído",
+        description: "Imagem carregada com sucesso!",
+      });
+    } catch (error: any) {
       console.error('Erro no upload:', error);
       toast({
         title: "Erro no upload",
-        description: "Ocorreu um erro ao carregar a imagem. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao carregar a imagem. Tente novamente.",
         variant: "destructive",
       });
       setIsUploading(false);

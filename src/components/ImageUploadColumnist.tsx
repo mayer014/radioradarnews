@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Upload, X, Camera, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ImageUploadColumnistProps {
   currentImage?: string;
@@ -50,31 +51,37 @@ const ImageUploadColumnist: React.FC<ImageUploadColumnistProps> = ({
     setIsUploading(true);
 
     try {
-      // Converter arquivo para base64
-      const base64 = await convertToBase64(file);
-      
-      // Verificar se o base64 é válido
-      if (!base64.startsWith('data:image/')) {
-        throw new Error('Formato de imagem inválido após conversão');
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (error) {
+        throw error;
       }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setPreviewImage(publicUrl);
+      onImageChange(publicUrl);
       
-      // Redimensionar se necessário
-      const resizedImage = await resizeImage(base64, 400, 400);
-      
-      // Verificar novamente após redimensionamento
-      if (!resizedImage.startsWith('data:image/')) {
-        throw new Error('Formato de imagem inválido após redimensionamento');
-      }
-      
-      setPreviewImage(resizedImage);
-      onImageChange(resizedImage);
-      
-      // Removido o toast automático - deixar para o componente pai decidir
-    } catch (error) {
+      toast({
+        title: 'Upload concluído',
+        description: 'Foto carregada com sucesso!',
+      });
+    } catch (error: any) {
       console.error('Erro ao processar imagem:', error);
       toast({
         title: 'Erro no upload',
-        description: 'Não foi possível processar a imagem',
+        description: error.message || 'Não foi possível processar a imagem',
         variant: 'destructive'
       });
     } finally {
@@ -86,60 +93,9 @@ const ImageUploadColumnist: React.FC<ImageUploadColumnistProps> = ({
     }
   };
 
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const resizeImage = (base64: string, maxWidth: number, maxHeight: number): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          resolve(base64);
-          return;
-        }
-
-        // Calcular novas dimensões mantendo proporção
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Desenhar imagem redimensionada
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // Converter para base64 com qualidade otimizada
-        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-        resolve(resizedBase64);
-      };
-      img.src = base64;
-    });
-  };
-
   const removeImage = () => {
     setPreviewImage(null);
     onImageChange('');
-    // Removido o toast automático - deixar para o componente pai decidir
   };
 
   const triggerFileInput = (e?: React.MouseEvent) => {
