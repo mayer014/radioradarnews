@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useContactInfo } from '@/contexts/ContactInfoContext';
+import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,366 +10,351 @@ import { Save, Phone, Mail, MapPin, Clock, Globe, ExternalLink } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 
 const ContactInfoManager = () => {
-  const { contactInfo, updateContactInfo } = useContactInfo();
+  const { contactInfo, updateContactInfo, loading } = useSupabaseContactInfo();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState(contactInfo);
+  const [formData, setFormData] = useState(contactInfo || {
+    phone1: '',
+    phone2: '',
+    email1: '',
+    email2: '',
+    address: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    weekdays_hours: '',
+    saturday_hours: '',
+    sunday_hours: '',
+    facebook_url: '',
+    instagram_url: '',
+    twitter_url: '',
+    youtube_url: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update formData when contactInfo changes
+  React.useEffect(() => {
+    if (contactInfo) {
+      setFormData(contactInfo);
+    }
+  }, [contactInfo]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    if (name.startsWith('hours.')) {
-      const hoursField = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        hours: {
-          ...prev.hours,
-          [hoursField]: value
-        }
-      }));
-    } else if (name.startsWith('socialMedia.')) {
-      const socialField = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        socialMedia: {
-          ...prev.socialMedia,
-          [socialField]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSave = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Validações básicas
-      if (!formData.phone1 || !formData.email1 || !formData.address) {
-        toast({
-          title: "Campos obrigatórios",
-          description: "Preencha pelo menos: Telefone 1, Email 1 e Endereço.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Validação de formato de email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email1)) {
-        toast({
-          title: "Email inválido",
-          description: "Por favor, insira um email válido para o Email Principal.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (formData.email2 && !emailRegex.test(formData.email2)) {
-        toast({
-          title: "Email inválido",
-          description: "Por favor, insira um email válido para o Email da Redação ou deixe em branco.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      updateContactInfo(formData);
-      
+    if (!formData.phone1 || !formData.email1 || !formData.address) {
       toast({
-        title: "Informações atualizadas!",
-        description: "As informações de contato foram salvas com sucesso.",
+        title: "Campos obrigatórios",
+        description: "Telefone principal, email principal e endereço são obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await updateContactInfo(formData);
+      toast({
+        title: "Sucesso",
+        description: "Informações de contato atualizadas com sucesso!",
       });
     } catch (error) {
       toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar as informações. Tente novamente.",
-        variant: "destructive"
+        title: "Erro",
+        description: "Erro ao atualizar informações de contato.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setFormData(contactInfo);
-    toast({
-      title: "Alterações descartadas",
-      description: "Os campos foram restaurados para os valores salvos.",
-    });
-  };
+  if (loading) {
+    return (
+      <Card className="bg-gradient-card border-primary/30 p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-48 mb-4"></div>
+          <div className="space-y-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-10 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            Gerenciar Informações de Contato
-          </h2>
-          <p className="text-muted-foreground">
-            Configure as informações exibidas na página de contato
-          </p>
+          <h2 className="text-2xl font-bold">Gerenciar Informações de Contato</h2>
+          <p className="text-muted-foreground">Configure as informações de contato da empresa</p>
         </div>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/contato')}
-            className="border-primary/50 hover:bg-primary/10"
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Ver Página
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={handleReset}
-            disabled={isLoading}
-          >
-            Cancelar
-          </Button>
-          <Button 
+        <Button
+          onClick={() => navigate('/contato')}
+          variant="outline"
+          className="border-primary/50 hover:bg-primary/10"
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Ver Página de Contato
+        </Button>
+      </div>
+
+      {/* Contact Form */}
+      <Card className="bg-gradient-card border-primary/30 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Telefones */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <Phone className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Telefones</h3>
+            </div>
+            
+            <div>
+              <Label htmlFor="phone1">Telefone Principal *</Label>
+              <Input
+                id="phone1"
+                value={formData.phone1 || ''}
+                onChange={handleInputChange}
+                name="phone1"
+                placeholder="(11) 99999-9999"
+                className="border-primary/30 focus:border-primary"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone2">Telefone Secundário</Label>
+              <Input
+                id="phone2"
+                value={formData.phone2 || ''}
+                onChange={handleInputChange}
+                name="phone2"
+                placeholder="(11) 88888-8888"
+                className="border-primary/30 focus:border-primary"
+              />
+            </div>
+          </div>
+
+          {/* Emails */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <Mail className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Emails</h3>
+            </div>
+            
+            <div>
+              <Label htmlFor="email1">Email Principal *</Label>
+              <Input
+                id="email1"
+                type="email"
+                value={formData.email1 || ''}
+                onChange={handleInputChange}
+                name="email1"
+                placeholder="contato@empresa.com"
+                className="border-primary/30 focus:border-primary"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="email2">Email Secundário</Label>
+              <Input
+                id="email2"
+                type="email"
+                value={formData.email2 || ''}
+                onChange={handleInputChange}
+                name="email2"
+                placeholder="comercial@empresa.com"
+                className="border-primary/30 focus:border-primary"
+              />
+            </div>
+          </div>
+
+          {/* Endereço */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <MapPin className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Endereço</h3>
+            </div>
+            
+            <div>
+              <Label htmlFor="address">Endereço Completo *</Label>
+              <Textarea
+                id="address"
+                value={formData.address || ''}
+                onChange={handleInputChange}
+                name="address"
+                placeholder="Rua, número, bairro"
+                className="border-primary/30 focus:border-primary"
+                rows={2}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">Cidade *</Label>
+                <Input
+                  id="city"
+                  value={formData.city || ''}
+                  onChange={handleInputChange}
+                  name="city"
+                  placeholder="São Paulo"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="state">Estado *</Label>
+                <Input
+                  id="state"
+                  value={formData.state || ''}
+                  onChange={handleInputChange}
+                  name="state"
+                  placeholder="SP"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="zip_code">CEP *</Label>
+                <Input
+                  id="zip_code"
+                  value={formData.zip_code || ''}
+                  onChange={handleInputChange}
+                  name="zip_code"
+                  placeholder="00000-000"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Horários */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <Clock className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Horários de Funcionamento</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="weekdays_hours">Segunda a Sexta</Label>
+                <Input
+                  id="weekdays_hours"
+                  value={formData.weekdays_hours || ''}
+                  onChange={handleInputChange}
+                  name="weekdays_hours"
+                  placeholder="08:00 - 18:00"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="saturday_hours">Sábado</Label>
+                <Input
+                  id="saturday_hours"
+                  value={formData.saturday_hours || ''}
+                  onChange={handleInputChange}
+                  name="saturday_hours"
+                  placeholder="08:00 - 12:00"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="sunday_hours">Domingo</Label>
+                <Input
+                  id="sunday_hours"
+                  value={formData.sunday_hours || ''}
+                  onChange={handleInputChange}
+                  name="sunday_hours"
+                  placeholder="Fechado"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Redes Sociais */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <Globe className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-semibold">Redes Sociais</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="facebook_url">Facebook</Label>
+                <Input
+                  id="facebook_url"
+                  value={formData.facebook_url || ''}
+                  onChange={handleInputChange}
+                  name="facebook_url"
+                  placeholder="https://facebook.com/empresa"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="instagram_url">Instagram</Label>
+                <Input
+                  id="instagram_url"
+                  value={formData.instagram_url || ''}
+                  onChange={handleInputChange}
+                  name="instagram_url"
+                  placeholder="https://instagram.com/empresa"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="twitter_url">Twitter/X</Label>
+                <Input
+                  id="twitter_url"
+                  value={formData.twitter_url || ''}
+                  onChange={handleInputChange}
+                  name="twitter_url"
+                  placeholder="https://twitter.com/empresa"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="youtube_url">YouTube</Label>
+                <Input
+                  id="youtube_url"
+                  value={formData.youtube_url || ''}
+                  onChange={handleInputChange}
+                  name="youtube_url"
+                  placeholder="https://youtube.com/empresa"
+                  className="border-primary/30 focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-primary/20">
+          <p className="text-xs text-muted-foreground">
+            Última atualização: {(formData as any).updated_at ? new Date((formData as any).updated_at).toLocaleString('pt-BR') : 'Nunca'}
+          </p>
+          <Button
             onClick={handleSave}
-            className="bg-gradient-hero hover:shadow-glow-primary"
             disabled={isLoading}
+            className="bg-gradient-hero hover:shadow-glow-primary"
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
-      </div>
-
-      {/* Telefones */}
-      <Card className="bg-gradient-card border-primary/30 p-6">
-        <div className="flex items-center mb-4">
-          <Phone className="h-5 w-5 text-primary mr-2" />
-          <h3 className="text-lg font-semibold">Telefones</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="phone1">Telefone Principal *</Label>
-            <Input
-              id="phone1"
-              name="phone1"
-              value={formData.phone1}
-              onChange={handleInputChange}
-              placeholder="(11) 3456-7890"
-              className="bg-background/50"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="phone2">Telefone Secundário</Label>
-            <Input
-              id="phone2"
-              name="phone2"
-              value={formData.phone2}
-              onChange={handleInputChange}
-              placeholder="(11) 99999-8888"
-              className="bg-background/50"
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Emails */}
-      <Card className="bg-gradient-card border-primary/30 p-6">
-        <div className="flex items-center mb-4">
-          <Mail className="h-5 w-5 text-secondary mr-2" />
-          <h3 className="text-lg font-semibold">Emails</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="email1">Email Principal *</Label>
-            <Input
-              id="email1"
-              name="email1"
-              type="email"
-              value={formData.email1}
-              onChange={handleInputChange}
-              placeholder="contato@portalnews.com"
-              className="bg-background/50"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="email2">Email da Redação</Label>
-            <Input
-              id="email2"
-              name="email2"
-              type="email"
-              value={formData.email2}
-              onChange={handleInputChange}
-              placeholder="redacao@portalnews.com"
-              className="bg-background/50"
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Endereço */}
-      <Card className="bg-gradient-card border-primary/30 p-6">
-        <div className="flex items-center mb-4">
-          <MapPin className="h-5 w-5 text-accent mr-2" />
-          <h3 className="text-lg font-semibold">Endereço</h3>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="address">Endereço *</Label>
-            <Input
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              placeholder="Rua das Comunicações, 123"
-              className="bg-background/50"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="city">Cidade</Label>
-              <Input
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                placeholder="São Paulo"
-                className="bg-background/50"
-              />
-            </div>
-            <div>
-              <Label htmlFor="state">Estado</Label>
-              <Input
-                id="state"
-                name="state"
-                value={formData.state}
-                onChange={handleInputChange}
-                placeholder="SP"
-                className="bg-background/50"
-              />
-            </div>
-            <div>
-              <Label htmlFor="zipCode">CEP</Label>
-              <Input
-                id="zipCode"
-                name="zipCode"
-                value={formData.zipCode}
-                onChange={handleInputChange}
-                placeholder="01234-567"
-                className="bg-background/50"
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Horários */}
-      <Card className="bg-gradient-card border-primary/30 p-6">
-        <div className="flex items-center mb-4">
-          <Clock className="h-5 w-5 text-primary mr-2" />
-          <h3 className="text-lg font-semibold">Horários de Funcionamento</h3>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="hours.weekdays">Segunda a Sexta</Label>
-            <Input
-              id="hours.weekdays"
-              name="hours.weekdays"
-              value={formData.hours.weekdays}
-              onChange={handleInputChange}
-              placeholder="Segunda a Sexta: 6h às 22h"
-              className="bg-background/50"
-            />
-          </div>
-          <div>
-            <Label htmlFor="hours.saturday">Sábados</Label>
-            <Input
-              id="hours.saturday"
-              name="hours.saturday"
-              value={formData.hours.saturday}
-              onChange={handleInputChange}
-              placeholder="Sábados: 8h às 18h"
-              className="bg-background/50"
-            />
-          </div>
-          <div>
-            <Label htmlFor="hours.sunday">Domingos</Label>
-            <Input
-              id="hours.sunday"
-              name="hours.sunday"
-              value={formData.hours.sunday}
-              onChange={handleInputChange}
-              placeholder="Domingos: 10h às 16h"
-              className="bg-background/50"
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Redes Sociais */}
-      <Card className="bg-gradient-card border-primary/30 p-6">
-        <div className="flex items-center mb-4">
-          <Globe className="h-5 w-5 text-secondary mr-2" />
-          <h3 className="text-lg font-semibold">Redes Sociais</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="socialMedia.facebook">Facebook</Label>
-            <Input
-              id="socialMedia.facebook"
-              name="socialMedia.facebook"
-              value={formData.socialMedia?.facebook || ''}
-              onChange={handleInputChange}
-              placeholder="https://facebook.com/portalnews"
-              className="bg-background/50"
-            />
-          </div>
-          <div>
-            <Label htmlFor="socialMedia.instagram">Instagram</Label>
-            <Input
-              id="socialMedia.instagram"
-              name="socialMedia.instagram"
-              value={formData.socialMedia?.instagram || ''}
-              onChange={handleInputChange}
-              placeholder="https://instagram.com/portalnews"
-              className="bg-background/50"
-            />
-          </div>
-          <div>
-            <Label htmlFor="socialMedia.twitter">Twitter</Label>
-            <Input
-              id="socialMedia.twitter"
-              name="socialMedia.twitter"
-              value={formData.socialMedia?.twitter || ''}
-              onChange={handleInputChange}
-              placeholder="https://twitter.com/portalnews"
-              className="bg-background/50"
-            />
-          </div>
-          <div>
-            <Label htmlFor="socialMedia.youtube">YouTube</Label>
-            <Input
-              id="socialMedia.youtube"
-              name="socialMedia.youtube"
-              value={formData.socialMedia?.youtube || ''}
-              onChange={handleInputChange}
-              placeholder="https://youtube.com/@portalnews"
-              className="bg-background/50"
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Informações de atualização */}
-      <Card className="bg-muted/30 border-muted p-4">
-        <p className="text-sm text-muted-foreground">
-          <strong>Última atualização:</strong> {' '}
-          {new Date(contactInfo.updatedAt).toLocaleString('pt-BR')}
-        </p>
       </Card>
     </div>
   );
