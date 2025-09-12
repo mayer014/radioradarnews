@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
-import BannerManager from '@/components/BannerManager';
 import NewBannerManager from '@/components/NewBannerManager';
 import UsersManager from '@/components/UsersManager';
 import SupabaseUsersManager from '@/components/SupabaseUsersManager';
@@ -834,7 +833,7 @@ const AdminPanel = () => {
 
         {/* Banners - Apenas para admin */}
         {activeTab === 'banners' && isAdmin && (
-          <BannerManager />
+          <NewBannerManager />
         )}
 
         {/* Artigos por colunista - apenas para admin */}
