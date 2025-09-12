@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Lock, Shield, Mail } from 'lucide-react';
+import { Lock, Shield, Mail, UserPlus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [bootstrapLoading, setBootstrapLoading] = useState(false);
   const { signIn, isAuthenticated, profile } = useSupabaseAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,6 +57,34 @@ const AdminAuth = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBootstrapAdmin = async () => {
+    setBootstrapLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('bootstrap-admin');
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Usuário admin configurado!",
+        description: "Agora você pode fazer login com adm@radioradar.news",
+      });
+      
+      // Auto-fill the form
+      setEmail('adm@radioradar.news');
+      setPassword('25896589Ba@23479612');
+      
+    } catch (error: any) {
+      toast({
+        title: "Erro ao configurar admin",
+        description: error.message || "Falha ao configurar usuário administrativo",
+        variant: "destructive",
+      });
+    } finally {
+      setBootstrapLoading(false);
     }
   };
 
@@ -129,6 +159,27 @@ const AdminAuth = () => {
                 {loading ? 'Autenticando...' : 'Entrar no Sistema'}
               </Button>
             </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-primary/30" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Primeiro acesso
+                </span>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleBootstrapAdmin}
+              disabled={bootstrapLoading}
+              variant="outline"
+              className="w-full border-primary/30 hover:bg-primary/10"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              {bootstrapLoading ? 'Configurando...' : 'Configurar Super Admin'}
+            </Button>
           </div>
         </Card>
       </div>
