@@ -2,14 +2,14 @@ import React, { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
-import { useProgramming } from '@/contexts/ProgrammingContext';
+import { useSupabaseProgramming } from '@/contexts/SupabaseProgrammingContext';
 import { Radio, Users, Calendar, Clock, Headphones, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Helmet } from 'react-helmet-async';
 
 const RadioPage = () => {
-  const { programs } = useProgramming();
+  const { programs } = useSupabaseProgramming();
   
   // Scroll para o topo quando a página carregar
   useEffect(() => {
@@ -17,7 +17,7 @@ const RadioPage = () => {
   }, []);
   
   // Filter active programs
-  const activePrograms = programs.filter(program => program.isActive);
+  const activePrograms = programs.filter(program => program.is_active);
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,7 +79,7 @@ const RadioPage = () => {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-2">
                         <Radio className="w-5 h-5 text-primary" />
-                        <span className="font-medium text-sm">{program.startTime} - {program.endTime}</span>
+                        <span className="font-medium text-sm">{program.start_time} - {program.end_time}</span>
                       </div>
                       {program.status === 'live' && (
                         <div className="flex items-center space-x-1 bg-accent/20 border border-accent/30 rounded-full px-2 py-1">

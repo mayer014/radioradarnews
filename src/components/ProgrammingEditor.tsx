@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useProgramming, type Program } from '@/contexts/ProgrammingContext';
+import { useSupabaseProgramming, type Program } from '@/contexts/SupabaseProgrammingContext';
 import { 
   Plus, 
   Pencil, 
@@ -23,171 +23,172 @@ import {
 } from 'lucide-react';
 
 const ProgrammingEditor = () => {
-  const { programs, radioStreamUrl, setRadioStreamUrl, addProgram, updateProgram, deleteProgram, toggleProgramStatus } = useProgramming();
+  const { programs, radioStreamUrl, setRadioStreamUrl, addProgram, updateProgram, deleteProgram, toggleProgramStatus } = useSupabaseProgramming();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [streamUrl, setStreamUrl] = useState(radioStreamUrl);
   
-  const [formData, setFormData] = useState<Omit<Program, 'id'>>({
+  const [formData, setFormData] = useState<Omit<Program, 'id' | 'created_at' | 'updated_at'>>({
     title: '',
     host: '',
-    startTime: '',
-    endTime: '',
+    start_time: '',
+    end_time: '',
     description: '',
     status: 'upcoming',
-    isActive: true
+    is_active: true,
   });
 
   const resetForm = () => {
     setFormData({
       title: '',
       host: '',
-      startTime: '',
-      endTime: '',
+      start_time: '',
+      end_time: '',
       description: '',
       status: 'upcoming',
-      isActive: true
+      is_active: true,
     });
     setEditingId(null);
     setShowForm(false);
   };
 
   const handleEdit = (program: Program) => {
-    setFormData(program);
+    setFormData({
+      title: program.title,
+      host: program.host,
+      start_time: program.start_time,
+      end_time: program.end_time,
+      description: program.description || '',
+      status: program.status,
+      is_active: program.is_active,
+    });
     setEditingId(program.id);
     setShowForm(true);
   };
 
-  const handleSave = () => {
-    if (!formData.title || !formData.host || !formData.startTime || !formData.endTime) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.host || !formData.start_time || !formData.end_time) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios.",
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
         variant: "destructive"
       });
       return;
     }
 
-    if (editingId) {
-      updateProgram(editingId, formData);
+    try {
+      if (editingId) {
+        const result = await updateProgram(editingId, formData);
+        if (result.error) {
+          toast({
+            title: "Erro",
+            description: result.error,
+            variant: "destructive"
+          });
+          return;
+        }
+      } else {
+        const result = await addProgram(formData);
+        if (result.error) {
+          toast({
+            title: "Erro", 
+            description: result.error,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
+      resetForm();
+    } catch (error) {
       toast({
-        title: "Programa atualizado",
-        description: "O programa foi atualizado com sucesso."
+        title: "Erro",
+        description: "Ocorreu um erro inesperado",
+        variant: "destructive"
       });
-    } else {
-      addProgram(formData);
-      toast({
-        title: "Programa criado",
-        description: "O novo programa foi adicionado à grade."
-      });
-    }
-
-    resetForm();
-  };
-
-  const handleDelete = (id: string, title: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir "${title}"?`)) {
-      deleteProgram(id);
-      toast({
-        title: "Programa excluído",
-        description: "O programa foi removido da grade."
-      });
-    }
-  };
-
-  const handleToggleStatus = (id: string) => {
-    toggleProgramStatus(id);
-    toast({
-      title: "Status alterado",
-      description: "O status do programa foi atualizado."
-    });
-  };
-
-  const handleSaveStreamUrl = () => {
-    setRadioStreamUrl(streamUrl);
-    toast({
-      title: "Stream configurado",
-      description: "URL do streaming da rádio foi salva com sucesso."
-    });
-  };
-
-  const getStatusColor = (status: Program['status']) => {
-    switch (status) {
-      case 'live': return 'bg-red-500';
-      case 'upcoming': return 'bg-blue-500';
-      case 'ended': return 'bg-gray-500';
-      default: return 'bg-gray-500';
     }
   };
 
-  const getStatusLabel = (status: Program['status']) => {
-    switch (status) {
-      case 'live': return 'AO VIVO';
-      case 'upcoming': return 'EM BREVE';
-      case 'ended': return 'ENCERRADO';
-      default: return 'DESCONHECIDO';
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este programa?')) {
+      const result = await deleteProgram(id);
+      if (result.error) {
+        toast({
+          title: "Erro",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const handleToggleStatus = async (id: string) => {
+    const result = await toggleProgramStatus(id);
+    if (result.error) {
+      toast({
+        title: "Erro",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleStreamUrlSave = async () => {
+    const result = await setRadioStreamUrl(streamUrl);
+    if (result.error) {
+      toast({
+        title: "Erro",
+        description: result.error,
+        variant: "destructive"
+      });
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Programação da Rádio</h2>
-          <p className="text-muted-foreground">Gerencie a grade de programação da rádio</p>
-        </div>
-        <Button 
-          onClick={() => setShowForm(true)}
-          className="bg-gradient-hero hover:shadow-glow-primary"
-        >
+        <h2 className="text-2xl font-bold">Gestão de Programação</h2>
+        <Button onClick={() => setShowForm(true)} className="bg-gradient-hero">
           <Plus className="w-4 h-4 mr-2" />
           Novo Programa
         </Button>
       </div>
 
-      {/* Configuração do Stream da Rádio */}
-      <Card className="bg-gradient-card border-primary/30 p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <Radio className="w-6 h-6 text-primary" />
-          <div>
-            <h3 className="text-lg font-semibold">Configuração do Stream</h3>
-            <p className="text-sm text-muted-foreground">Configure a URL do streaming da rádio</p>
-          </div>
-        </div>
-
-        <div className="flex space-x-3">
-          <div className="flex-1">
-            <Input
-              value={streamUrl}
-              onChange={(e) => setStreamUrl(e.target.value)}
-              placeholder="Ex: https://streaming.streammaximum.com/..."
-              className="bg-background/50"
-            />
-          </div>
-          <Button 
-            onClick={handleSaveStreamUrl}
-            className="bg-gradient-hero hover:shadow-glow-primary"
-          >
+      {/* Configuração URL da Rádio */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Radio className="w-5 h-5 mr-2" />
+          URL do Stream da Rádio
+        </h3>
+        
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder="https://exemplo.com/stream"
+            value={streamUrl}
+            onChange={(e) => setStreamUrl(e.target.value)}
+            className="flex-1"
+          />
+          <Button onClick={handleStreamUrlSave}>
             <Save className="w-4 h-4 mr-2" />
-            Salvar
+            Salvar URL
           </Button>
         </div>
         
         {radioStreamUrl && (
-          <div className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-            <p className="text-sm text-green-400">
-              ✓ Stream configurado: {radioStreamUrl}
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            URL atual: {radioStreamUrl}
+          </p>
         )}
       </Card>
 
-      {/* Form */}
+      {/* Formulário */}
       {showForm && (
-        <Card className="bg-gradient-card border-primary/30 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">
               {editingId ? 'Editar Programa' : 'Novo Programa'}
             </h3>
@@ -196,190 +197,173 @@ const ProgrammingEditor = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Título do Programa *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Ex: Portal News Manhã"
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Título *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Nome do programa"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="host">Apresentador *</Label>
-              <Input
-                id="host"
-                value={formData.host}
-                onChange={(e) => setFormData(prev => ({ ...prev, host: e.target.value }))}
-                placeholder="Ex: Carlos Silva"
-              />
-            </div>
+              <div>
+                <Label htmlFor="host">Apresentador *</Label>
+                <Input
+                  id="host"
+                  value={formData.host}
+                  onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                  placeholder="Nome do apresentador"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="startTime">Horário de Início *</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={formData.startTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-              />
-            </div>
+              <div>
+                <Label htmlFor="start_time">Hora de Início *</Label>
+                <Input
+                  id="start_time"
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endTime">Horário de Término *</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={formData.endTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-              />
-            </div>
+              <div>
+                <Label htmlFor="end_time">Hora de Fim *</Label>
+                <Input
+                  id="end_time"
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value: Program['status']) => 
-                  setFormData(prev => ({ ...prev, status: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Em Breve</SelectItem>
-                  <SelectItem value="live">Ao Vivo</SelectItem>
-                  <SelectItem value="ended">Encerrado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Descrição do programa"
+                />
+              </div>
 
-            <div className="space-y-2">
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value: any) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="live">Ao Vivo</SelectItem>
+                    <SelectItem value="upcoming">Programado</SelectItem>
+                    <SelectItem value="ended">Finalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, isActive: checked }))
-                  }
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                 />
-                <Label htmlFor="isActive">Programa ativo</Label>
+                <Label htmlFor="is_active">Programa Ativo</Label>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-2 mb-6">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Descreva o programa..."
-              rows={3}
-            />
-          </div>
-
-          <div className="flex space-x-3">
-            <Button onClick={handleSave} className="bg-gradient-hero hover:shadow-glow-primary">
-              <Save className="w-4 h-4 mr-2" />
-              {editingId ? 'Atualizar' : 'Criar'}
-            </Button>
-            <Button variant="outline" onClick={resetForm}>
-              Cancelar
-            </Button>
-          </div>
+            <div className="flex gap-2">
+              <Button type="submit" className="bg-gradient-hero">
+                <Save className="w-4 h-4 mr-2" />
+                {editingId ? 'Atualizar' : 'Criar'} Programa
+              </Button>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
         </Card>
       )}
 
-      {/* Programs List */}
-      <div className="grid gap-4">
-        {programs.map((program) => (
-          <Card key={program.id} className="bg-gradient-card border-primary/20 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center space-x-3">
-                  <Radio className="w-5 h-5 text-primary" />
-                  <h3 className="font-semibold text-lg">{program.title}</h3>
-                  <Badge 
-                    className={`text-white ${getStatusColor(program.status)}`}
-                  >
-                    {getStatusLabel(program.status)}
+      {/* Lista de Programas */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Programas Cadastrados</h3>
+        
+        <div className="space-y-4">
+          {programs.map((program) => (
+            <div 
+              key={program.id}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-semibold">{program.title}</h4>
+                  <Badge variant={program.status === 'live' ? 'default' : 'secondary'}>
+                    {program.status === 'live' ? 'AO VIVO' : 
+                     program.status === 'upcoming' ? 'PROGRAMADO' : 'FINALIZADO'}
                   </Badge>
-                  {!program.isActive && (
-                    <Badge variant="outline" className="border-gray-500 text-gray-500">
-                      INATIVO
-                    </Badge>
+                  {!program.is_active && (
+                    <Badge variant="outline">INATIVO</Badge>
                   )}
                 </div>
-
-                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-1">
-                    <User className="w-4 h-4" />
-                    <span>{program.host}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{program.startTime} - {program.endTime}</span>
-                  </div>
+                
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p className="flex items-center">
+                    <User className="w-4 h-4 mr-1" />
+                    {program.host}
+                  </p>
+                  <p className="flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    {program.start_time} - {program.end_time}
+                  </p>
+                  {program.description && (
+                    <p className="text-xs">{program.description}</p>
+                  )}
                 </div>
-
-                {program.description && (
-                  <p className="text-sm text-muted-foreground">{program.description}</p>
-                )}
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleToggleStatus(program.id)}
-                  className="hover:bg-primary/10"
+                  title={program.status === 'live' ? 'Marcar como Programado' : 'Marcar como Ao Vivo'}
                 >
-                  {program.status === 'live' ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
+                  {program.status === 'live' ? 
+                    <Pause className="w-4 h-4" /> : 
                     <Play className="w-4 h-4" />
-                  )}
+                  }
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleEdit(program)}
-                  className="hover:bg-primary/10"
                 >
                   <Pencil className="w-4 h-4" />
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDelete(program.id, program.title)}
-                  className="hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => handleDelete(program.id)}
+                  className="text-destructive hover:text-destructive"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-          </Card>
-        ))}
+          ))}
 
-        {programs.length === 0 && (
-          <Card className="bg-muted/20 border-dashed border-2 border-muted p-8 text-center">
-            <Radio className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              Nenhum programa cadastrado
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Adicione o primeiro programa à sua grade de programação
-            </p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Programa
-            </Button>
-          </Card>
-        )}
-      </div>
+          {programs.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Radio className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Nenhum programa cadastrado</p>
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 };
