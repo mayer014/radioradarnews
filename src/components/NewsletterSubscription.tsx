@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNewsletter } from '@/contexts/NewsletterContext';
+import { useSupabaseNewsletter } from '@/contexts/SupabaseNewsletterContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
   source = 'general',
   className = ''
 }) => {
-  const { addSubscriber, settings } = useNewsletter();
+  const { addSubscriber, settings } = useSupabaseNewsletter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');

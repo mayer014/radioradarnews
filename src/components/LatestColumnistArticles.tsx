@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, BookOpen, User } from 'lucide-react';
-import { useNews, filterActiveColumnistArticles } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
 
 const LatestColumnistArticles = () => {
-  const { articles } = useNews();
+  const { articles } = useSupabaseNews();
   const { users } = useUsers();
   
   // Function to get current avatar from users context
@@ -17,11 +17,10 @@ const LatestColumnistArticles = () => {
     return currentUser?.columnistProfile?.avatar;
   };
   
-  // Filtrar apenas artigos originais de colunistas ativos (excluir cópias) e pegar os 6 mais recentes
-  const latestColumnistArticles = filterActiveColumnistArticles(
-    articles.filter(article => article.columnist && !article.isColumnCopy)
-  )
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  // Filtrar apenas artigos publicados de colunistas e pegar os 6 mais recentes
+  const latestColumnistArticles = articles
+    .filter(article => article.status === 'published' && article.columnist_id && !article.is_column_copy)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
   if (latestColumnistArticles.length === 0) {
@@ -43,7 +42,7 @@ const LatestColumnistArticles = () => {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {latestColumnistArticles.map((article) => {
             // Get current avatar from users context
-            const currentAvatar = getCurrentAvatar(article.columnist?.id || '');
+            const currentAvatar = getCurrentAvatar(article.columnist_id || '');
             
             return (
             <Link key={article.id} to={getArticleLink(article)}>
@@ -51,7 +50,7 @@ const LatestColumnistArticles = () => {
                 {/* Imagem do artigo */}
                 <div className="relative h-40 md:h-48 bg-muted/20">
                   <img
-                    src={article.featuredImage}
+                    src={article.featured_image}
                     alt={article.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
@@ -76,14 +75,14 @@ const LatestColumnistArticles = () => {
                         {currentAvatar && currentAvatar !== '' ? (
                           <img
                             src={currentAvatar}
-                            alt={article.columnist?.name}
+                            alt={article.columnist_name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               console.error('Error loading columnist avatar in LatestColumnistArticles:', currentAvatar?.substring(0, 100));
                               (e.target as HTMLImageElement).style.display = 'none';
                               (e.target as HTMLImageElement).parentElement!.innerHTML = `
                                 <div class="w-full h-full bg-muted/50 flex items-center justify-center">
-                                  <span class="text-xs text-muted-foreground">${article.columnist?.name?.[0]?.toUpperCase()}</span>
+                                  <span class="text-xs text-muted-foreground">${article.columnist_name?.[0]?.toUpperCase()}</span>
                                 </div>
                               `;
                             }}
@@ -91,17 +90,17 @@ const LatestColumnistArticles = () => {
                         ) : (
                           <div className="w-full h-full bg-muted/50 flex items-center justify-center">
                             <span className="text-xs text-muted-foreground">
-                              {article.columnist?.name?.[0]?.toUpperCase()}
+                              {article.columnist_name?.[0]?.toUpperCase()}
                             </span>
                           </div>
                         )}
                      </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs md:text-sm font-semibold text-primary truncate">
-                        {article.columnist?.name}
+                        {article.columnist_name}
                       </p>
                       <p className="text-[10px] md:text-xs text-muted-foreground truncate">
-                        {article.columnist?.specialty}
+                        {article.columnist_specialty}
                       </p>
                     </div>
                   </div>
@@ -110,11 +109,11 @@ const LatestColumnistArticles = () => {
                   <div className="flex items-center gap-3 mb-3 text-[10px] md:text-xs text-muted-foreground">
                     <div className="flex items-center">
                       <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
-                      <span>{new Date(article.createdAt).toLocaleDateString('pt-BR')}</span>
+                      <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
                     </div>
                     <div className="flex items-center">
                       <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
-                      <span>{new Date(article.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>{new Date(article.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </div>
 
@@ -132,7 +131,7 @@ const LatestColumnistArticles = () => {
                   <div className="mt-auto pt-2">
                     <div className="flex flex-col gap-2">
                       <Link 
-                        to={`/colunista/${article.columnist?.id}`}
+                        to={`/colunista/${article.columnist_id}`}
                         className="flex items-center text-[10px] md:text-xs text-muted-foreground hover:text-primary transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >

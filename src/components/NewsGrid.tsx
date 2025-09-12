@@ -115,7 +115,7 @@ const NewsGrid: React.FC = () => {
                   )}
                   <div className="p-5">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${colors.colorClass} ${colors.bgClass}`}>
                         {article.category}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
