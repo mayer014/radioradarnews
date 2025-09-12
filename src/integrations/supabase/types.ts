@@ -297,6 +297,50 @@ export type Database = {
         }
         Relationships: []
       }
+      banner_queue: {
+        Row: {
+          banner_id: string | null
+          created_at: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          slot_key: string
+          starts_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          banner_id?: string | null
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          slot_key: string
+          starts_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          banner_id?: string | null
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          slot_key?: string
+          starts_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banner_queue_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "banners_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banner_schedule: {
         Row: {
           banner_id: string | null
@@ -446,6 +490,7 @@ export type Database = {
           click_url: string | null
           created_at: string | null
           id: string
+          is_pilot: boolean | null
           meta_jsonb: Json | null
           name: string
           payload_jsonb: Json
@@ -458,6 +503,7 @@ export type Database = {
           click_url?: string | null
           created_at?: string | null
           id?: string
+          is_pilot?: boolean | null
           meta_jsonb?: Json | null
           name: string
           payload_jsonb?: Json
@@ -470,6 +516,7 @@ export type Database = {
           click_url?: string | null
           created_at?: string | null
           id?: string
+          is_pilot?: boolean | null
           meta_jsonb?: Json | null
           name?: string
           payload_jsonb?: Json
@@ -994,6 +1041,22 @@ export type Database = {
       auto_publish_scheduled_articles: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      cleanup_expired_banners: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      get_current_banner: {
+        Args: { slot_key_param: string }
+        Returns: {
+          banner_click_url: string
+          banner_id: string
+          banner_name: string
+          banner_payload: Json
+          is_pilot: boolean
+          queue_ends_at: string
+          queue_priority: number
+        }[]
       }
       increment_article_views: {
         Args: { article_id: string }
