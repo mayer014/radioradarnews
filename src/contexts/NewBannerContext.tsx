@@ -53,16 +53,19 @@ export const NewBannerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const callBannerService = useCallback(async (action: string, data: any = {}) => {
     try {
+      console.log(`[NewBannerContext] Calling banner service action: ${action}`, data);
       const { data: result, error } = await supabase.functions.invoke('banner-service', {
         body: { action, ...data }
       });
+
+      console.log(`[NewBannerContext] Banner service response for ${action}:`, { result, error });
 
       if (error) throw error;
       if (!result.success) throw new Error(result.error);
 
       return result.data;
     } catch (error: any) {
-      console.error(`Banner service error (${action}):`, error);
+      console.error(`[NewBannerContext] Banner service error (${action}):`, error);
       throw new Error(error.message || `Erro na operação: ${action}`);
     }
   }, []);
@@ -92,10 +95,12 @@ export const NewBannerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const getCurrentBanner = useCallback(async (slotKey: string): Promise<CurrentBanner | null> => {
     try {
+      console.log(`[NewBannerContext] Calling banner service for slot: ${slotKey}`);
       const result = await callBannerService('get_current_banner', { slot_key: slotKey });
+      console.log(`[NewBannerContext] Banner service result for ${slotKey}:`, result);
       return result;
     } catch (error: any) {
-      console.error('Erro ao obter banner atual:', error);
+      console.error(`[NewBannerContext] Erro ao obter banner atual para ${slotKey}:`, error);
       return null;
     }
   }, [callBannerService]);

@@ -41,6 +41,9 @@ const Index = () => {
       {/* Banner Principal */}
       <NewBanner slotKey="hero" />
       
+      {/* Banner Lateral (teste) */}
+      <NewBanner slotKey="sidebar" />
+      
       {/* Últimas Notícias */}
       <LatestNews />
       
@@ -52,6 +55,9 @@ const Index = () => {
       
       {/* Seção Ao Vivo */}
       <LiveSection />
+      
+      {/* Banner Teste Categoria */}
+      <NewBanner slotKey="category-tecnologia" />
       
       {/* Newsletter Subscription - Seção destacada */}
       <section className="py-16 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">

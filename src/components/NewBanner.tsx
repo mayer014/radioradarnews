@@ -17,10 +17,12 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
     const fetchBanner = async () => {
       try {
         setLoading(true);
+        console.log(`[NewBanner] Fetching banner for slot: ${slotKey}`);
         const banner = await getCurrentBanner(slotKey);
+        console.log(`[NewBanner] Banner received for ${slotKey}:`, banner);
         setCurrentBanner(banner);
       } catch (error) {
-        console.error('Erro ao carregar banner:', error);
+        console.error(`[NewBanner] Erro ao carregar banner para ${slotKey}:`, error);
       } finally {
         setLoading(false);
       }
@@ -33,7 +35,13 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
     return () => clearInterval(interval);
   }, [slotKey, getCurrentBanner]);
 
-  if (loading || !currentBanner) {
+  if (loading) {
+    console.log(`[NewBanner] Loading banner for slot: ${slotKey}`);
+    return null;
+  }
+  
+  if (!currentBanner) {
+    console.log(`[NewBanner] No banner found for slot: ${slotKey}`);
     return null;
   }
 
@@ -45,12 +53,15 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
 
   const getImageUrl = () => {
     // Assumindo que a imagem está no payload_jsonb
-    return currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
+    const imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
+    console.log(`[NewBanner] Image URL for ${slotKey}:`, imageUrl);
+    return imageUrl;
   };
 
   const imageUrl = getImageUrl();
 
   if (!imageUrl) {
+    console.log(`[NewBanner] No image URL found for slot ${slotKey}, banner:`, currentBanner);
     return null;
   }
 
