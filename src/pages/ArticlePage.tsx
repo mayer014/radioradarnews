@@ -18,6 +18,7 @@ import { ArticleStructuredData, BreadcrumbStructuredData } from '@/components/se
 import { LoadingState, ArticleSkeleton } from '@/components/accessibility/LoadingState';
 import { generateMetaDescription, generatePageTitle, generateKeywordsFromContent, optimizeImageAlt, generateBreadcrumbData } from '@/utils/seoUtils';
 import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibility';
+import { supabase } from '@/integrations/supabase/client';
 
 // Função para formatar o conteúdo do artigo
 const formatArticleContent = (content: string): string => {
@@ -56,6 +57,7 @@ const ArticlePage = () => {
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [columnistProfile, setColumnistProfile] = React.useState<any>(null);
   
   const article = id ? getArticleById(id) : null;
   
@@ -76,6 +78,31 @@ const ArticlePage = () => {
 
     return () => clearTimeout(timer);
   }, [id]); // Only depend on ID changes
+
+  // Load columnist profile from Supabase when article changes
+  React.useEffect(() => {
+    const loadColumnistProfile = async () => {
+      if (article?.columnist_id) {
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id, name, avatar, bio, specialty')
+            .eq('id', article.columnist_id)
+            .single();
+
+          if (!error && profile) {
+            setColumnistProfile(profile);
+          }
+        } catch (error) {
+          console.error('Error loading columnist profile:', error);
+        }
+      }
+    };
+
+    if (article) {
+      loadColumnistProfile();
+    }
+  }, [article]);
 
   // Incrementar visualizações quando o loading terminar
   React.useEffect(() => {
@@ -273,17 +300,17 @@ const ArticlePage = () => {
             <Link to={`/colunista/${article.columnist_id}`}>
               <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-lg border border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 flex-shrink-0">
-                  {article.columnist_avatar && (article.columnist_avatar.startsWith('http') || article.columnist_avatar.startsWith('data:image/')) ? (
+                  {(columnistProfile?.avatar || article.columnist_avatar) && ((columnistProfile?.avatar || article.columnist_avatar).startsWith('http') || (columnistProfile?.avatar || article.columnist_avatar).startsWith('data:image/')) ? (
                     <img
-                      src={article.columnist_avatar}
-                      alt={article.columnist_name || 'Colunista'}
+                      src={columnistProfile?.avatar || article.columnist_avatar}
+                      alt={columnistProfile?.name || article.columnist_name || 'Colunista'}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        console.error('Error loading columnist avatar in ArticlePage:', article.columnist_avatar?.substring(0, 100));
+                        console.error('Error loading columnist avatar in ArticlePage:', (columnistProfile?.avatar || article.columnist_avatar)?.substring(0, 100));
                         (e.target as HTMLImageElement).style.display = 'none';
                         (e.target as HTMLImageElement).parentElement!.innerHTML = `
                           <div class="w-full h-full bg-muted/50 flex items-center justify-center">
-                            <span class="text-sm text-muted-foreground font-bold">${article.columnist_name?.[0]?.toUpperCase()}</span>
+                            <span class="text-sm text-muted-foreground font-bold">${(columnistProfile?.name || article.columnist_name)?.[0]?.toUpperCase()}</span>
                           </div>
                         `;
                       }}
@@ -291,17 +318,17 @@ const ArticlePage = () => {
                   ) : (
                     <div className="w-full h-full bg-muted/50 flex items-center justify-center">
                       <span className="text-sm text-muted-foreground font-bold">
-                        {article.columnist_name?.[0]?.toUpperCase()}
+                        {(columnistProfile?.name || article.columnist_name)?.[0]?.toUpperCase()}
                       </span>
                     </div>
                   )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{article.columnist_name}</span>
+                    <span className="font-semibold">{columnistProfile?.name || article.columnist_name}</span>
                     <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Colunista</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{article.columnist_specialty}</p>
+                  <p className="text-sm text-muted-foreground">{columnistProfile?.specialty || article.columnist_specialty}</p>
                 </div>
               </div>
             </Link>

@@ -12,6 +12,7 @@ import { BASE_NEWS_CATEGORIES } from '@/contexts/NewsContext';
 import { Save, X, Plus, User as UserIcon, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ImageUploadColumnist from '@/components/ImageUploadColumnist';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ColumnistProfileEditorProps {
   columnistId: string;
@@ -37,7 +38,7 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
     allowedCategories: columnist?.columnistProfile?.allowedCategories || []
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!columnist) return;
     
     if (!profileData.name.trim()) {
@@ -50,23 +51,56 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
       return;
     }
 
-    updateUser(columnistId, {
-      name: profileData.name,
-      columnistProfile: {
-        id: columnistId,
+    try {
+      // Atualizar no localStorage (UsersContext)
+      updateUser(columnistId, {
         name: profileData.name,
-        bio: profileData.bio,
-        specialty: profileData.specialty,
-        avatar: profileData.avatar,
-        allowedCategories: profileData.allowedCategories,
-        isActive: columnist.columnistProfile?.isActive ?? true,
-      }
-    });
+        columnistProfile: {
+          id: columnistId,
+          name: profileData.name,
+          bio: profileData.bio,
+          specialty: profileData.specialty,
+          avatar: profileData.avatar,
+          allowedCategories: profileData.allowedCategories,
+          isActive: columnist.columnistProfile?.isActive ?? true,
+        }
+      });
 
-    toast({ 
-      title: 'Perfil atualizado',
-      description: `Perfil de ${profileData.name} foi atualizado com sucesso.`
-    });
+      // Sincronizar com Supabase (tabela profiles)
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: profileData.name,
+          bio: profileData.bio,
+          specialty: profileData.specialty,
+          avatar: profileData.avatar,
+          allowed_categories: profileData.allowedCategories,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', columnistId);
+
+      if (error) {
+        console.error('Error updating profile in Supabase:', error);
+        toast({ 
+          title: 'Erro na sincronização',
+          description: 'Perfil atualizado localmente, mas houve erro na sincronização com o servidor.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({ 
+          title: 'Perfil atualizado',
+          description: `Perfil de ${profileData.name} foi atualizado com sucesso.`
+        });
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({ 
+        title: 'Erro ao salvar',
+        description: 'Ocorreu um erro ao salvar o perfil.',
+        variant: 'destructive'
+      });
+    }
+    
     onClose();
   };
 
