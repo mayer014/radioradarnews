@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Wand2, Loader2, Sparkles, FileText, Target, Palette } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUsers } from '@/contexts/UsersContext';
 import AIArticleGenerator from '@/services/AIArticleGenerator';
 
@@ -31,7 +31,7 @@ const AIArticleGeneratorStep: React.FC<AIArticleGeneratorStepProps> = ({ onArtic
   const [length, setLength] = useState<'curto' | 'medio' | 'longo'>('medio');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { profile: currentUser } = useSupabaseAuth();
   const { columnists } = useUsers();
   
   // Para colunistas, definir categoria automaticamente
