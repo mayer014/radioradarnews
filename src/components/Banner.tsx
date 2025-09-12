@@ -17,10 +17,40 @@ const Banner: React.FC<BannerProps> = ({ position, category, columnistId, classN
     // Filter active banners
     const activeBanners = banners.filter(banner => banner.is_active);
     
-    // For now, just return the first active banner
-    // Later we can implement more sophisticated positioning logic
-    return activeBanners.length > 0 ? activeBanners[0] : null;
-  }, [banners]);
+    if (activeBanners.length === 0) return null;
+    
+    // Try to find a banner specific to this position and category
+    let filteredBanners = activeBanners.filter(banner => banner.position === position);
+    
+    // If we have a category, try to find category-specific banners
+    if (category && filteredBanners.length > 0) {
+      const categoryBanners = filteredBanners.filter(banner => banner.category === category);
+      if (categoryBanners.length > 0) {
+        filteredBanners = categoryBanners;
+      }
+    }
+    
+    // If we have a columnist, try to find columnist-specific banners
+    if (columnistId && filteredBanners.length > 0) {
+      const columnistBanners = filteredBanners.filter(banner => banner.columnist_id === columnistId);
+      if (columnistBanners.length > 0) {
+        filteredBanners = columnistBanners;
+      }
+    }
+    
+    // If no specific banners found, fall back to any active banner for this position
+    if (filteredBanners.length === 0) {
+      filteredBanners = activeBanners.filter(banner => banner.position === position);
+    }
+    
+    // If still no banners for this position, use any active banner
+    if (filteredBanners.length === 0) {
+      filteredBanners = activeBanners;
+    }
+    
+    // Return the first banner (could be enhanced with rotation/random selection)
+    return filteredBanners.length > 0 ? filteredBanners[0] : null;
+  }, [banners, position, category, columnistId]);
 
   if (!currentBanner) {
     return null;

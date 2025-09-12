@@ -1,15 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, ArrowRight } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
-import { useCategoryColors } from '@/utils/categoryColors';
-import { getArticleLink } from '@/lib/utils';
+import CategoryNewsSection from '@/components/CategoryNewsSection';
 
 const NewsGrid: React.FC = () => {
   const { articles, loading } = useSupabaseNews();
-  const getCategoryColors = useCategoryColors();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
@@ -36,19 +33,38 @@ const NewsGrid: React.FC = () => {
     }
   };
 
-  const filtered = useMemo(() => {
-    const published = articles.filter(a => a.status === 'published');
-    if (selectedCategory === 'Todas') return published;
-    return published.filter(a => a.category === selectedCategory);
-  }, [articles, selectedCategory]);
+  const published = useMemo(() => {
+    return articles.filter(a => a.status === 'published');
+  }, [articles]);
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [filtered]);
+  const categoriesWithArticles = useMemo(() => {
+    if (selectedCategory === 'Todas') {
+      // Group articles by category
+      const grouped = BASE_NEWS_CATEGORIES.reduce((acc, category) => {
+        const categoryArticles = published
+          .filter(a => a.category === category)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5); // Max 5 articles per category (1 featured + 4 regular)
+        
+        if (categoryArticles.length > 0) {
+          acc[category] = categoryArticles;
+        }
+        return acc;
+      }, {} as Record<string, typeof published>);
+      
+      return grouped;
+    } else {
+      // Single category view
+      const categoryArticles = published
+        .filter(a => a.category === selectedCategory)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      return categoryArticles.length > 0 ? { [selectedCategory]: categoryArticles } : {};
+    }
+  }, [published, selectedCategory]);
 
   const handleViewMore = (category: string) => {
-    navigate(`/noticias?categoria=${category}#news-grid`, { replace: false });
-    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+    navigate(`/noticias?categoria=${category}`, { replace: false });
   };
 
   return (
@@ -67,10 +83,11 @@ const NewsGrid: React.FC = () => {
               className={selectedCategory === 'Todas' ? 'bg-gradient-hero' : 'border-primary/30'}
               onClick={() => handleCategoryChange('Todas')}
             >
-              Todas ({articles.filter(a => a.status === 'published').length})
+              Todas ({published.length})
             </Button>
             {BASE_NEWS_CATEGORIES.map((category) => {
-              const count = articles.filter(a => a.status === 'published' && a.category === category).length;
+              const count = published.filter(a => a.category === category).length;
+              if (count === 0) return null;
               return (
                 <Button
                   key={category}
@@ -86,71 +103,44 @@ const NewsGrid: React.FC = () => {
           </div>
         </div>
 
-        {/* Grid de notícias */}
+        {/* News Sections */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="bg-gradient-card border-primary/20 h-64 animate-pulse" />
+          <div className="space-y-8">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-4">
+                <div className="h-8 bg-muted animate-pulse rounded w-48"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <Card className="bg-gradient-card border-primary/20 h-80 animate-pulse" />
+                  </div>
+                  <div className="space-y-4">
+                    {Array.from({ length: 4 }).map((_, j) => (
+                      <Card key={j} className="bg-gradient-card border-primary/20 h-20 animate-pulse" />
+                    ))}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-        ) : sorted.length === 0 ? (
+        ) : Object.keys(categoriesWithArticles).length === 0 ? (
           <Card className="bg-gradient-card border-primary/30 p-8 text-center">
-            <p className="text-muted-foreground">Nenhuma notícia publicada nesta categoria.</p>
+            <p className="text-muted-foreground">
+              {selectedCategory === 'Todas' 
+                ? 'Nenhuma notícia publicada ainda.'
+                : `Nenhuma notícia publicada na categoria ${selectedCategory}.`
+              }
+            </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sorted.map(article => {
-              const colors = getCategoryColors(article.category);
-              return (
-                <Card key={article.id} className="bg-gradient-card border-primary/30 overflow-hidden">
-                  {article.featured_image && (
-                    <Link to={getArticleLink(article)}>
-                      <img
-                        src={article.featured_image}
-                        alt={`Imagem do artigo: ${article.title}`}
-                        className="w-full h-44 object-cover"
-                        loading="lazy"
-                      />
-                    </Link>
-                  )}
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${colors.colorClass} ${colors.bgClass}`}>
-                        {article.category}
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(article.created_at).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    <Link to={getArticleLink(article)}>
-                      <h3 className="text-base font-semibold line-clamp-2 mb-2">
-                        {article.title}
-                      </h3>
-                    </Link>
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {article.excerpt}
-                    </p>
-                    <div className="mt-4 flex justify-end">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(getArticleLink(article))}>
-                        Ler mais
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* CTA para ver mais da categoria atual */}
-        {selectedCategory !== 'Todas' && (
-          <div className="mt-8 text-center">
-            <Button onClick={() => handleViewMore(selectedCategory)} className="bg-gradient-hero">
-              Ver mais em {selectedCategory}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+          <div className="space-y-12">
+            {Object.entries(categoriesWithArticles).map(([category, categoryArticles]) => (
+              <CategoryNewsSection
+                key={category}
+                category={category}
+                articles={categoryArticles}
+                onViewMore={handleViewMore}
+              />
+            ))}
           </div>
         )}
       </div>
