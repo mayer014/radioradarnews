@@ -3,16 +3,16 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar } from 'lucide-react';
-import { useNews } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { getArticleLink } from '@/lib/utils';
 
 const LatestNews = () => {
-  const { articles } = useNews();
+  const { articles } = useSupabaseNews();
   
-  // Filtrar apenas notícias (não artigos de colunistas) e pegar as 6 mais recentes
+  // Filtrar apenas notícias publicadas e pegar as 6 mais recentes
   const latestNews = articles
-    .filter(article => !article.columnist)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter(article => article.status === 'published' && !article.columnist_id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
   if (latestNews.length === 0) {
@@ -38,7 +38,7 @@ const LatestNews = () => {
                 {/* Imagem da matéria */}
                 <div className="relative h-32 md:h-48 bg-muted/20">
                   <img
-                    src={article.featuredImage}
+                    src={article.featured_image}
                     alt={article.title}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
@@ -62,11 +62,11 @@ const LatestNews = () => {
                   <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 mb-2 md:mb-3 text-[10px] md:text-xs text-muted-foreground">
                     <div className="flex items-center">
                       <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />
-                      <span>{new Date(article.createdAt).toLocaleDateString('pt-BR')}</span>
+                      <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
                     </div>
                     <div className="flex items-center">
                       <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />
-                      <span>{new Date(article.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>{new Date(article.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </div>
 

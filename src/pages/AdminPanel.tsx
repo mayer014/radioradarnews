@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNews, NEWS_CATEGORIES, filterActiveColumnistArticles } from '@/contexts/NewsContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { useContact } from '@/contexts/ContactContext';
 import { validateAllLocalStorageData, exportDataForMigration } from '@/utils/dataIntegrity';
@@ -48,10 +48,11 @@ import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor'
 import CommentsManager from '@/components/CommentsManager';
 import NewsletterManager from '@/components/NewsletterManager';
 import NotificationsManager from '@/components/NotificationsManager';
+import LocalDataImporter from '@/components/LocalDataImporter';
 
 const AdminPanel = () => {
-  const { logout, currentUser } = useAuth();
-  const { articles, deleteArticle, toggleFeaturedArticle } = useNews();
+  const { profile, signOut } = useSupabaseAuth();
+  const { articles, deleteArticle, toggleFeaturedArticle } = useSupabaseNews();
   const { messages, markAsRead, deleteMessage, getUnreadCount } = useContact();
   const { users } = useUsers();
   const { toast } = useToast();
@@ -155,21 +156,22 @@ const AdminPanel = () => {
   // Para colunistas, mostrar apenas interface simplificada
   const columnistAllowedTabs = ['articles'];
 
-  const isAdmin = currentUser?.role === 'admin';
-  const isColunista = currentUser?.role === 'colunista';
+  const isAdmin = profile?.role === 'admin';
+  const isColunista = profile?.role === 'colunista';
 
   // Filtrar artigos baseado nas permissões
   const userFilteredArticles = React.useMemo(() => {
-    if (isAdmin) return filterActiveColumnistArticles(articles); // Admin vê tudo, mas filtrado por colunistas ativos
-    if (isColunista && currentUser?.columnistProfile) {
-      // Colunista só vê seus próprios artigos (se estiver ativo)
-      return filterActiveColumnistArticles(articles.filter(article => article.columnist?.id === currentUser.id));
+    if (isAdmin) return articles; // Admin vê tudo
+    if (isColunista && profile?.id) {
+      // Colunista só vê seus próprios artigos
+      return articles.filter(article => article.author_id === profile.id);
     }
     return [];
-  }, [articles, isAdmin, isColunista, currentUser]);
+  }, [articles, isAdmin, isColunista, profile]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/admin/supabase-login');
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado do sistema.",
@@ -181,7 +183,7 @@ const AdminPanel = () => {
     const article = articles.find(a => a.id === id);
     if (!article) return;
     
-    if (isColunista && article.columnist?.id !== currentUser?.id) {
+    if (isColunista && article.author_id !== profile?.id) {
       toast({
         title: "Sem permissão",
         description: "Você só pode excluir seus próprios artigos.",
@@ -204,7 +206,7 @@ const AdminPanel = () => {
     const article = articles.find(a => a.id === id);
     if (!article) return;
     
-    if (isColunista && article.columnist?.id !== currentUser?.id) {
+    if (isColunista && article.author_id !== profile?.id) {
       toast({
         title: "Sem permissão",
         description: "Você só pode editar seus próprios artigos.",
@@ -249,14 +251,14 @@ const AdminPanel = () => {
 Deseja substituir por "${title}"?`;
       
       if (confirm(confirmMessage)) {
-        toggleFeaturedArticle(id, currentUser?.id);
+        toggleFeaturedArticle(id);
         toast({
           title: "Destaque alterado",
           description: `"${title}" agora é destaque na categoria ${article.category}.`,
         });
       }
     } else {
-      toggleFeaturedArticle(id, currentUser?.id);
+      toggleFeaturedArticle(id);
       toast({
         title: currentFeatured ? "Destaque removido" : "Destaque definido",
         description: currentFeatured 
@@ -278,7 +280,7 @@ Deseja substituir por "${title}"?`;
   const statsData = {
     totalArticles: userFilteredArticles.length,
     totalViews: userFilteredArticles.reduce((sum, article) => sum + article.views, 0),
-    totalComments: userFilteredArticles.reduce((sum, article) => sum + article.comments, 0),
+    totalComments: userFilteredArticles.reduce((sum, article) => sum + article.comments_count, 0),
     featuredArticles: userFilteredArticles.filter(article => article.featured).length
   };
 
@@ -307,7 +309,7 @@ Deseja substituir por "${title}"?`;
               <p className="text-sm sm:text-base text-muted-foreground truncate">
                 {isAdmin 
                   ? 'Sistema de Gerenciamento de Notícias' 
-                  : `Olá, ${currentUser?.name}! Gerencie seus artigos de coluna`
+                  : `Olá, ${profile?.name}! Gerencie seus artigos de coluna`
                 }
               </p>
             </div>
@@ -495,7 +497,7 @@ Deseja substituir por "${title}"?`;
                 Seus Artigos de Coluna
               </h2>
               <p className="text-muted-foreground">
-                Gerencie seus artigos nas categorias: {currentUser?.columnistProfile?.allowedCategories.join(', ')}
+                Gerencie seus artigos nas categorias: {profile?.allowed_categories?.join(', ')}
               </p>
             </div>
           </div>
@@ -548,7 +550,7 @@ Deseja substituir por "${title}"?`;
                   <p className="text-sm text-muted-foreground">Última Atualização</p>
                   <p className="text-sm font-medium">
                     {articles.length > 0 
-                      ? new Date(Math.max(...articles.map(a => new Date(a.updatedAt).getTime()))).toLocaleDateString('pt-BR')
+                      ? new Date(Math.max(...articles.map(a => new Date(a.updated_at).getTime()))).toLocaleDateString('pt-BR')
                       : 'Nenhuma'
                     }
                   </p>
@@ -561,6 +563,7 @@ Deseja substituir por "${title}"?`;
         {/* Lista de Artigos */}
         {(activeTab === 'articles' || isColunista) && (
           <div className="space-y-4">
+            <LocalDataImporter />
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
                 Gerenciar Artigos ({filteredArticles.length})
@@ -612,9 +615,9 @@ Deseja substituir por "${title}"?`;
                   searchTitle === '' || article.title.toLowerCase().includes(searchTitle.toLowerCase())
                 ).length})
               </Button>
-              {NEWS_CATEGORIES.map((category) => {
+            {BASE_NEWS_CATEGORIES.map((category) => {
                 // Para colunistas, só mostrar botão da sua categoria
-                if (isColunista && !currentUser?.columnistProfile?.allowedCategories.includes(category)) {
+                if (isColunista && !profile?.allowed_categories?.includes(category)) {
                   return null;
                 }
                 const count = userFilteredArticles.filter(article => 
@@ -658,7 +661,7 @@ Deseja substituir por "${title}"?`;
             ) : (
               <div className="space-y-4">
                 {filteredArticles
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .map((article) => (
                   <Card key={article.id} className="bg-gradient-card border-primary/30 p-6">
                     <div className="flex items-start justify-between">
@@ -684,7 +687,7 @@ Deseja substituir por "${title}"?`;
                         <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
-                            <span>{new Date(article.createdAt).toLocaleDateString('pt-BR')}</span>
+                            <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Eye className="h-3 w-3" />

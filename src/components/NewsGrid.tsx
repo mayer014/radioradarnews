@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Clock, Share2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useNews, NEWS_CATEGORIES, filterActiveColumnistArticles } from '@/contexts/NewsContext';
+import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import Banner from '@/components/Banner';
 import { getArticleLink } from '@/lib/utils';
@@ -248,7 +248,7 @@ const ColumnistSection = ({ columnist }: {
 };
 
 const NewsGrid = () => {
-  const { articles } = useNews();
+  const { articles } = useSupabaseNews();
   const { columnists, users } = useUsers();
   const getCategoryColors = useCategoryColors();
   

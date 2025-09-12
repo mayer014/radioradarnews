@@ -9,19 +9,12 @@ import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
 import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
 import { SupabaseNewsletterProvider } from "@/contexts/SupabaseNewsletterContext";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ContactProvider } from "@/contexts/ContactContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { RadioPlayerProvider } from "@/contexts/RadioPlayerContext";
 import { UsersProvider } from "@/contexts/UsersContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
-import { useBannerSync } from "@/hooks/useBannerSync";
-import { BannerProvider } from "@/contexts/BannerContext";
-import { ContactInfoProvider } from "@/contexts/ContactInfoContext";
-import { NewsProvider } from "@/contexts/NewsContext";
-import { NewsletterProvider } from "@/contexts/NewsletterContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -44,9 +37,6 @@ const queryClient = new QueryClient();
 
 // Componente interno para usar o hook de sincronização
 const AppContent = () => {
-  // Temporarily disable legacy banner sync to avoid provider mismatch during migration
-  // useBannerSync();
-  
   return (
     <>
       <Toaster />
@@ -89,31 +79,19 @@ const App = () => (
             <SupabaseContactInfoProvider>
               <SupabaseNewsletterProvider>
                 <ThemeProvider>
-                  <NewsProvider>
-                    <NewsletterProvider>
-                      <UsersProvider>
-                        <AuthProvider>
-                          <ContactProvider>
-                            <ProgrammingProvider>
-                              <RadioPlayerProvider>
-                                <CommentsProvider>
-                                  <NotificationsProvider>
-                                    <TooltipProvider>
-                                      <ContactInfoProvider>
-                                        <BannerProvider>
-                                          <AppContent />
-                                        </BannerProvider>
-                                      </ContactInfoProvider>
-                                    </TooltipProvider>
-                                  </NotificationsProvider>
-                                </CommentsProvider>
-                              </RadioPlayerProvider>
-                            </ProgrammingProvider>
-                          </ContactProvider>
-                        </AuthProvider>
-                      </UsersProvider>
-                    </NewsletterProvider>
-                  </NewsProvider>
+                  <UsersProvider>
+                    <ProgrammingProvider>
+                      <RadioPlayerProvider>
+                        <CommentsProvider>
+                          <NotificationsProvider>
+                            <TooltipProvider>
+                              <AppContent />
+                            </TooltipProvider>
+                          </NotificationsProvider>
+                        </CommentsProvider>
+                      </RadioPlayerProvider>
+                    </ProgrammingProvider>
+                  </UsersProvider>
                 </ThemeProvider>
               </SupabaseNewsletterProvider>
             </SupabaseContactInfoProvider>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'portal-news-v1.0.1';
+const CACHE_NAME = 'portal-news-v1.0.2';
 const STATIC_CACHE = 'static-v1.0.1';
 const DYNAMIC_CACHE = 'dynamic-v1.0.1';
 

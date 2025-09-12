@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNews } from '@/contexts/NewsContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -23,8 +23,8 @@ interface NewsEditorProps {
 }
 
 const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
-  const { articles, addArticle, updateArticle, getArticleById } = useNews();
-  const { currentUser } = useAuth();
+  const { articles, addArticle, updateArticle, getArticleById } = useSupabaseNews();
+  const { profile } = useSupabaseAuth();
   const { users } = useUsers();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -50,10 +50,10 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           content: article.content,
           excerpt: article.excerpt,
           category: article.category,
-          featuredImage: article.featuredImage,
+          featuredImage: article.featured_image || '',
           featured: article.featured,
-          isDraft: article.isDraft || false,
-          selectedColumnist: article.columnist?.id || ''
+          isDraft: article.status === 'draft',
+          selectedColumnist: article.columnist_id || ''
         });
       }
     }
@@ -104,8 +104,14 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       }
       
       // Se o usuário atual é colunista, usar suas próprias informações
-      if (currentUser?.role === 'colunista' && currentUser.columnistProfile) {
-        columnistInfo = currentUser.columnistProfile;
+      if (profile?.role === 'colunista') {
+        columnistInfo = {
+          id: profile.id,
+          name: profile.name,
+          avatar: profile.avatar,
+          bio: profile.bio,
+          specialty: profile.specialty
+        };
       }
 
       const articleData = {
@@ -113,10 +119,17 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         content: formData.content,
         excerpt,
         category: formData.category,
-        featuredImage: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+        featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
         featured: formData.featured,
-        isDraft,
-        columnist: columnistInfo
+        status: isDraft ? 'draft' as const : 'published' as const,
+        is_column_copy: false,
+        source_url: '',
+        source_domain: '',
+        columnist_id: columnistInfo?.id,
+        columnist_name: columnistInfo?.name,
+        columnist_avatar: columnistInfo?.avatar,
+        columnist_bio: columnistInfo?.bio,
+        columnist_specialty: columnistInfo?.specialty
       };
 
       // Save article data
@@ -129,7 +142,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         });
       } else {
         // Adding new article
-        addArticle(articleData, currentUser?.id);
+        addArticle(articleData);
         toast({
           title: isDraft ? "Rascunho salvo" : "Artigo publicado",
           description: isDraft 
@@ -231,8 +244,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
 
   // Wizard steps configuration
   const steps = [
-    { key: 'favorites', label: 'Sites Favoritos', hidden: !!articleId || currentUser?.role !== 'admin' },
-    { key: 'import', label: 'Importar URL', hidden: !!articleId || currentUser?.role === 'colunista' },
+    { key: 'favorites', label: 'Sites Favoritos', hidden: !!articleId || profile?.role !== 'admin' },
+    { key: 'import', label: 'Importar URL', hidden: !!articleId || profile?.role === 'colunista' },
     { key: 'ai-generate', label: 'Gerar com IA', hidden: !!articleId },
     { key: 'basic', label: 'Informações Básicas' },
     { key: 'content', label: 'Conteúdo' },
@@ -333,7 +346,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           </div>
         )}
 
-        {visibleSteps[activeStep]?.key === 'favorites' && !articleId && currentUser?.role === 'admin' && (
+        {visibleSteps[activeStep]?.key === 'favorites' && !articleId && profile?.role === 'admin' && (
           <div className="mb-8">
             <FavoriteSites />
           </div>
