@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
@@ -15,6 +15,8 @@ import { SupabaseFavoriteSitesProvider } from "@/contexts/SupabaseFavoriteSitesC
 import { RadioPlayerProvider } from "@/contexts/RadioPlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { UsersProvider } from "@/contexts/UsersContext";
+import { NewsProvider } from "@/contexts/NewsContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -54,6 +56,7 @@ const AppContent = () => {
           <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
           <Route path="/termos-uso" element={<TermsOfService />} />
           <Route path="/admin/auth" element={<AdminAuth />} />
+          <Route path="/admin/login" element={<Navigate to="/admin/auth" replace />} />
           <Route path="/admin/security" element={<AccountSecurity />} />
           <Route path="/admin" element={
             <PrivateRoute>
@@ -83,7 +86,11 @@ const App = () => (
                         <RadioPlayerProvider>
                           <NotificationsProvider>
                             <TooltipProvider>
-                              <AppContent />
+                              <NewsProvider>
+                                <UsersProvider>
+                                  <AppContent />
+                                </UsersProvider>
+                              </NewsProvider>
                             </TooltipProvider>
                           </NotificationsProvider>
                         </RadioPlayerProvider>
