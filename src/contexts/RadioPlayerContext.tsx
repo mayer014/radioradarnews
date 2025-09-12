@@ -10,7 +10,7 @@ interface RadioPlayerContextType {
   handleVolumeChange: (volume: number) => void;
 }
 
-const RadioPlayerContext = createContext<RadioPlayerContextType | undefined>(undefined);
+export const RadioPlayerContext = createContext<RadioPlayerContextType | undefined>(undefined);
 
 export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { radioStreamUrl } = useSupabaseProgramming();
@@ -95,6 +95,10 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       />
     </RadioPlayerContext.Provider>
   );
+};
+
+export const useMaybeRadioPlayer = () => {
+  return useContext(RadioPlayerContext);
 };
 
 export const useRadioPlayer = () => {

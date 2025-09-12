@@ -75,9 +75,16 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
         return;
       }
 
-      const mappedComments = (data || []).map(comment => ({
-        ...comment,
-        ip_address: comment.ip_address as string | undefined
+      const mappedComments: Comment[] = (data || []).map((c: any) => ({
+        id: c.id,
+        article_id: c.article_id,
+        name: c.name,
+        email: c.email,
+        content: c.content,
+        status: c.status as 'pending' | 'approved' | 'rejected',
+        created_at: c.created_at,
+        ip_address: c.ip_address ?? undefined,
+        parent_id: c.parent_id ?? undefined,
       }));
       setComments(mappedComments);
     } catch (error) {

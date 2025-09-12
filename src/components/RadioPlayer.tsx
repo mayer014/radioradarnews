@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { Play, Pause, Volume2, Radio, Music, Minimize2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRadioPlayer } from '@/contexts/RadioPlayerContext';
-import { useProgramming } from '@/contexts/ProgrammingContext';
+import { useMaybeRadioPlayer } from '@/contexts/RadioPlayerContext';
+import { useSupabaseProgramming } from '@/contexts/SupabaseProgrammingContext';
 
 const RadioPlayer = () => {
-  const { radioStreamUrl } = useProgramming();
-  const { isPlaying, volume, togglePlayPause, handleVolumeChange } = useRadioPlayer();
+  const player = useMaybeRadioPlayer();
+  const { radioStreamUrl } = useSupabaseProgramming();
   const [isMinimized, setIsMinimized] = useState(false);
+
+  if (!player) {
+    return null; // Evita erro quando o provider ainda não está montado
+  }
+
+  const { isPlaying, volume, togglePlayPause, handleVolumeChange } = player;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 animate-slide-up">
