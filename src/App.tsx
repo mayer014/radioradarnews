@@ -21,6 +21,7 @@ import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { UsersProvider } from "@/contexts/UsersContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
+import { ContactProvider } from "@/contexts/ContactContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -98,15 +99,17 @@ const App = () => (
                             <UsersProvider>
                               <CommentsProvider>
                                 <ProgrammingProvider>
-                                  <TooltipProvider>
-                                    <NewsProvider>
-                                      <NewsletterProvider>
-                                        <BannerProvider>
-                                          <AppContent />
-                                        </BannerProvider>
-                                      </NewsletterProvider>
-                                    </NewsProvider>
-                                  </TooltipProvider>
+                                  <ContactProvider>
+                                    <TooltipProvider>
+                                      <NewsProvider>
+                                        <NewsletterProvider>
+                                          <BannerProvider>
+                                            <AppContent />
+                                          </BannerProvider>
+                                        </NewsletterProvider>
+                                      </NewsProvider>
+                                    </TooltipProvider>
+                                  </ContactProvider>
                                 </ProgrammingProvider>
                               </CommentsProvider>
                             </UsersProvider>
