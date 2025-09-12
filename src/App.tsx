@@ -93,7 +93,11 @@ const App = () => (
                             <TooltipProvider>
                               <NewsProvider>
                                 <UsersProvider>
-                                  <AppContent />
+                                  <ContactProvider>
+                                    <CommentsProvider>
+                                      <AppContent />
+                                    </CommentsProvider>
+                                  </ContactProvider>
                                 </UsersProvider>
                               </NewsProvider>
                             </TooltipProvider>
