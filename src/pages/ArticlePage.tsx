@@ -11,7 +11,7 @@ import RadioPlayer from '@/components/RadioPlayer';
 import CommentsSection from '@/components/CommentsSection';
 import NewsletterSubscription from '@/components/NewsletterSubscription';
 import { ShareMenu } from '@/components/share/ShareMenu';
-import { useNews, filterActiveColumnistArticles } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { getArticleLink } from '@/lib/utils';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ArticleStructuredData, BreadcrumbStructuredData } from '@/components/seo/StructuredData';
@@ -52,7 +52,7 @@ const formatArticleContent = (content: string): string => {
 
 const ArticlePage = () => {
   const { id } = useParams<{ id: string }>();
-  const { getArticleById, incrementViews, articles } = useNews();
+  const { getArticleById, incrementViews, articles } = useSupabaseNews();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
   const [isLoading, setIsLoading] = React.useState(true);
@@ -143,6 +143,26 @@ const ArticlePage = () => {
   const pageTitle = generatePageTitle(article.title, article.category);
   const keywords = generateKeywordsFromContent(article.title, article.content, article.category);
   const breadcrumbData = generateBreadcrumbData(window.location.pathname, article.title);
+  
+  // Create article object for SEO components (map to expected interface)
+  const articleForSEO = {
+    id: article.id,
+    title: article.title,
+    excerpt: article.excerpt,
+    content: article.content,
+    featuredImage: article.featured_image || '',
+    createdAt: article.created_at,
+    updatedAt: article.updated_at,
+    category: article.category,
+    views: article.views,
+    columnist: article.columnist_id ? {
+      id: article.columnist_id,
+      name: article.columnist_name || '',
+      avatar: article.columnist_avatar || '',
+      bio: article.columnist_bio || '',
+      specialty: article.columnist_specialty || ''
+    } : undefined
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,17 +170,17 @@ const ArticlePage = () => {
         title={pageTitle}
         description={metaDescription}
         keywords={keywords}
-        image={article.featuredImage}
+        image={article.featured_image}
         url={currentUrl}
         type="article"
-        author={article.columnist?.name}
-        publishedTime={article.createdAt}
-        modifiedTime={article.updatedAt}
+        author={article.columnist_name}
+        publishedTime={article.created_at}
+        modifiedTime={article.updated_at}
         section={article.category}
       />
       
       <ArticleStructuredData 
-        article={article} 
+        article={articleForSEO} 
         url={currentUrl} 
       />
       
@@ -191,7 +211,7 @@ const ArticlePage = () => {
             </Badge>
             <div className="flex items-center text-muted-foreground text-sm">
               <Calendar className="w-4 h-4 mr-2" />
-              {new Date(article.createdAt).toLocaleDateString('pt-BR')}
+              {new Date(article.created_at).toLocaleDateString('pt-BR')}
             </div>
           </div>
 
@@ -216,7 +236,7 @@ const ArticlePage = () => {
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span>{new Date(article.createdAt).toLocaleString('pt-BR')}</span>
+                <span>{new Date(article.created_at).toLocaleString('pt-BR')}</span>
               </div>
             </div>
             
@@ -226,9 +246,9 @@ const ArticlePage = () => {
                 title={article.title}
                 excerpt={article.excerpt}
                 url={window.location.href}
-                image={article.featuredImage}
+                image={article.featured_image}
                 category={article.category}
-                author={article.columnist?.name}
+                author={article.columnist_name}
                 source={article.source_domain}
                 sourceUrl={article.source_url}
               />
@@ -238,7 +258,7 @@ const ArticlePage = () => {
           {/* Imagem principal */}
           <figure className="relative rounded-lg mb-8 bg-muted/20 overflow-hidden">
             <img
-              src={article.featuredImage}
+              src={article.featured_image}
               alt={optimizeImageAlt(article.title, "Imagem do artigo")}
               className="w-full max-h-96 object-contain rounded-lg"
               style={{ height: 'auto' }}
@@ -249,21 +269,21 @@ const ArticlePage = () => {
           </figure>
 
           {/* Info do autor */}
-          {article.columnist ? (
-            <Link to={`/colunista/${article.columnist.id}`}>
+          {article.columnist_id ? (
+            <Link to={`/colunista/${article.columnist_id}`}>
               <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-lg border border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 flex-shrink-0">
-                  {article.columnist.avatar && (article.columnist.avatar.startsWith('http') || article.columnist.avatar.startsWith('data:image/')) ? (
+                  {article.columnist_avatar && (article.columnist_avatar.startsWith('http') || article.columnist_avatar.startsWith('data:image/')) ? (
                     <img
-                      src={article.columnist.avatar}
-                      alt={article.columnist.name}
+                      src={article.columnist_avatar}
+                      alt={article.columnist_name || 'Colunista'}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        console.error('Error loading columnist avatar in ArticlePage:', article.columnist?.avatar?.substring(0, 100));
+                        console.error('Error loading columnist avatar in ArticlePage:', article.columnist_avatar?.substring(0, 100));
                         (e.target as HTMLImageElement).style.display = 'none';
                         (e.target as HTMLImageElement).parentElement!.innerHTML = `
                           <div class="w-full h-full bg-muted/50 flex items-center justify-center">
-                            <span class="text-sm text-muted-foreground font-bold">${article.columnist?.name?.[0]?.toUpperCase()}</span>
+                            <span class="text-sm text-muted-foreground font-bold">${article.columnist_name?.[0]?.toUpperCase()}</span>
                           </div>
                         `;
                       }}
@@ -271,17 +291,17 @@ const ArticlePage = () => {
                   ) : (
                     <div className="w-full h-full bg-muted/50 flex items-center justify-center">
                       <span className="text-sm text-muted-foreground font-bold">
-                        {article.columnist.name[0]?.toUpperCase()}
+                        {article.columnist_name?.[0]?.toUpperCase()}
                       </span>
                     </div>
                   )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{article.columnist.name}</span>
+                    <span className="font-semibold">{article.columnist_name}</span>
                     <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Colunista</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{article.columnist.specialty}</p>
+                  <p className="text-sm text-muted-foreground">{article.columnist_specialty}</p>
                 </div>
               </div>
             </Link>
@@ -322,21 +342,21 @@ const ArticlePage = () => {
         {/* Artigos relacionados */}
         <div className="mt-12">
           <h3 className="text-2xl font-bold mb-6">
-            {article.columnist ? `Outros artigos de ${article.columnist.name}` : 'Matérias Relacionadas'}
+            {article.columnist_id ? `Outros artigos de ${article.columnist_name}` : 'Matérias Relacionadas'}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filterActiveColumnistArticles(article.columnist 
-              ? articles.filter(a => a.columnist?.id === article.columnist?.id && a.id !== article.id)
-              : articles.filter(a => a.category === article.category && a.id !== article.id)
+            {(article.columnist_id 
+              ? articles.filter(a => a.columnist_id === article.columnist_id && a.id !== article.id)
+              : articles.filter(a => a.category === article.category && a.id !== article.id && a.status === 'published')
             )
               .slice(0, 4)
               .map((related) => (
                 <Link key={related.id} to={getArticleLink(related)}>
                   <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-105 overflow-hidden">
                     <div className="flex gap-4 p-4">
-                      <div className="relative rounded-lg flex-shrink-0 bg-muted/20 overflow-hidden">
-                        <img
-                          src={related.featuredImage}
+                        <div className="relative rounded-lg flex-shrink-0 bg-muted/20 overflow-hidden">
+                          <img
+                            src={related.featured_image}
                           alt={related.title}
                           className="w-24 h-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                           style={{ minHeight: '60px', maxHeight: '80px' }}
@@ -348,7 +368,7 @@ const ArticlePage = () => {
                         </h4>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="w-3 h-3 mr-1" />
-                          <span>{new Date(related.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <span>{new Date(related.created_at).toLocaleDateString('pt-BR')}</span>
                         </div>
                       </div>
                     </div>
@@ -356,11 +376,11 @@ const ArticlePage = () => {
                 </Link>
               ))}
           </div>
-          {article.columnist && (
+          {article.columnist_id && (
             <div className="text-center mt-6">
-              <Link to={`/colunista/${article.columnist.id}`}>
+              <Link to={`/colunista/${article.columnist_id}`}>
                 <Button className="bg-gradient-hero hover:shadow-glow-primary">
-                  Ver todos os artigos de {article.columnist.name}
+                  Ver todos os artigos de {article.columnist_name}
                 </Button>
               </Link>
             </div>
@@ -368,10 +388,10 @@ const ArticlePage = () => {
         </div>
         
         {/* Hidden metadata for SEO */}
-        <meta itemProp="datePublished" content={article.createdAt} />
-        <meta itemProp="dateModified" content={article.updatedAt} />
+        <meta itemProp="datePublished" content={article.created_at} />
+        <meta itemProp="dateModified" content={article.updated_at} />
         <meta itemProp="wordCount" content={article.content.replace(/<[^>]*>/g, '').split(' ').length.toString()} />
-        <meta itemProp="author" content={article.columnist?.name || "Redação Portal News"} />
+        <meta itemProp="author" content={article.columnist_name || "Redação Portal News"} />
         <meta itemProp="publisher" content="Portal News" />
       </article>
 
