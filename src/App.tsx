@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { AuthProvider } from "@/contexts/AuthContext";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
@@ -16,17 +15,10 @@ import { SupabaseFavoriteSitesProvider } from "@/contexts/SupabaseFavoriteSitesC
 import { RadioPlayerProvider } from "@/contexts/RadioPlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
-
-// Legacy providers - will be removed after full migration
-import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
-import { UsersProvider } from "@/contexts/UsersContext";
-import { CommentsProvider } from "@/contexts/CommentsContext";
-import { ContactProvider } from "@/contexts/ContactContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
-import AdminLogin from "./pages/AdminLogin";
-import SupabaseAdminLogin from "./pages/SupabaseAdminLogin";
+import AdminAuth from "./pages/AdminAuth";
 import AdminPanel from "./pages/AdminPanel";
 import AccountSecurity from "./pages/AccountSecurity";
 import NewsPage from "./pages/NewsPage";
@@ -39,9 +31,6 @@ import ColumnistsPage from "./pages/ColumnistsPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import PrivateRoute from "./components/PrivateRoute";
-import { BannerProvider } from "@/contexts/BannerContext";
-import { NewsProvider } from "@/contexts/NewsContext";
-import { NewsletterProvider } from "@/contexts/NewsletterContext";
 
 const queryClient = new QueryClient();
 
@@ -64,8 +53,7 @@ const AppContent = () => {
           <Route path="/colunista/:columnistId/artigo/:id" element={<ColumnistArticlePage />} />
           <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
           <Route path="/termos-uso" element={<TermsOfService />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/supabase-login" element={<SupabaseAdminLogin />} />
+          <Route path="/admin/auth" element={<AdminAuth />} />
           <Route path="/admin/security" element={<AccountSecurity />} />
           <Route path="/admin" element={
             <PrivateRoute>
@@ -84,8 +72,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
       <ThemeProvider>
-        <AuthProvider>
-          <SupabaseAuthProvider>
+        <SupabaseAuthProvider>
           <SupabaseNewsProvider>
             <SupabaseBannerProvider>
               <SupabaseContactInfoProvider>
@@ -95,24 +82,9 @@ const App = () => (
                       <SupabaseFavoriteSitesProvider>
                         <RadioPlayerProvider>
                           <NotificationsProvider>
-                            {/* Legacy providers for backward compatibility */}
-                            <UsersProvider>
-                              <CommentsProvider>
-                                <ProgrammingProvider>
-                                  <ContactProvider>
-                                    <TooltipProvider>
-                                      <NewsProvider>
-                                        <NewsletterProvider>
-                                          <BannerProvider>
-                                            <AppContent />
-                                          </BannerProvider>
-                                        </NewsletterProvider>
-                                      </NewsProvider>
-                                    </TooltipProvider>
-                                  </ContactProvider>
-                                </ProgrammingProvider>
-                              </CommentsProvider>
-                            </UsersProvider>
+                            <TooltipProvider>
+                              <AppContent />
+                            </TooltipProvider>
                           </NotificationsProvider>
                         </RadioPlayerProvider>
                       </SupabaseFavoriteSitesProvider>
@@ -123,7 +95,6 @@ const App = () => (
             </SupabaseBannerProvider>
           </SupabaseNewsProvider>
         </SupabaseAuthProvider>
-        </AuthProvider>
       </ThemeProvider>
     </HelmetProvider>
   </QueryClientProvider>
