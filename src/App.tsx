@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
@@ -82,7 +83,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
       <ThemeProvider>
-        <SupabaseAuthProvider>
+        <AuthProvider>
+          <SupabaseAuthProvider>
           <SupabaseNewsProvider>
             <SupabaseBannerProvider>
               <SupabaseContactInfoProvider>
@@ -118,6 +120,7 @@ const App = () => (
             </SupabaseBannerProvider>
           </SupabaseNewsProvider>
         </SupabaseAuthProvider>
+        </AuthProvider>
       </ThemeProvider>
     </HelmetProvider>
   </QueryClientProvider>
