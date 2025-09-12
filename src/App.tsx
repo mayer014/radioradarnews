@@ -32,6 +32,9 @@ import ColumnistsPage from "./pages/ColumnistsPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import PrivateRoute from "./components/PrivateRoute";
+import { BannerProvider } from "@/contexts/BannerContext";
+import { NewsProvider } from "@/contexts/NewsContext";
+import { NewsletterProvider } from "@/contexts/NewsletterContext";
 
 const queryClient = new QueryClient();
 
@@ -85,7 +88,13 @@ const App = () => (
                         <CommentsProvider>
                           <NotificationsProvider>
                             <TooltipProvider>
-                              <AppContent />
+                              <NewsProvider>
+                                <NewsletterProvider>
+                                  <BannerProvider>
+                                    <AppContent />
+                                  </BannerProvider>
+                                </NewsletterProvider>
+                              </NewsProvider>
                             </TooltipProvider>
                           </NotificationsProvider>
                         </CommentsProvider>

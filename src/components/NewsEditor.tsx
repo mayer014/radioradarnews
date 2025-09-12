@@ -373,7 +373,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
               />
               {articleId && (() => {
                 const article = getArticleById(articleId);
-                return article ? <ArticleMetadata article={article} /> : null;
+                return article ? <ArticleMetadata article={article as any} /> : null;
               })()}
             </div>
           </div>
