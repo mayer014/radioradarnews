@@ -7,13 +7,14 @@ const corsHeaders = {
 };
 
 interface BannerRequest {
-  action: 'get_current_banner' | 'schedule_banner' | 'update_schedule' | 'get_schedule';
+  action: 'get_current_banner' | 'add_to_queue' | 'update_queue' | 'remove_from_queue' | 'get_queue' | 'set_pilot' | 'cleanup_expired';
   slot_key?: string;
   banner_id?: string;
   starts_at?: string;
   ends_at?: string;
   priority?: number;
-  schedule_id?: string;
+  queue_id?: string;
+  is_pilot?: boolean;
 }
 
 serve(async (req) => {
@@ -40,7 +41,7 @@ serve(async (req) => {
     }
 
     const requestData: BannerRequest = await req.json();
-    const { action, slot_key, banner_id, starts_at, ends_at, priority, schedule_id } = requestData;
+    const { action, slot_key, banner_id, starts_at, ends_at, priority, queue_id, is_pilot } = requestData;
 
     console.log(`Banner Service: ${action} by user ${user.id}`, { slot_key, banner_id });
 
@@ -63,75 +64,49 @@ serve(async (req) => {
       case 'get_current_banner': {
         if (!slot_key) throw new Error('Slot key required');
 
-        const now = new Date().toISOString();
+        // Primeiro, limpa banners expirados
+        await supabase.rpc('cleanup_expired_banners');
 
-        // Try to find active scheduled banner first
-        const { data: scheduledBanners, error: scheduleError } = await supabase
-          .from('banner_schedule')
-          .select(`
-            *,
-            banner:banners_normalized(*),
-            slot:banner_slots(*)
-          `)
-          .eq('slot_id', slot_key)
-          .eq('is_active', true)
-          .lte('starts_at', now)
-          .or(`ends_at.is.null,ends_at.gte.${now}`)
-          .order('priority', { ascending: false })
-          .order('starts_at', { ascending: false })
-          .limit(1);
+        // Usa a função do banco para obter o banner atual
+        const { data: currentBannerData, error: bannerError } = await supabase
+          .rpc('get_current_banner', { slot_key_param: slot_key });
 
-        if (scheduleError) throw scheduleError;
+        if (bannerError) throw bannerError;
 
         let currentBanner = null;
-
-        if (scheduledBanners && scheduledBanners.length > 0) {
-          currentBanner = scheduledBanners[0];
-        } else {
-          // Fallback to default banner for slot
-          const { data: slotData, error: slotError } = await supabase
-            .from('banner_slots')
-            .select(`
-              *,
-              default_banner:banners_normalized(*)
-            `)
-            .eq('slot_key', slot_key)
-            .eq('is_active', true)
+        if (currentBannerData && currentBannerData.length > 0) {
+          const bannerInfo = currentBannerData[0];
+          
+          // Buscar dados completos do banner
+          const { data: fullBanner, error: fullBannerError } = await supabase
+            .from('banners_normalized')
+            .select('*')
+            .eq('id', bannerInfo.banner_id)
             .single();
 
-          if (slotError) throw slotError;
+          if (fullBannerError) throw fullBannerError;
 
-          if (slotData && slotData.default_banner) {
-            currentBanner = {
-              ...slotData,
-              banner: slotData.default_banner,
-              is_default: true
-            };
-          }
+          currentBanner = {
+            ...fullBanner,
+            is_pilot: bannerInfo.is_pilot,
+            queue_priority: bannerInfo.queue_priority,
+            queue_ends_at: bannerInfo.queue_ends_at
+          };
         }
 
         result = { success: true, data: currentBanner };
         break;
       }
 
-      case 'schedule_banner': {
-        if (!slot_key || !banner_id || !starts_at) {
-          throw new Error('Slot key, banner ID and start time required');
+      case 'add_to_queue': {
+        if (!slot_key || !banner_id) {
+          throw new Error('Slot key and banner ID required');
         }
 
-        // Get slot ID from slot_key
-        const { data: slotData, error: slotError } = await supabase
-          .from('banner_slots')
-          .select('id')
-          .eq('slot_key', slot_key)
-          .single();
-
-        if (slotError) throw slotError;
-
-        const { data: schedule, error: scheduleError } = await supabase
-          .from('banner_schedule')
+        const { data: queueEntry, error: queueError } = await supabase
+          .from('banner_queue')
           .insert({
-            slot_id: slotData.id,
+            slot_key,
             banner_id,
             starts_at,
             ends_at,
@@ -140,14 +115,13 @@ serve(async (req) => {
           })
           .select(`
             *,
-            banner:banners_normalized(*),
-            slot:banner_slots(*)
+            banner:banners_normalized(*)
           `)
           .single();
 
-        if (scheduleError) throw scheduleError;
+        if (queueError) throw queueError;
 
-        await auditLog('banner_scheduled', schedule.id, {
+        await auditLog('banner_added_to_queue', queueEntry.id, {
           slot_key,
           banner_id,
           starts_at,
@@ -155,65 +129,111 @@ serve(async (req) => {
           priority
         });
 
-        result = { success: true, data: schedule };
+        result = { success: true, data: queueEntry };
         break;
       }
 
-      case 'update_schedule': {
-        if (!schedule_id) throw new Error('Schedule ID required');
+      case 'update_queue': {
+        if (!queue_id) throw new Error('Queue ID required');
 
         const updateData: any = {};
         if (starts_at) updateData.starts_at = starts_at;
         if (ends_at) updateData.ends_at = ends_at;
         if (priority !== undefined) updateData.priority = priority;
 
-        const { data: updatedSchedule, error: updateError } = await supabase
-          .from('banner_schedule')
+        const { data: updatedQueue, error: updateError } = await supabase
+          .from('banner_queue')
           .update(updateData)
-          .eq('id', schedule_id)
+          .eq('id', queue_id)
           .select(`
             *,
-            banner:banners_normalized(*),
-            slot:banner_slots(*)
+            banner:banners_normalized(*)
           `)
           .single();
 
         if (updateError) throw updateError;
 
-        await auditLog('banner_schedule_updated', schedule_id, updateData);
+        await auditLog('banner_queue_updated', queue_id, updateData);
 
-        result = { success: true, data: updatedSchedule };
+        result = { success: true, data: updatedQueue };
         break;
       }
 
-      case 'get_schedule': {
+      case 'remove_from_queue': {
+        if (!queue_id) throw new Error('Queue ID required');
+
+        const { data: removedEntry, error: removeError } = await supabase
+          .from('banner_queue')
+          .update({ is_active: false })
+          .eq('id', queue_id)
+          .select()
+          .single();
+
+        if (removeError) throw removeError;
+
+        await auditLog('banner_removed_from_queue', queue_id, { queue_id });
+
+        result = { success: true, data: removedEntry };
+        break;
+      }
+
+      case 'get_queue': {
         let query = supabase
-          .from('banner_schedule')
+          .from('banner_queue')
           .select(`
             *,
-            banner:banners_normalized(*),
-            slot:banner_slots(*)
+            banner:banners_normalized(*)
           `)
-          .order('starts_at', { ascending: false });
+          .order('priority', { ascending: false })
+          .order('created_at', { ascending: true });
 
         if (slot_key) {
-          // Get slot ID first
-          const { data: slotData } = await supabase
-            .from('banner_slots')
-            .select('id')
-            .eq('slot_key', slot_key)
-            .single();
-
-          if (slotData) {
-            query = query.eq('slot_id', slotData.id);
-          }
+          query = query.eq('slot_key', slot_key);
         }
 
-        const { data: schedules, error: scheduleError } = await query;
+        const { data: queue, error: queueError } = await query;
 
-        if (scheduleError) throw scheduleError;
+        if (queueError) throw queueError;
 
-        result = { success: true, data: schedules };
+        result = { success: true, data: queue };
+        break;
+      }
+
+      case 'set_pilot': {
+        if (!banner_id || is_pilot === undefined) {
+          throw new Error('Banner ID and pilot status required');
+        }
+
+        // Primeiro, remove piloto de outros banners
+        if (is_pilot) {
+          await supabase
+            .from('banners_normalized')
+            .update({ is_pilot: false })
+            .eq('is_pilot', true);
+        }
+
+        // Atualiza o banner atual
+        const { data: updatedBanner, error: updateError } = await supabase
+          .from('banners_normalized')
+          .update({ is_pilot })
+          .eq('id', banner_id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+
+        await auditLog('banner_pilot_updated', banner_id, { is_pilot });
+
+        result = { success: true, data: updatedBanner };
+        break;
+      }
+
+      case 'cleanup_expired': {
+        await supabase.rpc('cleanup_expired_banners');
+
+        await auditLog('banner_cleanup', 'system', { action: 'cleanup_expired' });
+
+        result = { success: true, message: 'Expired banners cleaned up' };
         break;
       }
 

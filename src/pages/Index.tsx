@@ -1,7 +1,7 @@
 import React from 'react';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
-import Banner from '@/components/Banner';
+import NewBanner from '@/components/NewBanner';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -39,7 +39,7 @@ const Index = () => {
         <HeroSection />
       
       {/* Banner Principal */}
-      <Banner position="hero" />
+      <NewBanner slotKey="hero" />
       
       {/* Últimas Notícias */}
       <LatestNews />

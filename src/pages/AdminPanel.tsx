@@ -39,6 +39,7 @@ import {
 import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
 import BannerManager from '@/components/BannerManager';
+import NewBannerManager from '@/components/NewBannerManager';
 import UsersManager from '@/components/UsersManager';
 import SupabaseUsersManager from '@/components/SupabaseUsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';

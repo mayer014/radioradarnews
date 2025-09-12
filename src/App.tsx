@@ -21,6 +21,7 @@ import { CommentsProvider } from "@/contexts/CommentsContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { ContactProvider } from "@/contexts/ContactContext";
 import { BannerProvider } from "@/contexts/BannerContext";
+import { NewBannerProvider } from "@/contexts/NewBannerContext";
 import { NewsletterProvider } from "@/contexts/NewsletterContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -95,13 +96,15 @@ const App = () => (
                                 <UsersProvider>
                                   <ContactProvider>
                                     <CommentsProvider>
-                                      <BannerProvider>
-                                        <ProgrammingProvider>
-                                          <NewsletterProvider>
+        <BannerProvider>
+          <NewBannerProvider>
+            <ProgrammingProvider>
+              <NewsletterProvider>
                                             <AppContent />
-                                          </NewsletterProvider>
-                                        </ProgrammingProvider>
-                                      </BannerProvider>
+              </NewsletterProvider>
+            </ProgrammingProvider>
+          </NewBannerProvider>
+        </BannerProvider>
                                     </CommentsProvider>
                                   </ContactProvider>
                                 </UsersProvider>
