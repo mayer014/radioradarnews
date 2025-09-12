@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
-import { useProgramming } from './ProgrammingContext';
+import { useSupabaseProgramming } from './SupabaseProgrammingContext';
 
 interface RadioPlayerContextType {
   isPlaying: boolean;
@@ -13,7 +13,7 @@ interface RadioPlayerContextType {
 const RadioPlayerContext = createContext<RadioPlayerContextType | undefined>(undefined);
 
 export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { radioStreamUrl } = useProgramming();
+  const { radioStreamUrl } = useSupabaseProgramming();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.75);
   const [currentShow, setCurrentShow] = useState("RRN");

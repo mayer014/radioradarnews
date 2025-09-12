@@ -101,8 +101,11 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
         return;
       }
 
-      if (data?.value) {
-        setSettings({ ...defaultSettings, ...data.value });
+      if (data && data.value && typeof data.value === 'object' && !Array.isArray(data.value)) {
+        const v = data.value as Partial<CommentSettings>;
+        setSettings({ ...defaultSettings, ...v });
+      } else {
+        setSettings(defaultSettings);
       }
     } catch (error) {
       console.error('Error fetching comment settings:', error);

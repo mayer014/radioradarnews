@@ -25,7 +25,7 @@ const NewsletterSubscription: React.FC<NewsletterSubscriptionProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  if (!settings.subscriptionFormEnabled) {
+  if (!settings || !settings.subscriptionFormEnabled) {
     return null;
   }
 
