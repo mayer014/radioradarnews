@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
 import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
@@ -82,6 +83,7 @@ const App = () => (
     <HelmetProvider>
       <ThemeProvider>
         <SupabaseAuthProvider>
+          <AuthProvider>
           <SupabaseNewsProvider>
             <SupabaseBannerProvider>
               <SupabaseContactInfoProvider>
@@ -119,6 +121,7 @@ const App = () => (
               </SupabaseContactInfoProvider>
             </SupabaseBannerProvider>
           </SupabaseNewsProvider>
+          </AuthProvider>
         </SupabaseAuthProvider>
       </ThemeProvider>
     </HelmetProvider>
