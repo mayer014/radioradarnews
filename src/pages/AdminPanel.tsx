@@ -239,7 +239,7 @@ const AdminPanel = () => {
     markAsRead(id);
   };
 
-  const handleToggleFeatured = (id: string, title: string, currentFeatured: boolean) => {
+  const handleToggleFeatured = async (id: string, title: string, currentFeatured: boolean) => {
     const article = articles.find(a => a.id === id);
     if (!article) return;
 
@@ -247,25 +247,13 @@ const AdminPanel = () => {
     const currentFeaturedInCategory = categoryArticles.find(a => a.featured);
     
     if (!currentFeatured && currentFeaturedInCategory) {
-      const confirmMessage = `Há uma matéria já em destaque na categoria "${article.category}": "${currentFeaturedInCategory.title}". 
-
-Deseja substituir por "${title}"?`;
+      const confirmMessage = `Há uma matéria já em destaque na categoria "${article.category}": "${currentFeaturedInCategory.title}". \n\nDeseja substituir por "${title}"?`;
       
       if (confirm(confirmMessage)) {
-        toggleFeaturedArticle(id);
-        toast({
-          title: "Destaque alterado",
-          description: `"${title}" agora é destaque na categoria ${article.category}.`,
-        });
+        await toggleFeaturedArticle(id);
       }
     } else {
-      toggleFeaturedArticle(id);
-      toast({
-        title: currentFeatured ? "Destaque removido" : "Destaque definido",
-        description: currentFeatured 
-          ? `"${title}" não é mais destaque.`
-          : `"${title}" agora é destaque na categoria ${article.category}.`,
-      });
+      await toggleFeaturedArticle(id);
     }
   };
 

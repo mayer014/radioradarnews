@@ -173,6 +173,9 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { error: error.message };
       }
 
+      // Atualização otimista do estado local para refletir imediatamente na UI
+      setArticles(prev => prev.map(a => a.id === id ? { ...a, ...updates, updated_at: new Date().toISOString() } : a));
+
       toast({
         title: "Sucesso",
         description: "Artigo atualizado com sucesso",
@@ -262,7 +265,48 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const article = articles.find(a => a.id === id);
     if (!article) return { error: 'Artigo não encontrado' };
 
-    return await updateArticle(id, { featured: !article.featured });
+    const targetStatus = !article.featured;
+
+    try {
+      // Se for admin e estiver definindo como destaque, remover destaque de outros da mesma categoria
+      if (targetStatus && profile?.role === 'admin') {
+        const { error: unsetError } = await supabase
+          .from('articles')
+          .update({ featured: false })
+          .eq('category', article.category)
+          .eq('featured', true);
+
+        if (unsetError) {
+          console.error('Erro ao remover destaques anteriores:', unsetError);
+        }
+
+        // Atualização otimista: remover destaque dos outros na mesma categoria
+        setArticles(prev => prev.map(a => a.category === article.category ? { ...a, featured: a.id === id } : a));
+      }
+
+      // Atualizar o artigo alvo
+      const { error } = await supabase
+        .from('articles')
+        .update({ featured: targetStatus })
+        .eq('id', id);
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      // Atualização otimista do artigo alvo
+      setArticles(prev => prev.map(a => a.id === id ? { ...a, featured: targetStatus } : a));
+
+      toast({
+        title: 'Sucesso',
+        description: targetStatus ? 'Artigo marcado como destaque' : 'Destaque removido',
+      });
+
+      return {};
+    } catch (e) {
+      console.error('Error toggling featured:', e);
+      return { error: 'Erro de conexão' };
+    }
   };
 
   const refreshArticles = async () => {

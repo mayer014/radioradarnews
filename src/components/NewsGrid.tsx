@@ -41,10 +41,15 @@ const NewsGrid: React.FC = () => {
     if (selectedCategory === 'Todas') {
       // Group articles by category
       const grouped = BASE_NEWS_CATEGORIES.reduce((acc, category) => {
-        const categoryArticles = published
+        const allCategory = published
           .filter(a => a.category === category)
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 5); // Max 5 articles per category (1 featured + 4 regular)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        const featuredInCategory = allCategory.find(a => a.featured);
+        const regularArticles = allCategory.filter(a => !a.featured).slice(0, 4);
+        const categoryArticles = featuredInCategory
+          ? [featuredInCategory, ...regularArticles]
+          : allCategory.slice(0, 5);
         
         if (categoryArticles.length > 0) {
           acc[category] = categoryArticles;
