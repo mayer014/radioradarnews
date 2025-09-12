@@ -659,6 +659,42 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_sites: {
+        Row: {
+          created_at: string
+          description: string | null
+          favicon_url: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          favicon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          favicon_url?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       media_assets: {
         Row: {
           bucket_name: string
@@ -854,6 +890,45 @@ export type Database = {
           specialty?: string | null
           updated_at?: string | null
           username?: string
+        }
+        Relationships: []
+      }
+      radio_programs: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_time: string
+          host: string
+          id: string
+          is_active: boolean
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_time: string
+          host: string
+          id?: string
+          is_active?: boolean
+          start_time: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          host?: string
+          id?: string
+          is_active?: boolean
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

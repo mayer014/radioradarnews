@@ -9,12 +9,17 @@ import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
 import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
 import { SupabaseNewsletterProvider } from "@/contexts/SupabaseNewsletterContext";
-import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
+import { SupabaseCommentsProvider } from "@/contexts/SupabaseCommentsContext";
+import { SupabaseProgrammingProvider } from "@/contexts/SupabaseProgrammingContext";
+import { SupabaseFavoriteSitesProvider } from "@/contexts/SupabaseFavoriteSitesContext";
 import { RadioPlayerProvider } from "@/contexts/RadioPlayerContext";
-import { UsersProvider } from "@/contexts/UsersContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { CommentsProvider } from "@/contexts/CommentsContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+
+// Legacy providers - will be removed after full migration
+import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
+import { UsersProvider } from "@/contexts/UsersContext";
+import { CommentsProvider } from "@/contexts/CommentsContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -76,37 +81,44 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
-      <SupabaseAuthProvider>
-        <SupabaseNewsProvider>
-          <SupabaseBannerProvider>
-            <SupabaseContactInfoProvider>
-              <SupabaseNewsletterProvider>
-                <ThemeProvider>
-                  <UsersProvider>
-                    <ProgrammingProvider>
-                      <RadioPlayerProvider>
-                        <CommentsProvider>
+      <ThemeProvider>
+        <SupabaseAuthProvider>
+          <SupabaseNewsProvider>
+            <SupabaseBannerProvider>
+              <SupabaseContactInfoProvider>
+                <SupabaseNewsletterProvider>
+                  <SupabaseCommentsProvider>
+                    <SupabaseProgrammingProvider>
+                      <SupabaseFavoriteSitesProvider>
+                        <RadioPlayerProvider>
                           <NotificationsProvider>
-                            <TooltipProvider>
-                              <NewsProvider>
-                                <NewsletterProvider>
-                                  <BannerProvider>
-                                    <AppContent />
-                                  </BannerProvider>
-                                </NewsletterProvider>
-                              </NewsProvider>
-                            </TooltipProvider>
+                            {/* Legacy providers for backward compatibility */}
+                            <UsersProvider>
+                              <CommentsProvider>
+                                <ProgrammingProvider>
+                                  <TooltipProvider>
+                                    <NewsProvider>
+                                      <NewsletterProvider>
+                                        <BannerProvider>
+                                          <AppContent />
+                                        </BannerProvider>
+                                      </NewsletterProvider>
+                                    </NewsProvider>
+                                  </TooltipProvider>
+                                </ProgrammingProvider>
+                              </CommentsProvider>
+                            </UsersProvider>
                           </NotificationsProvider>
-                        </CommentsProvider>
-                      </RadioPlayerProvider>
-                    </ProgrammingProvider>
-                  </UsersProvider>
-                </ThemeProvider>
-              </SupabaseNewsletterProvider>
-            </SupabaseContactInfoProvider>
-          </SupabaseBannerProvider>
-        </SupabaseNewsProvider>
-      </SupabaseAuthProvider>
+                        </RadioPlayerProvider>
+                      </SupabaseFavoriteSitesProvider>
+                    </SupabaseProgrammingProvider>
+                  </SupabaseCommentsProvider>
+                </SupabaseNewsletterProvider>
+              </SupabaseContactInfoProvider>
+            </SupabaseBannerProvider>
+          </SupabaseNewsProvider>
+        </SupabaseAuthProvider>
+      </ThemeProvider>
     </HelmetProvider>
   </QueryClientProvider>
 );

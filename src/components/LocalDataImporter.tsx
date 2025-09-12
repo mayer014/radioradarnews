@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { Download, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface LocalArticle {
@@ -11,20 +12,30 @@ interface LocalArticle {
   content: string;
   excerpt: string;
   category: string;
-  featured_image?: string;
+  featuredImage?: string;
   featured: boolean;
-  status: 'draft' | 'published';
-  created_at: string;
-  updated_at: string;
+  isDraft?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const LocalDataImporter = () => {
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(false);
   const { addArticle } = useSupabaseNews();
+  const { user } = useSupabaseAuth();
   const { toast } = useToast();
 
   const importLocalArticles = async () => {
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para importar dados.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setImporting(true);
     try {
       // Get articles from localStorage
@@ -49,9 +60,9 @@ const LocalDataImporter = () => {
             content: article.content,
             excerpt: article.excerpt,
             category: article.category,
-            featured_image: article.featured_image,
+            featured_image: article.featuredImage,
             featured: article.featured,
-            status: article.status,
+            status: article.isDraft ? 'draft' : 'published',
             is_column_copy: false,
             source_url: '',
             source_domain: ''
@@ -129,7 +140,7 @@ const LocalDataImporter = () => {
           <div className="flex gap-3">
             <Button
               onClick={importLocalArticles}
-              disabled={importing}
+              disabled={importing || !user}
               className="bg-gradient-hero hover:shadow-glow-primary"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -143,6 +154,11 @@ const LocalDataImporter = () => {
               Pular
             </Button>
           </div>
+          {!user && (
+            <p className="text-amber-600 text-sm mt-2">
+              ⚠️ Você precisa estar logado para importar dados.
+            </p>
+          )}
         </div>
       </div>
     </Card>
