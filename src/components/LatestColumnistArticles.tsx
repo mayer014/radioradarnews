@@ -23,8 +23,29 @@ const LatestColumnistArticles = () => {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
+  console.log('LatestColumnistArticles Debug:', {
+    totalArticles: articles.length,
+    publishedArticles: articles.filter(a => a.status === 'published').length,
+    columnistArticles: articles.filter(a => a.columnist_id).length,
+    latestColumnistArticles: latestColumnistArticles.length,
+    sampleColumnistArticle: latestColumnistArticles[0] || 'none'
+  });
+
   if (latestColumnistArticles.length === 0) {
-    return null;
+    return (
+      <section className="py-16 px-6 bg-muted/20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <h2 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+              Últimos Artigos dos Colunistas
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Em breve, novos artigos dos nossos colunistas especializados
+            </p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
