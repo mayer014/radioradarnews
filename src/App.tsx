@@ -95,7 +95,13 @@ const App = () => (
                                 <UsersProvider>
                                   <ContactProvider>
                                     <CommentsProvider>
-                                      <AppContent />
+                                      <BannerProvider>
+                                        <ProgrammingProvider>
+                                          <NewsletterProvider>
+                                            <AppContent />
+                                          </NewsletterProvider>
+                                        </ProgrammingProvider>
+                                      </BannerProvider>
                                     </CommentsProvider>
                                   </ContactProvider>
                                 </UsersProvider>
