@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,10 @@ const ProgrammingEditor = () => {
   const [showForm, setShowForm] = useState(false);
   const [streamUrl, setStreamUrl] = useState(radioStreamUrl);
   
+  // Garantir que o campo sempre reflita o que está salvo no banco ao entrar na aba
+  useEffect(() => {
+    setStreamUrl(radioStreamUrl);
+  }, [radioStreamUrl]);
   const [formData, setFormData] = useState<Omit<Program, 'id' | 'created_at' | 'updated_at'>>({
     title: '',
     host: '',

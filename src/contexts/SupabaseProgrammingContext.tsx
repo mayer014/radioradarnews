@@ -66,22 +66,24 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('value')
+        .select('value, updated_at')
         .eq('category', 'radio')
         .eq('key', 'stream_url')
-        .single();
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // Not found error
+      if (error) {
         console.error('Error fetching radio stream URL:', error);
         return;
       }
 
-      if (data?.value) {
-        const value = typeof data.value === 'object' && data.value !== null && 'url' in data.value 
-          ? (data.value as { url: string }).url 
+      const value =
+        data?.value && typeof data.value === 'object' && 'url' in (data.value as any)
+          ? (data.value as { url: string }).url
           : '';
-        setRadioStreamUrlState(value);
-      }
+
+      setRadioStreamUrlState(value || '');
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
     }
@@ -118,17 +120,33 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
   const setRadioStreamUrl = async (url: string): Promise<{ error: string | null }> => {
     try {
-      const { error } = await supabase
+      // Primeiro tenta atualizar qualquer registro existente (inclusive duplicados)
+      const { data: updated, error: updateError } = await supabase
         .from('settings')
-        .upsert({
-          category: 'radio',
-          key: 'stream_url',
-          value: { url }
-        });
+        .update({ value: { url } })
+        .eq('category', 'radio')
+        .eq('key', 'stream_url')
+        .select('id');
 
-      if (error) {
-        console.error('Error updating radio stream URL:', error);
+      if (updateError) {
+        console.error('Error updating radio stream URL:', updateError);
         return { error: 'Erro ao salvar URL da rádio' };
+      }
+
+      // Se nenhum registro foi atualizado, insere um novo
+      if (!updated || updated.length === 0) {
+        const { error: insertError } = await supabase
+          .from('settings')
+          .insert({
+            category: 'radio',
+            key: 'stream_url',
+            value: { url }
+          });
+
+        if (insertError) {
+          console.error('Error inserting radio stream URL:', insertError);
+          return { error: 'Erro ao salvar URL da rádio' };
+        }
       }
 
       setRadioStreamUrlState(url);
