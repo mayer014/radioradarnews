@@ -28,9 +28,9 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
       case 'hero':
         return 'w-full h-24 xs:h-28 sm:h-32 md:h-40 lg:h-48 xl:h-56';
       case 'category':
-        return 'w-full h-16 xs:h-20 sm:h-24 md:h-28 lg:h-32';
+        return 'w-full h-20 xs:h-24 sm:h-28 md:h-32 lg:h-36 xl:h-40';
       case 'columnist':
-        return 'w-full h-14 xs:h-16 sm:h-20 md:h-24 lg:h-28';
+        return 'w-full h-16 xs:h-18 sm:h-20 md:h-24 lg:h-28 xl:h-32';
       default:
         return 'w-full h-24 xs:h-28 sm:h-32';
     }
@@ -42,9 +42,13 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
         <img
           src={banner.image_url}
           alt={banner.title}
-          className="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-contain md:object-cover object-center transition-transform duration-300 hover:scale-105"
           loading="lazy"
-          style={{ maxWidth: '100%', height: 'auto' }}
+          style={{ 
+            maxWidth: '100%', 
+            objectFit: position === 'category' ? 'contain' : 'cover',
+            objectPosition: 'center'
+          }}
           onError={(e) => {
             console.error('Error loading banner image:', banner.image_url);
             // Hide the image on error and show a fallback
