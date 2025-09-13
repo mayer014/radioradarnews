@@ -83,7 +83,8 @@ Deno.serve(async (req) => {
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: true, // Automaticamente confirma o email
+      phone_confirm: true, // Automaticamente confirma o telefone se houver
       user_metadata: { name, username, role },
     });
 
@@ -109,6 +110,7 @@ Deno.serve(async (req) => {
         // Update existing user's metadata
         const { error: updateErr } = await admin.auth.admin.updateUserById(newUserId, {
           password,
+          email_confirm: true, // Garante que email está confirmado
           user_metadata: { name, username, role },
         });
         

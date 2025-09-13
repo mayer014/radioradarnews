@@ -37,8 +37,18 @@ const UsersManager: React.FC = () => {
       return;
     }
 
+    if (!form.email.includes('@')) {
+      toast({ title: 'E-mail inválido', description: 'Digite um e-mail válido', variant: 'destructive' });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      
+      toast({
+        title: 'Criando usuário...',
+        description: `Processando ${form.role === 'admin' ? 'administrador' : 'colunista'} ${form.name}`,
+      });
 
       const { data, error } = await supabase.functions.invoke('user-service', {
         body: {
@@ -61,17 +71,23 @@ const UsersManager: React.FC = () => {
 
       await refreshUsers();
       
-      const actionText = data.userExists ? 'atualizado' : 'criado';
-      const titleText = data.userExists ? 'Usuário atualizado' : 'Usuário criado';
+      const actionText = data.userExists ? 'atualizado com sucesso' : 'criado com sucesso';
+      const titleText = data.userExists ? 'Usuário atualizado!' : 'Usuário criado!';
       
       toast({
         title: titleText,
-        description:
-          form.role === 'admin'
-            ? `Administrador ${form.username} ${actionText}.`
-            : `Colunista ${form.username} ${actionText}. Configure o perfil em "Editar Perfil".`,
+        description: form.role === 'admin' 
+          ? `Administrador ${form.username} ${actionText}. Pode fazer login imediatamente.`
+          : `Colunista ${form.username} ${actionText}. Pode fazer login e escrever artigos. Configure o perfil em "Editar Perfil".`,
       });
       setForm({ role: 'colunista', name: '', email: '', username: '', password: '123456' });
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      toast({ 
+        title: 'Erro inesperado', 
+        description: 'Falha na comunicação. Tente novamente.', 
+        variant: 'destructive' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -211,7 +227,10 @@ const UsersManager: React.FC = () => {
       {/* Header with Migration Controls */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
+          <div>
+            <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
+            <p className="text-muted-foreground mt-1">Crie administradores e colunistas diretamente. Não é necessário confirmar email.</p>
+          </div>
           <div className="flex gap-2">
             <Button
               onClick={handleMigrateSupabase}
@@ -276,7 +295,9 @@ const UsersManager: React.FC = () => {
                 </div>
               )}
             </div>
-            <Button onClick={handleAdd} className="w-full bg-gradient-hero">Adicionar</Button>
+            <Button onClick={handleAdd} disabled={isSubmitting} className="w-full bg-gradient-hero">
+              {isSubmitting ? 'Criando...' : 'Criar Usuário'}
+            </Button>
           </div>
         </Card>
 
