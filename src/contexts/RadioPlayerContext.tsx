@@ -5,9 +5,11 @@ interface RadioPlayerContextType {
   isPlaying: boolean;
   volume: number;
   currentShow: string;
+  isMuted: boolean;
   audioRef: React.RefObject<HTMLAudioElement>;
   togglePlayPause: () => void;
   handleVolumeChange: (volume: number) => void;
+  unmuteAndPlay: () => Promise<void>;
 }
 
 export const RadioPlayerContext = createContext<RadioPlayerContextType | undefined>(undefined);
@@ -17,12 +19,71 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.75);
   const [currentShow, setCurrentShow] = useState("RRN");
+  const [isMuted, setIsMuted] = useState(false);
+  const [autoplayAttempted, setAutoplayAttempted] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
     if (audioRef.current) {
       audioRef.current.volume = newVolume;
+      // Se estava mutado e agora tem volume, desmutar
+      if (isMuted && newVolume > 0) {
+        setIsMuted(false);
+        audioRef.current.muted = false;
+      }
+    }
+  };
+
+  const attemptAutoplay = async () => {
+    if (!radioStreamUrl || !audioRef.current || autoplayAttempted) {
+      return;
+    }
+
+    setAutoplayAttempted(true);
+    console.log('Tentando autoplay da rádio...');
+
+    try {
+      // Primeiro tenta autoplay normal com áudio
+      audioRef.current.muted = false;
+      await audioRef.current.play();
+      setIsPlaying(true);
+      setIsMuted(false);
+      console.log('Autoplay com áudio funcionou!');
+    } catch (error) {
+      console.log('Autoplay com áudio bloqueado, tentando autoplay mutado...');
+      
+      try {
+        // Se falhar, tenta autoplay mutado
+        audioRef.current.muted = true;
+        await audioRef.current.play();
+        setIsPlaying(true);
+        setIsMuted(true);
+        console.log('Autoplay mutado funcionou! Usuário precisa ativar o áudio.');
+      } catch (mutedError) {
+        console.log('Autoplay completamente bloqueado. Usuário precisa interagir primeiro.');
+        setIsPlaying(false);
+        setIsMuted(false);
+      }
+    }
+  };
+
+  const unmuteAndPlay = async () => {
+    if (!audioRef.current) return;
+
+    try {
+      audioRef.current.muted = false;
+      setIsMuted(false);
+      
+      if (!isPlaying) {
+        audioRef.current.load();
+        await audioRef.current.play();
+        setIsPlaying(true);
+      }
+      
+      console.log('Áudio ativado pelo usuário');
+    } catch (error) {
+      console.error('Erro ao ativar áudio:', error);
     }
   };
 
@@ -46,7 +107,13 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       console.log('Tentando reproduzir stream:', radioStreamUrl);
       
       // Para streams ao vivo, sempre recarregar a fonte para garantir áudio atual
-      audioRef.current.load(); // Força reload da fonte
+      audioRef.current.load();
+      
+      // Se estava mutado, desmuta ao dar play manual
+      if (isMuted) {
+        audioRef.current.muted = false;
+        setIsMuted(false);
+      }
       
       audioRef.current.play().then(() => {
         setIsPlaying(true);
@@ -63,10 +130,14 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (audioRef.current && radioStreamUrl) {
       audioRef.current.src = radioStreamUrl;
       audioRef.current.volume = volume;
-      audioRef.current.preload = 'none'; // Não precarregar para streams ao vivo
+      audioRef.current.preload = 'none';
       
-      // Para streams ao vivo, não autoplay para evitar problemas do browser
       console.log('Stream configurado:', radioStreamUrl);
+      
+      // Tenta autoplay após configurar o stream
+      setTimeout(() => {
+        attemptAutoplay();
+      }, 500); // Pequeno delay para garantir que o elemento está pronto
     }
   }, [radioStreamUrl]);
 
@@ -83,9 +154,11 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
         isPlaying,
         volume,
         currentShow,
+        isMuted,
         audioRef,
         togglePlayPause,
         handleVolumeChange,
+        unmuteAndPlay,
       }}
     >
       {children}

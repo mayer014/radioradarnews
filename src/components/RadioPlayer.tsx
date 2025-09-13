@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Pause, Volume2, Radio, Music, Minimize2, Maximize2 } from 'lucide-react';
+import { Play, Pause, Volume2, Radio, Music, Minimize2, Maximize2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMaybeRadioPlayer } from '@/contexts/RadioPlayerContext';
 import { useSupabaseProgramming } from '@/contexts/SupabaseProgrammingContext';
@@ -13,10 +13,23 @@ const RadioPlayer = () => {
     return null; // Evita erro quando o provider ainda não está montado
   }
 
-  const { isPlaying, volume, togglePlayPause, handleVolumeChange } = player;
+  const { isPlaying, volume, isMuted, togglePlayPause, handleVolumeChange, unmuteAndPlay } = player;
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 animate-slide-up">
+      {/* Botão de ativar áudio se estiver mutado */}
+      {isMuted && isPlaying && (
+        <div className="mb-2 flex justify-center">
+          <button
+            onClick={unmuteAndPlay}
+            className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-full shadow-lg animate-pulse flex items-center gap-2"
+          >
+            <VolumeX className="w-4 h-4" />
+            Ativar Áudio
+          </button>
+        </div>
+      )}
+      
       {isMinimized ? (
         // Layout Minimizado - Sem fundo, apenas botões flutuando
         <div className="flex items-center space-x-2 ml-auto mr-4 w-fit">
@@ -79,20 +92,31 @@ const RadioPlayer = () => {
               </Button>
               
               <div className="flex items-center space-x-2">
-                <Volume2 className="w-4 h-4 text-muted-foreground" />
+                {isMuted && isPlaying ? (
+                  <button
+                    onClick={unmuteAndPlay}
+                    className="text-accent hover:text-accent-hover transition-colors"
+                    title="Ativar áudio"
+                  >
+                    <VolumeX className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <Volume2 className="w-4 h-4 text-muted-foreground" />
+                )}
                 <div className="relative w-20 h-2 bg-muted rounded-full cursor-pointer">
                   <input
                     type="range"
                     min="0"
                     max="1"
                     step="0.01"
-                    value={volume}
+                    value={isMuted ? 0 : volume}
                     onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isMuted}
                   />
                   <div 
                     className="h-full bg-gradient-hero rounded-full transition-all duration-200"
-                    style={{ width: `${volume * 100}%` }}
+                    style={{ width: `${isMuted ? 0 : volume * 100}%` }}
                   ></div>
                 </div>
               </div>
