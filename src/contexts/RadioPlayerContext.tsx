@@ -63,9 +63,9 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       // Don't auto play to avoid browser blocking issues
       // User needs to manually start the stream
     }
-  }, [radioStreamUrl, volume]);
+  }, [radioStreamUrl]); // Removido volume desta dependência para evitar resetar o src
 
-  // Update volume when it changes
+  // Update volume when it changes - separado para não interferir no stream
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
