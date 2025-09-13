@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
+import { useUsers } from '@/contexts/UsersContext';
 import { useContact } from '@/contexts/ContactContext';
 import { validateAllLocalStorageData, exportDataForMigration } from '@/utils/dataIntegrity';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ import {
 import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
 import NewBannerManager from '@/components/NewBannerManager';
+import UsersManager from '@/components/UsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';
 import ContactInfoManager from '@/components/ContactInfoManager';
 import AIConfigPanel from '@/components/AIConfigPanel';
@@ -52,11 +54,12 @@ const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
   const { articles, deleteArticle, toggleFeaturedArticle } = useSupabaseNews();
   const { messages, markAsRead, deleteMessage, getUnreadCount } = useContact();
+  const { users } = useUsers();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'newsletter' | 'notifications'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'newsletter' | 'notifications'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -431,6 +434,16 @@ const AdminPanel = () => {
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Artigos por Colunista</span>
                 <span className="sm:hidden">Col</span>
+              </Button>
+               <Button
+                variant={activeTab === 'users' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('users')}
+                className={`${activeTab === 'users' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Usuários</span>
+                <span className="sm:hidden">User</span>
               </Button>
               <Button
                 variant={activeTab === 'contact' ? 'default' : 'ghost'}
@@ -817,6 +830,11 @@ const AdminPanel = () => {
         {/* Artigos por colunista - apenas para admin */}
         {activeTab === 'columnists' && isAdmin && (
           <ColumnistArticlesManager />
+        )}
+
+        {/* Usuários - apenas para admin */}
+        {activeTab === 'users' && isAdmin && (
+          <UsersManager />
         )}
 
         {/* Informações de Contato - apenas para admin */}
