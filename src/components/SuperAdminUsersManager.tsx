@@ -59,29 +59,23 @@ const SuperAdminUsersManager = () => {
 
   const fetchProfiles = async () => {
     try {
-      // Get profiles with emails from auth.users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Use edge function to get profiles with emails
+      const { data, error } = await supabase.functions.invoke('user-profiles-service');
 
-      if (profilesError) throw profilesError;
-
-      // Get user emails from auth.users
-      const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+      if (error) throw error;
       
-      if (usersError) throw usersError;
+      if (data?.success && data?.profiles) {
+        setProfiles(data.profiles);
+      } else {
+        // Fallback to just profiles without emails
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      // Merge profile data with email information
-      const profilesWithEmails = profiles?.map(profile => {
-        const authUser = users?.users?.find((user: any) => user.id === profile.id);
-        return {
-          ...profile,
-          email: authUser?.email || ''
-        };
-      }) || [];
-
-      setProfiles(profilesWithEmails);
+        if (profilesError) throw profilesError;
+        setProfiles(profiles || []);
+      }
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast({
