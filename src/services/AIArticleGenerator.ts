@@ -72,52 +72,66 @@ export class AIArticleGenerator {
 
   private buildPrompt(request: ArticleGenerationRequest): string {
     const toneMap = {
-      'formal': 'tom formal e objetivo',
-      'informal': 'tom mais acessível e próximo ao leitor',
-      'investigativo': 'tom investigativo e analítico',
-      'opinativo': 'tom opinativo e reflexivo'
+      'formal': 'linguagem técnica e precisa',
+      'informal': 'linguagem acessível mas informativa',
+      'investigativo': 'análise detalhada com dados concretos',
+      'opinativo': 'posicionamento fundamentado com fatos'
     };
 
     const lengthMap = {
-      'curto': '1200-2000 palavras',
-      'medio': '2000-3200 palavras',
-      'longo': '3200-4800 palavras'
+      'curto': '800-1200 palavras',
+      'medio': '1200-2000 palavras',
+      'longo': '2000-3000 palavras'
     };
 
     return `
-Escreva um artigo jornalístico EXTENSO e PROFISSIONAL baseado na seguinte ideia: "${request.idea}"
+Você é um jornalista especializado que deve criar um artigo TÉCNICO e ESPECÍFICO sobre: "${request.idea}"
 
-Especificações:
+INSTRUÇÕES CRÍTICAS:
+1. SEJA EXTREMAMENTE ESPECÍFICO: Cite nomes reais de ferramentas, empresas, versões, preços, datas
+2. EVITE GENERALIDADES: Nada de "especialistas afirmam" ou "dados mostram" - seja concreto
+3. INFORMAÇÕES PRÁTICAS: Foque no que é útil, verificável e aplicável
+4. ESTRUTURA JORNALÍSTICA: Use subtítulos (H2, H3) para organizar claramente
+
+Especificações do artigo:
 - Categoria: ${request.category}
-- Tom: ${toneMap[request.tone || 'formal']}
+- Abordagem: ${toneMap[request.tone || 'formal']}
 - Extensão: ${lengthMap[request.length || 'medio']}
 
-IMPORTANTE: O artigo deve ser MUITO EXTENSO e DETALHADO com ${lengthMap[request.length || 'medio']}.
+ESTRUTURA OBRIGATÓRIA:
+1. **Título**: Específico e técnico (máximo 60 caracteres)
+2. **Lead**: 2-3 frases com a informação principal
+3. **Introdução**: O que é, para que serve, contexto atual
+4. **Desenvolvimento**: 
+   - Ferramentas/métodos específicos com nomes e versões
+   - Comparações práticas entre opções
+   - Dados concretos: preços, recursos, limitações
+   - Exemplos reais de uso ou aplicação
+5. **Conclusão**: Recomendações práticas e próximos passos
 
-O artigo deve incluir:
-1. Um título chamativo e informativo (otimizado para SEO)
-2. Um subtítulo/lead abrangente que resuma os pontos principais
-3. Conteúdo estruturado em múltiplos parágrafos com:
-   - Introdução detalhada do contexto e relevância do tema
-   - Desenvolvimento extenso com dados específicos, estatísticas e argumentos sólidos
-   - Múltiplas seções com subtítulos (H2, H3) para organizar o conteúdo
-   - Análise aprofundada de diferentes aspectos do tema
-   - Citações de especialistas e fontes confiáveis (mesmo que fictícias)
-   - Exemplos práticos e casos específicos
-   - Impactos e consequências detalhados
-   - Diferentes perspectivas e pontos de vista
-   - Conclusão abrangente com perspectivas futuras e recomendações
+EXEMPLOS DE CONTEÚDO ESPECÍFICO:
+- Se for sobre programação: cite linguagens (Python 3.12), frameworks (React 18), IDEs (VS Code)
+- Se for sobre games: motores específicos (Unity 2023.3, Unreal Engine 5), plataformas
+- Se for sobre design: softwares (Photoshop CC 2024, Figma, Canva Pro), recursos
+- Se for sobre negócios: ferramentas (Slack, Notion, Google Workspace), preços, funcionalidades
 
-Formate a resposta como JSON com esta estrutura:
+PROIBIDO:
+❌ "Especialistas debatem"
+❌ "Dados mostram tendência"
+❌ "Mercado em transformação"
+❌ "Tecnologia revolucionária"
+❌ Análises genéricas sem dados concretos
+
+Retorne JSON válido:
 {
-  "title": "Título do artigo",
-  "excerpt": "Resumo/lead do artigo (1-2 frases)",
-  "content": "Conteúdo completo em HTML com tags <p>, <h2>, <h3>, <strong>, <em>",
+  "title": "Título específico e técnico",
+  "excerpt": "Lead direto com informação principal (2-3 frases)",
+  "content": "Artigo completo em HTML com <h2>, <h3>, <p>, <strong>, <ul>, <li>",
   "suggestedCategory": "${request.category}",
-  "keywords": ["palavra1", "palavra2", "palavra3"]
+  "keywords": ["termo-técnico-1", "ferramenta-específica", "categoria-relevante"]
 }
 
-Certifique-se de que o conteúdo seja factual, bem escrito e apropriado para publicação.
+FOQUE EM: Informações concretas, nomes específicos, dados verificáveis e utilidade prática.
 `;
   }
 
