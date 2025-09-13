@@ -39,7 +39,7 @@ import {
 import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
 import NewBannerManager from '@/components/NewBannerManager';
-import UsersManager from '@/components/UsersManager';
+import SupabaseUsersManager from '@/components/SupabaseUsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';
 import ContactInfoManager from '@/components/ContactInfoManager';
 import AIConfigPanel from '@/components/AIConfigPanel';
@@ -832,7 +832,7 @@ const AdminPanel = () => {
 
         {/* Usuários - apenas para admin */}
         {activeTab === 'users' && isAdmin && (
-          <UsersManager />
+          <SupabaseUsersManager />
         )}
 
         {/* Informações de Contato - apenas para admin */}
