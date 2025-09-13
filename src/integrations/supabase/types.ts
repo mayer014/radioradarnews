@@ -505,6 +505,13 @@ export type Database = {
             referencedRelation: "comments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contact_info: {
@@ -1049,7 +1056,58 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      comments_public: {
+        Row: {
+          article_id: string | null
+          content: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          parent_id: string | null
+          status: Database["public"]["Enums"]["comment_status"] | null
+        }
+        Insert: {
+          article_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["comment_status"] | null
+        }
+        Update: {
+          article_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          parent_id?: string | null
+          status?: Database["public"]["Enums"]["comment_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       auto_publish_scheduled_articles: {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useComments } from '@/contexts/CommentsContext';
+import { useSupabaseComments } from '@/contexts/SupabaseCommentsContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,9 @@ interface CommentsSectionProps {
 const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, articleTitle }) => {
   const { 
     addComment, 
-    getApprovedCommentsByArticle, 
+    getPublicCommentsByArticle, 
     settings 
-  } = useComments();
+  } = useSupabaseComments();
   
   const { toast } = useToast();
   const [commentForm, setCommentForm] = useState({
@@ -29,7 +29,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, articleTit
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const approvedComments = getApprovedCommentsByArticle(articleId);
+  const approvedComments = getPublicCommentsByArticle(articleId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,13 +65,17 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, articleTit
     setIsSubmitting(true);
     
     try {
-      addComment({
-        articleId,
+      const result = await addComment({
+        article_id: articleId,
         name: commentForm.name.trim(),
         email: commentForm.email.trim().toLowerCase(),
         content: commentForm.content.trim(),
-        ip: '127.0.0.1' // Em produção, capturar IP real
+        ip_address: '127.0.0.1' // Em produção, capturar IP real
       });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
 
       if (settings.moderationRequired) {
         toast({
@@ -134,7 +138,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId, articleTit
                     <span className="font-medium text-sm">{comment.name}</span>
                     <Clock className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
-                      {formatDate(comment.createdAt)}
+                      {formatDate(comment.created_at)}
                     </span>
                   </div>
                   <p className="text-sm leading-relaxed">{comment.content}</p>

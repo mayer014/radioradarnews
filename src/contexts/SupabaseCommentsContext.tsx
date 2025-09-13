@@ -14,6 +14,17 @@ export interface Comment {
   parent_id?: string; // Para respostas
 }
 
+// Interface para comentários públicos (sem dados sensíveis)
+export interface PublicComment {
+  id: string;
+  article_id: string;
+  name: string;
+  content: string;
+  status: 'approved';
+  created_at: string;
+  parent_id?: string;
+}
+
 export interface CommentSettings {
   moderationRequired: boolean;
   allowReplies: boolean;
@@ -33,6 +44,7 @@ interface SupabaseCommentsContextType {
   deleteComment: (id: string) => Promise<{ error: string | null }>;
   getCommentsByArticle: (articleId: string) => Comment[];
   getApprovedCommentsByArticle: (articleId: string) => Comment[];
+  getPublicCommentsByArticle: (articleId: string) => PublicComment[];
   getPendingComments: () => Comment[];
   updateSettings: (newSettings: CommentSettings) => Promise<{ error: string | null }>;
   getCommentStats: () => {
@@ -65,10 +77,28 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
   // Função para carregar comentários
   const fetchComments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Check if user is admin to determine data access level
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      let data, error;
+      
+      if (user) {
+        // Authenticated users get full access for their admin functions
+        const result = await supabase
+          .from('comments')
+          .select('*')
+          .order('created_at', { ascending: false });
+        data = result.data;
+        error = result.error;
+      } else {
+        // Public users only get safe data via the secure view
+        const result = await supabase
+          .from('comments_public')
+          .select('*')
+          .order('created_at', { ascending: false });
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error('Error fetching comments:', error);
@@ -79,11 +109,11 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
         id: c.id,
         article_id: c.article_id,
         name: c.name,
-        email: c.email,
+        email: c.email || '', // Will be empty for public view
         content: c.content,
         status: c.status as 'pending' | 'approved' | 'rejected',
         created_at: c.created_at,
-        ip_address: c.ip_address ?? undefined,
+        ip_address: c.ip_address ?? undefined, // Will be undefined for public view
         parent_id: c.parent_id ?? undefined,
       }));
       setComments(mappedComments);
@@ -234,6 +264,20 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
     );
   };
 
+  const getPublicCommentsByArticle = (articleId: string): PublicComment[] => {
+    return comments
+      .filter(comment => comment.article_id === articleId && comment.status === 'approved')
+      .map(comment => ({
+        id: comment.id,
+        article_id: comment.article_id,
+        name: comment.name,
+        content: comment.content,
+        status: 'approved' as const,
+        created_at: comment.created_at,
+        parent_id: comment.parent_id
+      }));
+  };
+
   const getPendingComments = () => {
     return comments.filter(comment => comment.status === 'pending');
   };
@@ -290,6 +334,7 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
       deleteComment,
       getCommentsByArticle,
       getApprovedCommentsByArticle,
+      getPublicCommentsByArticle,
       getPendingComments,
       updateSettings,
       getCommentStats,
