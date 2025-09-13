@@ -21,7 +21,11 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
       try {
         setLoading(true);
         setError(null);
+        console.log(`[NewBanner] Buscando banner para slot: ${slotKey}`);
+        
         const banner = await getCurrentBanner(slotKey);
+        
+        console.log(`[NewBanner] Banner recebido para ${slotKey}:`, banner);
         
         if (isMounted) {
           setCurrentBanner(banner);
@@ -68,6 +72,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
 
   // Se deu erro ou não tem banner, não renderiza nada
   if (error || !currentBanner) {
+    console.log(`[NewBanner] Não renderizando banner para ${slotKey} - erro: ${error}, banner: ${currentBanner ? 'existe' : 'não existe'}`);
     return null;
   }
 
@@ -80,12 +85,16 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
   // Extrair URL da imagem do payload
   let imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
   
+  console.log(`[NewBanner] URL original do banner ${slotKey}:`, imageUrl);
+  
   // Converter URLs de /src/assets/ para URLs publicamente acessíveis
   if (imageUrl && imageUrl.startsWith('/src/assets/')) {
     imageUrl = imageUrl.replace('/src/assets/', '/');
+    console.log(`[NewBanner] URL convertida para ${slotKey}:`, imageUrl);
   }
   
   if (!imageUrl) {
+    console.log(`[NewBanner] Nenhuma URL de imagem encontrada para ${slotKey}`);
     return null;
   }
 

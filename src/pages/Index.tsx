@@ -49,8 +49,11 @@ const Index = () => {
       {/* Últimos Artigos dos Colunistas */}
       <LatestColumnistArticles />
       
-      {/* Seção de Notícias */}
-      <NewsGrid />
+        {/* Seção de Notícias */}
+        <NewsGrid />
+        
+        {/* Banner fixo do NewsGrid */}
+        <NewBanner slotKey="news-grid" />
       
       {/* Seção Ao Vivo */}
       <LiveSection />
