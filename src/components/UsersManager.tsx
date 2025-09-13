@@ -60,12 +60,16 @@ const UsersManager: React.FC = () => {
       }
 
       await refreshUsers();
+      
+      const actionText = data.userExists ? 'atualizado' : 'criado';
+      const titleText = data.userExists ? 'Usuário atualizado' : 'Usuário criado';
+      
       toast({
-        title: 'Usuário criado',
+        title: titleText,
         description:
           form.role === 'admin'
-            ? `Administrador ${form.username} adicionado.`
-            : `Colunista ${form.username} adicionado. Configure o perfil em "Editar Perfil".`,
+            ? `Administrador ${form.username} ${actionText}.`
+            : `Colunista ${form.username} ${actionText}. Configure o perfil em "Editar Perfil".`,
       });
       setForm({ role: 'colunista', name: '', email: '', username: '', password: '123456' });
     } finally {

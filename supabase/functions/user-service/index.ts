@@ -76,7 +76,10 @@ Deno.serve(async (req) => {
       return jsonResponse(400, { ok: false, error: 'Invalid role' });
     }
 
-    // 1) Create Auth user
+    // 1) Try to create Auth user OR find existing user
+    let newUserId: string;
+    let userExists = false;
+
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
@@ -84,11 +87,42 @@ Deno.serve(async (req) => {
       user_metadata: { name, username, role },
     });
 
-    if (createErr || !created?.user) {
-      return jsonResponse(400, { ok: false, error: createErr?.message || 'Failed to create auth user' });
+    if (createErr) {
+      // Check if user already exists
+      if (createErr.message?.includes('already been registered') || createErr.message?.includes('email_exists')) {
+        console.log(`User with email ${email} already exists, will update their profile`);
+        userExists = true;
+        
+        // Find existing user by email
+        const { data: existingUsers, error: listErr } = await admin.auth.admin.listUsers({});
+        if (listErr || !existingUsers?.users) {
+          return jsonResponse(400, { ok: false, error: 'Failed to find existing user' });
+        }
+        
+        const existingUser = existingUsers.users.find(u => u.email === email);
+        if (!existingUser) {
+          return jsonResponse(400, { ok: false, error: 'User exists but could not be found' });
+        }
+        
+        newUserId = existingUser.id;
+        
+        // Update existing user's metadata
+        const { error: updateErr } = await admin.auth.admin.updateUserById(newUserId, {
+          password,
+          user_metadata: { name, username, role },
+        });
+        
+        if (updateErr) {
+          return jsonResponse(400, { ok: false, error: `Failed to update existing user: ${updateErr.message}` });
+        }
+      } else {
+        return jsonResponse(400, { ok: false, error: createErr.message || 'Failed to create auth user' });
+      }
+    } else if (created?.user) {
+      newUserId = created.user.id;
+    } else {
+      return jsonResponse(400, { ok: false, error: 'Failed to create auth user' });
     }
-
-    const newUserId = created.user.id;
 
     // 2) Upsert profile row
     const profileRow: any = {
@@ -126,7 +160,9 @@ Deno.serve(async (req) => {
       userId: newUserId,
       email,
       role,
+      userExists,
       profile: { id: newUserId, name, username },
+      message: userExists ? 'User updated successfully' : 'User created successfully'
     });
   } catch (e: any) {
     console.error('user-service error', e);
