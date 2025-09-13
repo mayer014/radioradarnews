@@ -12,7 +12,6 @@ import { Separator } from '@/components/ui/separator';
 import { useNewBanner } from '@/contexts/NewBannerContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { useToast } from '@/hooks/use-toast';
-import { useBannerSync } from '@/hooks/useBannerSync';
 import { 
   Edit, 
   Plus, 
@@ -62,9 +61,6 @@ const NewBannerManager = () => {
   
   const { users, columnists } = useUsers();
   const { toast } = useToast();
-  
-  // Hook para sincronizar banners de colunistas
-  useBannerSync();
 
   // Gerar slots dinamicamente baseado nos usuários
   const dynamicSlotKeys = useMemo(() => {
