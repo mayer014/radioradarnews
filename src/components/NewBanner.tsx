@@ -77,63 +77,30 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
     }
   };
 
-  // Extrair dados do payload
-  const payload = currentBanner.payload_jsonb || {};
-  let imageUrl = payload.image_url || payload.gif_url;
+  // Extrair URL da imagem do payload
+  const imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
   
-  // Corrigir URLs blob inválidas - usar fallback
-  if (!imageUrl || imageUrl.startsWith('blob:')) {
-    imageUrl = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
+  if (!imageUrl) {
+    return null;
   }
-  
-  const isVideo = payload.is_video || imageUrl?.includes('.mp4') || imageUrl?.includes('.webm');
-  const altText = payload.alt_text || currentBanner.name;
 
   return (
-    <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 my-6 sm:my-8 ${className}`}>
-      <Card className="bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 overflow-hidden group relative shadow-lg">
+    <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 my-4 sm:my-8 ${className}`}>
+      <Card className="bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 overflow-hidden group relative">
         <div 
-          className={`relative w-full ${currentBanner.click_url ? 'cursor-pointer' : ''}`}
+          className={`relative ${currentBanner.click_url ? 'cursor-pointer' : ''}`}
           onClick={handleBannerClick}
         >
-          {/* Container responsivo para mídia */}
-          <div className="relative w-full min-h-[100px] max-h-[120px] sm:max-h-[160px] md:max-h-[200px] lg:max-h-[240px] flex items-center justify-center bg-muted/10">
-            {isVideo ? (
-              <video
-                src={imageUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                onError={(e) => {
-                  console.error(`[NewBanner] Erro ao carregar vídeo do banner ${slotKey}:`, imageUrl);
-                  // Fallback para imagem padrão
-                  const container = e.currentTarget.parentElement;
-                  if (container) {
-                    container.innerHTML = `
-                      <img src="/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png" alt="${altText}" 
-                           class="w-full h-full object-contain opacity-50" />
-                    `;
-                  }
-                }}
-              />
-            ) : (
-              <img
-                src={imageUrl}
-                alt={altText}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                loading="lazy"
-                onError={(e) => {
-                  console.error(`[NewBanner] Erro ao carregar imagem do banner ${slotKey}:`, imageUrl);
-                  // Fallback para imagem padrão
-                  (e.target as HTMLImageElement).src = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
-                  (e.target as HTMLImageElement).className = 'w-full h-full object-contain opacity-50';
-                  (e.target as HTMLImageElement).alt = 'Banner padrão';
-                }}
-              />
-            )}
-          </div>
+          <img
+            src={imageUrl}
+            alt={currentBanner.payload_jsonb?.alt_text || currentBanner.name}
+            className="w-full h-auto object-contain sm:object-cover transition-transform duration-300 group-hover:scale-[1.02] max-h-[120px] sm:max-h-[180px] md:max-h-[200px]"
+            loading="lazy"
+            onError={(e) => {
+              console.error(`[NewBanner] Erro ao carregar imagem do banner ${slotKey}:`, imageUrl);
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
           
           {/* Overlay sutil para melhor interação */}
           {currentBanner.click_url && (
@@ -142,26 +109,17 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
           
           {/* Indicador de que é clicável */}
           {currentBanner.click_url && (
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="bg-background/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="bg-background/80 backdrop-blur-sm rounded-full p-1">
                 <ExternalLink className="w-4 h-4 text-primary" />
-              </div>
-            </div>
-          )}
-
-          {/* Indicador de tipo de mídia */}
-          {isVideo && (
-            <div className="absolute bottom-3 left-3">
-              <div className="bg-background/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium">
-                VIDEO
               </div>
             </div>
           )}
 
           {/* Indicador de banner piloto (apenas em desenvolvimento) */}
           {process.env.NODE_ENV === 'development' && currentBanner.is_pilot && (
-            <div className="absolute top-3 left-3">
-              <div className="bg-yellow-500/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-bold text-black">
+            <div className="absolute top-2 left-2">
+              <div className="bg-yellow-500/80 backdrop-blur-sm rounded px-2 py-1 text-xs font-bold text-black">
                 PILOTO
               </div>
             </div>
@@ -171,7 +129,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
       
       {/* Label discreto para identificação (apenas em desenvolvimento) */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="text-xs text-muted-foreground text-center mt-2 opacity-50 flex items-center justify-center space-x-2 flex-wrap">
+        <div className="text-xs text-muted-foreground text-center mt-2 opacity-50 flex items-center justify-center space-x-2">
           <span>Banner: {currentBanner.name}</span>
           <span>| Slot: {slotKey}</span>
           {currentBanner.is_pilot && <span>| PILOTO</span>}

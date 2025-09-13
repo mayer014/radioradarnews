@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import NewBanner from '@/components/NewBanner';
 import heroBackground from '@/assets/hero-background.jpg';
 
 const HeroSection = () => {
@@ -54,13 +53,8 @@ const HeroSection = () => {
 
       </div>
 
-      {/* Banner Hero */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6">
-        <NewBanner slotKey="hero" className="mt-8" />
-      </div>
-
       {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce z-10">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
         <div className="w-6 h-10 border-2 border-primary rounded-full flex justify-center">
           <div className="w-1 h-3 bg-primary rounded-full mt-2 animate-pulse"></div>
         </div>
