@@ -17,7 +17,7 @@ import { sanitizeText, sanitizeEmail, ClientRateLimiter } from '@/utils/contentS
 
 const ContactPage = () => {
   const { addMessage } = useContact();
-  const { contactInfo } = useSupabaseContactInfo();
+  const { publicContactInfo, contactInfo } = useSupabaseContactInfo();
   const { toast } = useToast();
   const { announcePageChange } = useAccessibility();
   const [formData, setFormData] = useState({
@@ -250,7 +250,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Telefone</h3>
-                      <p className="text-muted-foreground">{contactInfo?.phone1}</p>
+                      <p className="text-muted-foreground">{publicContactInfo?.phone1}</p>
                       {contactInfo?.phone2 && (
                         <p className="text-muted-foreground">{contactInfo.phone2}</p>
                       )}
@@ -265,7 +265,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Email</h3>
-                      <p className="text-muted-foreground">{contactInfo?.email1}</p>
+                      <p className="text-muted-foreground">{publicContactInfo?.email1}</p>
                       {contactInfo?.email2 && (
                         <p className="text-muted-foreground">{contactInfo.email2}</p>
                       )}
@@ -281,8 +281,8 @@ const ContactPage = () => {
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Endereço</h3>
                       <p className="text-muted-foreground">
-                        {contactInfo?.address}<br />
-                        {contactInfo?.city} - {contactInfo?.state}<br />
+                        {contactInfo?.address || `${publicContactInfo?.city}, ${publicContactInfo?.state}`}<br />
+                        {publicContactInfo?.city} - {publicContactInfo?.state}<br />
                         {contactInfo?.zip_code && `CEP: ${contactInfo.zip_code}`}
                       </p>
                     </div>
@@ -297,9 +297,9 @@ const ContactPage = () => {
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Horário</h3>
                       <p className="text-muted-foreground">
-                        {contactInfo?.weekdays_hours}<br />
-                        {contactInfo?.saturday_hours}<br />
-                        {contactInfo?.sunday_hours}
+                        {publicContactInfo?.weekdays_hours}<br />
+                        {publicContactInfo?.saturday_hours}<br />
+                        {publicContactInfo?.sunday_hours}
                       </p>
                     </div>
                   </div>

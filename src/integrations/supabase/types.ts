@@ -1139,6 +1139,36 @@ export type Database = {
           },
         ]
       }
+      contact_info_public: {
+        Row: {
+          city: string | null
+          email1: string | null
+          phone1: string | null
+          saturday_hours: string | null
+          state: string | null
+          sunday_hours: string | null
+          weekdays_hours: string | null
+        }
+        Insert: {
+          city?: string | null
+          email1?: string | null
+          phone1?: string | null
+          saturday_hours?: string | null
+          state?: string | null
+          sunday_hours?: string | null
+          weekdays_hours?: string | null
+        }
+        Update: {
+          city?: string | null
+          email1?: string | null
+          phone1?: string | null
+          saturday_hours?: string | null
+          state?: string | null
+          sunday_hours?: string | null
+          weekdays_hours?: string | null
+        }
+        Relationships: []
+      }
       profiles_public: {
         Row: {
           avatar: string | null
@@ -1204,6 +1234,18 @@ export type Database = {
           bucket_name: string
           file_path: string
           file_size: number
+        }[]
+      }
+      get_public_contact_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          city: string
+          email1: string
+          phone1: string
+          saturday_hours: string
+          state: string
+          sunday_hours: string
+          weekdays_hours: string
         }[]
       }
       get_storage_usage: {
