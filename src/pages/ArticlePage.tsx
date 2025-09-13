@@ -9,7 +9,6 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
 import CommentsSection from '@/components/CommentsSection';
-import NewsletterSubscription from '@/components/NewsletterSubscription';
 import { ShareMenu } from '@/components/share/ShareMenu';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { getArticleLink } from '@/lib/utils';
@@ -421,11 +420,6 @@ const ArticlePage = () => {
         <meta itemProp="author" content={article.columnist_name || "Redação Portal News"} />
         <meta itemProp="publisher" content="Portal News" />
       </article>
-
-      {/* Newsletter Subscription */}
-      <div className="max-w-4xl mx-auto px-6 pb-8">
-        <NewsletterSubscription variant="inline" source="article" className="mb-8" />
-      </div>
 
       {/* Seção de Comentários */}
       <div className="max-w-4xl mx-auto px-6 pb-8">

@@ -6,7 +6,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useNews } from '@/contexts/NewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
-import NewsletterSubscription from '@/components/NewsletterSubscription';
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -141,7 +140,7 @@ const Footer = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4 animate-slide-up">
             <div className="flex items-center space-x-2">
@@ -198,17 +197,6 @@ const Footer = () => {
                 </li>
               ))}
             </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div className="space-y-4 animate-slide-up delay-100">
-            <h4 className="text-lg font-semibold text-foreground">Newsletter</h4>
-            <p className="text-sm text-muted-foreground">
-              Receba as principais notícias em primeira mão
-            </p>
-            <div className="space-y-2">
-              <NewsletterSubscription variant="sidebar" source="footer" />
-            </div>
           </div>
 
           {/* Contato */}

@@ -46,7 +46,6 @@ import AIConfigPanel from '@/components/AIConfigPanel';
 import RadioPlayer from '@/components/RadioPlayer';
 import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor';
 import CommentsManager from '@/components/CommentsManager';
-import NewsletterManager from '@/components/NewsletterManager';
 import NotificationsManager from '@/components/NotificationsManager';
 import LocalDataImporter from '@/components/LocalDataImporter';
 
@@ -59,7 +58,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'newsletter' | 'notifications'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -365,16 +364,6 @@ const AdminPanel = () => {
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Artigos</span>
                 <span className="sm:hidden">Art</span>
-              </Button>
-              <Button
-                variant={activeTab === 'newsletter' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('newsletter')}
-                className={`${activeTab === 'newsletter' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Newsletter</span>
-                <span className="sm:hidden">News</span>
               </Button>
               <Button
                 variant={activeTab === 'stats' ? 'default' : 'ghost'}
@@ -850,11 +839,6 @@ const AdminPanel = () => {
         {/* Comentários - apenas para admin */}
         {activeTab === 'comments' && isAdmin && (
           <CommentsManager />
-        )}
-
-        {/* Newsletter - apenas para admin */}
-        {activeTab === 'newsletter' && isAdmin && (
-          <NewsletterManager />
         )}
 
         {/* Notificações - apenas para admin */}

@@ -9,7 +9,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
 import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
-import { SupabaseNewsletterProvider } from "@/contexts/SupabaseNewsletterContext";
 import { SupabaseCommentsProvider } from "@/contexts/SupabaseCommentsContext";
 import { SupabaseProgrammingProvider } from "@/contexts/SupabaseProgrammingContext";
 import { SupabaseFavoriteSitesProvider } from "@/contexts/SupabaseFavoriteSitesContext";
@@ -23,7 +22,6 @@ import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { ContactProvider } from "@/contexts/ContactContext";
 import { BannerProvider } from "@/contexts/BannerContext";
 import { NewBannerProvider } from "@/contexts/NewBannerContext";
-import { NewsletterProvider } from "@/contexts/NewsletterContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -87,7 +85,6 @@ const App = () => (
           <SupabaseNewsProvider>
             <SupabaseBannerProvider>
               <SupabaseContactInfoProvider>
-                <SupabaseNewsletterProvider>
                   <SupabaseCommentsProvider>
                     <SupabaseProgrammingProvider>
                       <SupabaseFavoriteSitesProvider>
@@ -101,9 +98,7 @@ const App = () => (
         <BannerProvider>
           <NewBannerProvider>
             <ProgrammingProvider>
-              <NewsletterProvider>
                                             <AppContent />
-              </NewsletterProvider>
             </ProgrammingProvider>
           </NewBannerProvider>
         </BannerProvider>
@@ -117,7 +112,6 @@ const App = () => (
                       </SupabaseFavoriteSitesProvider>
                     </SupabaseProgrammingProvider>
                   </SupabaseCommentsProvider>
-                </SupabaseNewsletterProvider>
               </SupabaseContactInfoProvider>
             </SupabaseBannerProvider>
           </SupabaseNewsProvider>

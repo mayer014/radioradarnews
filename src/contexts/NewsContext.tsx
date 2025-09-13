@@ -1011,67 +1011,6 @@ export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // Enviar newsletter automática se o artigo não for rascunho
-        if (!newArticle.isDraft) {
-          // Tentar enviar newsletter automática
-          setTimeout(async () => {
-            try {
-              // Buscar o contexto de newsletter do localStorage para não depender de hook
-              const newsletterSettings = localStorage.getItem('portal_newsletter_settings');
-              const newsletterSubscribers = localStorage.getItem('portal_newsletter_subscribers');
-              const newsletterCampaigns = localStorage.getItem('portal_newsletter_campaigns');
-              
-              if (newsletterSettings && newsletterSubscribers) {
-                const settings = JSON.parse(newsletterSettings);
-                const subscribers = JSON.parse(newsletterSubscribers);
-                
-                // Verificar se o envio automático está habilitado
-                if (settings.autoSendEnabled && settings.autoSendCategories?.includes(newArticle.category)) {
-                  const activeSubscribers = subscribers.filter((s: any) => s.status === 'active');
-                  
-                  if (activeSubscribers.length > 0) {
-                    // Criar campanha automática
-                    const subject = settings.autoSendSubject?.replace('{{title}}', newArticle.title) || `Nova matéria: ${newArticle.title}`;
-                    const content = (settings.autoSendTemplate || 'Nova matéria publicada!\n\n**{{title}}**\n\n{{excerpt}}\n\nLeia mais em: {{url}}')
-                      .replace('{{title}}', newArticle.title)
-                      .replace('{{excerpt}}', newArticle.excerpt)
-                      .replace('{{url}}', `${window.location.origin}/news/${newArticle.id}`);
-
-                    const autoCampaign = {
-                      id: crypto.randomUUID(),
-                      title: `Auto: ${newArticle.title}`,
-                      subject,
-                      content,
-                      htmlContent: content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
-                      status: 'sent',
-                      createdAt: new Date().toISOString(),
-                      sentAt: new Date().toISOString(),
-                      recipientCount: activeSubscribers.length,
-                      openCount: 0,
-                      clickCount: 0,
-                      tags: ['auto-send', newArticle.category.toLowerCase()]
-                    };
-
-                    // Adicionar à lista de campanhas
-                    const campaigns = newsletterCampaigns ? JSON.parse(newsletterCampaigns) : [];
-                    campaigns.unshift(autoCampaign);
-                    localStorage.setItem('portal_newsletter_campaigns', JSON.stringify(campaigns));
-
-                    console.log(`📧 Newsletter automática enviada: "${newArticle.title}" para ${activeSubscribers.length} inscritos`);
-                    
-                    // Disparar evento personalizado para atualizar a UI
-                    window.dispatchEvent(new CustomEvent('newsletter-sent', { 
-                      detail: { campaign: autoCampaign, article: newArticle } 
-                    }));
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Erro ao enviar newsletter automática:', error);
-            }
-          }, 100); // Pequeno delay para garantir que o artigo foi salvo
-        }
-        
         // Salvar no localStorage com melhor tratamento de erros
         try {
           localStorage.setItem('news_articles', JSON.stringify(updated));
