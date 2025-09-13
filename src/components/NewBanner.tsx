@@ -79,17 +79,15 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
 
   // Extrair dados do payload
   const payload = currentBanner.payload_jsonb || {};
-  const imageUrl = payload.image_url || payload.gif_url;
+  let imageUrl = payload.image_url || payload.gif_url;
+  
+  // Corrigir URLs blob inválidas - usar fallback
+  if (!imageUrl || imageUrl.startsWith('blob:')) {
+    imageUrl = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
+  }
+  
   const isVideo = payload.is_video || imageUrl?.includes('.mp4') || imageUrl?.includes('.webm');
   const altText = payload.alt_text || currentBanner.name;
-  
-  if (!imageUrl) {
-    console.warn(`[NewBanner] Banner ${currentBanner.name} não possui URL de imagem`);
-    return null;
-  }
-
-  // URL padrão de fallback
-  const fallbackImage = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
 
   return (
     <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 my-6 sm:my-8 ${className}`}>
@@ -114,7 +112,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
                   const container = e.currentTarget.parentElement;
                   if (container) {
                     container.innerHTML = `
-                      <img src="${fallbackImage}" alt="${altText}" 
+                      <img src="/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png" alt="${altText}" 
                            class="w-full h-full object-contain opacity-50" />
                     `;
                   }
@@ -129,7 +127,7 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
                 onError={(e) => {
                   console.error(`[NewBanner] Erro ao carregar imagem do banner ${slotKey}:`, imageUrl);
                   // Fallback para imagem padrão
-                  (e.target as HTMLImageElement).src = fallbackImage;
+                  (e.target as HTMLImageElement).src = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
                   (e.target as HTMLImageElement).className = 'w-full h-full object-contain opacity-50';
                   (e.target as HTMLImageElement).alt = 'Banner padrão';
                 }}
