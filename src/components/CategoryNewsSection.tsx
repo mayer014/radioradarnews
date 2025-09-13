@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getArticleLink } from '@/lib/utils';
 import { useCategoryColors } from '@/utils/categoryColors';
+import BannerDisplay from '@/components/BannerDisplay';
+import { useBanners } from '@/hooks/useBanners';
 
 interface Article {
   id: string;
@@ -30,7 +32,23 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
   onViewMore
 }) => {
   const getCategoryColors = useCategoryColors();
+  const { getActiveBanner } = useBanners();
   const colors = getCategoryColors(category);
+  const [categoryBanner, setCategoryBanner] = useState<any>(null);
+
+  // Skip banner for special categories
+  const skipBanner = ['Últimas Notícias', 'Últimas Notícias dos Colunistas'].includes(category);
+
+  useEffect(() => {
+    if (skipBanner) return;
+    
+    const loadCategoryBanner = async () => {
+      const banner = await getActiveBanner('category', category);
+      setCategoryBanner(banner);
+    };
+    
+    loadCategoryBanner();
+  }, [category, getActiveBanner, skipBanner]);
 
   // Separate featured and regular articles
   const featuredArticle = articles.find(article => article.featured);
@@ -147,6 +165,16 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
             ) : null}
           </div>
         </div>
+
+        {/* Category Banner */}
+        {!skipBanner && categoryBanner && (
+          <div className="mt-6">
+            <BannerDisplay 
+              banner={categoryBanner} 
+              position="category"
+            />
+          </div>
+        )}
       </div>
     </section>
   );

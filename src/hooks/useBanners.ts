@@ -1,0 +1,180 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface Banner {
+  id: string;
+  title: string;
+  image_url: string;
+  banner_type: 'pilot' | 'hero' | 'category' | 'columnist';
+  target_category?: string;
+  target_columnist_id?: string;
+  start_date?: string;
+  end_date?: string;
+  status: 'active' | 'scheduled' | 'expired' | 'draft';
+  sort_order: number;
+  is_pilot: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+interface ActiveBanner {
+  id: string;
+  title: string;
+  image_url: string;
+  banner_type: 'pilot' | 'hero' | 'category' | 'columnist';
+  is_pilot: boolean;
+}
+
+export const useBanners = () => {
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch all banners
+  const fetchBanners = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('banners')
+        .select('*')
+        .order('is_pilot', { ascending: false })
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBanners(data || []);
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao carregar banners',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  // Get active banner for specific area
+  const getActiveBanner = useCallback(async (
+    bannerType: 'hero' | 'category' | 'columnist',
+    targetCategory?: string,
+    targetColumnistId?: string
+  ): Promise<ActiveBanner | null> => {
+    try {
+      const { data, error } = await supabase.rpc('get_active_banner', {
+        p_banner_type: bannerType,
+        p_target_category: targetCategory || null,
+        p_target_columnist_id: targetColumnistId || null
+      });
+
+      if (error) throw error;
+      return data && data.length > 0 ? data[0] : null;
+    } catch (error) {
+      console.error('Error getting active banner:', error);
+      return null;
+    }
+  }, []);
+
+  // Create new banner
+  const createBanner = useCallback(async (bannerData: Omit<Banner, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('banners')
+        .insert([bannerData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Banner criado com sucesso',
+      });
+
+      fetchBanners();
+      return data;
+    } catch (error) {
+      console.error('Error creating banner:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao criar banner',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  }, [fetchBanners, toast]);
+
+  // Update banner
+  const updateBanner = useCallback(async (id: string, updates: Partial<Banner>) => {
+    try {
+      const { data, error } = await supabase
+        .from('banners')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Banner atualizado com sucesso',
+      });
+
+      fetchBanners();
+      return data;
+    } catch (error) {
+      console.error('Error updating banner:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao atualizar banner',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  }, [fetchBanners, toast]);
+
+  // Delete banner
+  const deleteBanner = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('banners')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Banner excluído com sucesso',
+      });
+
+      fetchBanners();
+    } catch (error) {
+      console.error('Error deleting banner:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao excluir banner',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  }, [fetchBanners, toast]);
+
+  useEffect(() => {
+    fetchBanners();
+  }, [fetchBanners]);
+
+  return {
+    banners,
+    loading,
+    fetchBanners,
+    getActiveBanner,
+    createBanner,
+    updateBanner,
+    deleteBanner
+  };
+};

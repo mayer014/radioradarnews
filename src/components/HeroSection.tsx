@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import heroBackground from '@/assets/hero-background.jpg';
+import BannerDisplay from '@/components/BannerDisplay';
+import { useBanners } from '@/hooks/useBanners';
 
 const HeroSection = () => {
   const { theme } = useTheme();
+  const { getActiveBanner } = useBanners();
   const logoUrl = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
+  const [heroBanner, setHeroBanner] = useState<any>(null);
+
+  useEffect(() => {
+    const loadHeroBanner = async () => {
+      const banner = await getActiveBanner('hero');
+      setHeroBanner(banner);
+    };
+    
+    loadHeroBanner();
+  }, [getActiveBanner]);
   
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -50,6 +63,17 @@ const HeroSection = () => {
           </p>
 
         </div>
+
+        {/* Hero Banner */}
+        {heroBanner && (
+          <div className="mt-8">
+            <BannerDisplay 
+              banner={heroBanner} 
+              position="hero"
+              className="animate-slide-up delay-300" 
+            />
+          </div>
+        )}
 
       </div>
 

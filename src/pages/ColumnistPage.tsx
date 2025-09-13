@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Clock, Share2, ArrowLeft, User, Calendar, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import { ColumnistStructuredData, BreadcrumbStructuredData } from '@/components/
 import { LoadingState, ColumnistSkeleton } from '@/components/accessibility/LoadingState';
 import { generatePageTitle, generateBreadcrumbData, optimizeImageAlt } from '@/utils/seoUtils';
 import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibility';
+import BannerDisplay from '@/components/BannerDisplay';
+import { useBanners } from '@/hooks/useBanners';
 
 const ColumnistPage = () => {
   const { columnistId } = useParams<{ columnistId: string }>();
@@ -23,7 +25,9 @@ const ColumnistPage = () => {
   const { users } = useUsers();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
+  const { getActiveBanner } = useBanners();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [columnistBanner, setColumnistBanner] = useState<any>(null);
   
   const columnist = columnistId ? getColumnistById(columnistId) : null;
   const articles = columnistId ? getArticlesByColumnist(columnistId) : [];
@@ -45,6 +49,18 @@ const ColumnistPage = () => {
 
     return () => clearTimeout(timer);
   }, [columnistId, columnist, announceLoadingState, announcePageChange]);
+
+  // Load columnist banner
+  useEffect(() => {
+    if (columnistId && currentColumnist) {
+      const loadColumnistBanner = async () => {
+        const banner = await getActiveBanner('columnist', undefined, columnistId);
+        setColumnistBanner(banner);
+      };
+      
+      loadColumnistBanner();
+    }
+  }, [columnistId, currentColumnist, getActiveBanner]);
   
   const columnistUser = users.find(user => user.id === columnistId && user.role === 'colunista');
   const isColumnistActive = columnistUser?.columnistProfile?.isActive ?? false;
@@ -294,6 +310,16 @@ const ColumnistPage = () => {
             </div>
           )}
         </div>
+
+        {/* Columnist Banner */}
+        {columnistBanner && (
+          <div className="mt-8">
+            <BannerDisplay 
+              banner={columnistBanner} 
+              position="columnist"
+            />
+          </div>
+        )}
       </main>
 
       <Footer />
