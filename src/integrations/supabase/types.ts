@@ -159,6 +159,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "articles_original_article_id_fkey"
             columns: ["original_article_id"]
             isOneToOne: false
@@ -1108,6 +1115,36 @@ export type Database = {
           },
         ]
       }
+      profiles_public: {
+        Row: {
+          avatar: string | null
+          bio: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          specialty: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          bio?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          specialty?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          bio?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          specialty?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       auto_publish_scheduled_articles: {
@@ -1125,6 +1162,17 @@ export type Database = {
       execute_full_cleanup: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_columnist_info: {
+        Args: { columnist_id: string }
+        Returns: {
+          avatar: string
+          bio: string
+          id: string
+          name: string
+          specialty: string
+          username: string
+        }[]
       }
       get_orphaned_files: {
         Args: Record<PropertyKey, never>

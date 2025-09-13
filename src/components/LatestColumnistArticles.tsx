@@ -46,13 +46,17 @@ const LatestColumnistArticles = () => {
 
       if (columnistIds.length > 0) {
         try {
-          const { data: profiles, error } = await supabase
-            .from('profiles')
-            .select('id, avatar, name, specialty')
-            .in('id', columnistIds);
-
-          if (!error && profiles) {
-            const profilesMap = profiles.reduce((acc, profile) => ({
+          // Use the secure function to get columnist info
+          const profilePromises = columnistIds.map(async (id) => {
+            const { data, error } = await supabase.rpc('get_columnist_info', { columnist_id: id });
+            return data && data.length > 0 ? data[0] : null;
+          });
+          
+          const profiles = await Promise.all(profilePromises);
+          const validProfiles = profiles.filter(Boolean);
+          
+          if (validProfiles.length > 0) {
+            const profilesMap = validProfiles.reduce((acc, profile) => ({
               ...acc,
               [profile.id]: profile
             }), {});

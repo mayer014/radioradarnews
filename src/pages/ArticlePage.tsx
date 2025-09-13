@@ -83,14 +83,12 @@ const ArticlePage = () => {
     const loadColumnistProfile = async () => {
       if (article?.columnist_id) {
         try {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('id, name, avatar, bio, specialty')
-            .eq('id', article.columnist_id)
-            .single();
+          const { data, error } = await supabase.rpc('get_columnist_info', { 
+            columnist_id: article.columnist_id 
+          });
 
-          if (!error && profile) {
-            setColumnistProfile(profile);
+          if (!error && data && data.length > 0) {
+            setColumnistProfile(data[0]);
           }
         } catch (error) {
           console.error('Error loading columnist profile:', error);

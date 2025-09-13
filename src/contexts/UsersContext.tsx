@@ -54,20 +54,39 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      // Check if user is authenticated to determine access level
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      let data, error;
+      
+      if (user) {
+        // Authenticated users (especially admins) get full access
+        const result = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+        data = result.data;
+        error = result.error;
+      } else {
+        // Public users only get safe columnist data via the secure view
+        const result = await supabase
+          .from('profiles_public')
+          .select('*')
+          .order('name', { ascending: true });
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
       const mappedUsers: User[] = (data || []).map(profile => ({
         id: profile.id,
         name: profile.name,
-        username: profile.username,
+        username: profile.username || '',
         password: 'supabase-managed', // Passwords are managed by Supabase Auth
-        role: profile.role as UserRole,
-        columnistProfile: profile.role === 'colunista' ? {
+        role: (profile.role || 'colunista') as UserRole,
+        columnistProfile: {
           id: profile.id,
           name: profile.name,
           avatar: profile.avatar || `https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face`,
@@ -75,7 +94,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           specialty: profile.specialty || 'Jornalismo',
           allowedCategories: profile.allowed_categories || ['Política'],
           isActive: profile.is_active ?? true,
-        } : undefined
+        }
       }));
 
       setUsers(mappedUsers);
