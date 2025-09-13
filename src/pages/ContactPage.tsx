@@ -15,6 +15,8 @@ import useAccessibility from '@/hooks/useAccessibility';
 import { sanitizeText, sanitizeEmail, ClientRateLimiter } from '@/utils/contentSanitizer';
 import { supabase } from '@/integrations/supabase/client';
 
+// ContactPage component - secure contact form implementation
+
 const ContactPage = () => {
   const { publicContactInfo, contactInfo } = useSupabaseContactInfo();
   const { toast } = useToast();
