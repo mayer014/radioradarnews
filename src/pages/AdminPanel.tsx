@@ -366,6 +366,16 @@ const AdminPanel = () => {
                 <span className="sm:hidden">Art</span>
               </Button>
               <Button
+                variant={activeTab === 'banners' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('banners')}
+                className={`${activeTab === 'banners' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Image className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Banners</span>
+                <span className="sm:hidden">Ban</span>
+              </Button>
+              <Button
                 variant={activeTab === 'stats' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('stats')}
                 className={`${activeTab === 'stats' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
@@ -390,6 +400,7 @@ const AdminPanel = () => {
                   </Badge>
                 )}
               </Button>
+            </div>
               <Button
                 variant={activeTab === 'programming' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('programming')}
@@ -401,9 +412,18 @@ const AdminPanel = () => {
                 <span className="sm:hidden">Prog</span>
               </Button>
             </div>
-            
             {/* Segunda linha de navegação */}
             <div className="flex flex-wrap gap-1">
+              <Button
+                variant={activeTab === 'programming' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('programming')}
+                className={`${activeTab === 'programming' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Radio className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Programação</span>
+                <span className="sm:hidden">Prog</span>
+              </Button>
               <Button
                 variant={activeTab === 'columnists' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('columnists')}
@@ -453,16 +473,6 @@ const AdminPanel = () => {
                 <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Notificações</span>
                 <span className="sm:hidden">Not</span>
-              </Button>
-              <Button
-                variant={activeTab === 'banners' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('banners')}
-                className={`${activeTab === 'banners' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <Image className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Banners</span>
-                <span className="sm:hidden">Ban</span>
               </Button>
             </div>
           </div>

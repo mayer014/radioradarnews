@@ -63,20 +63,20 @@ export const useBanners = () => {
     }
   }, [toast]);
 
-  // Get active banner for specific area
+  // Get active banner for specific area - simplified version
   const getActiveBanner = useCallback(async (
     bannerType: 'hero' | 'category' | 'columnist',
     targetCategory?: string,
     targetColumnistId?: string
   ): Promise<ActiveBanner | null> => {
     try {
+      // First try to get specific banner
       let query = supabase
         .from('banners')
         .select('id, title, image_url, banner_type, is_pilot')
         .eq('banner_type', bannerType)
-        .in('status', ['active', 'scheduled'])
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false });
+        .eq('status', 'active')
+        .eq('is_pilot', false);
 
       if (bannerType === 'category' && targetCategory) {
         query = query.eq('target_category', targetCategory);
@@ -84,23 +84,32 @@ export const useBanners = () => {
         query = query.eq('target_columnist_id', targetColumnistId);
       }
 
-      const { data, error } = await query.limit(1).single();
+      const { data, error } = await query.order('sort_order', { ascending: true }).limit(1);
 
-      if (error && error.code === 'PGRST116') {
-        // No banner found, try to get pilot banner
-        const { data: pilotData, error: pilotError } = await supabase
-          .from('banners')
-          .select('id, title, image_url, banner_type, is_pilot')
-          .eq('is_pilot', true)
-          .eq('status', 'active')
-          .single();
-        
-        if (pilotError) return null;
-        return pilotData;
+      if (error) {
+        console.error('Error in specific banner query:', error);
       }
 
-      if (error) throw error;
-      return data;
+      // If we found a specific banner, return it
+      if (data && data.length > 0) {
+        return data[0];
+      }
+
+      // Otherwise, get pilot banner as fallback
+      const { data: pilotData, error: pilotError } = await supabase
+        .from('banners')
+        .select('id, title, image_url, banner_type, is_pilot')
+        .eq('is_pilot', true)
+        .eq('status', 'active')
+        .limit(1)
+        .single();
+        
+      if (pilotError) {
+        console.error('Error getting pilot banner:', pilotError);
+        return null;
+      }
+      
+      return pilotData || null;
     } catch (error) {
       console.error('Error getting active banner:', error);
       return null;
