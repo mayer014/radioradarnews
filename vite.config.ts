@@ -34,5 +34,27 @@ export default defineConfig(({ mode }) => ({
   },
   esbuild: {
     jsx: "automatic",
+    drop: mode === "production" ? ["console", "debugger"] : [],
+  },
+  build: {
+    target: "esnext",
+    minify: "esbuild",
+    sourcemap: mode === "development",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          supabase: ["@supabase/supabase-js"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
+          utils: ["clsx", "tailwind-merge", "class-variance-authority"],
+        },
+      },
+    },
+    cssMinify: true,
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1000,
+  },
+  define: {
+    __DEV__: mode === "development",
   },
 }));
