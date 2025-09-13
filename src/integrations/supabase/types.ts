@@ -959,6 +959,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           specialty: string | null
           temp_password: string | null
+          theme_preference: string | null
           updated_at: string | null
           username: string
         }
@@ -973,6 +974,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           specialty?: string | null
           temp_password?: string | null
+          theme_preference?: string | null
           updated_at?: string | null
           username: string
         }
@@ -987,6 +989,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           specialty?: string | null
           temp_password?: string | null
+          theme_preference?: string | null
           updated_at?: string | null
           username?: string
         }

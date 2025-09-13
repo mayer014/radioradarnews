@@ -1,10 +1,24 @@
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const ThemeToggle = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, isLoading } = useTheme();
+
+  if (isLoading) {
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled
+        className="relative overflow-hidden transition-all duration-300"
+        aria-label="Carregando tema..."
+      >
+        <Loader2 className="w-4 h-4 animate-spin" />
+      </Button>
+    );
+  }
 
   return (
     <Button
