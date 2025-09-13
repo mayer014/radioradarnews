@@ -40,7 +40,6 @@ import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
 import NewBannerManager from '@/components/NewBannerManager';
 import UsersManager from '@/components/UsersManager';
-import SupabaseUsersManager from '@/components/SupabaseUsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';
 import ContactInfoManager from '@/components/ContactInfoManager';
 import AIConfigPanel from '@/components/AIConfigPanel';
@@ -60,7 +59,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'users' | 'supabase-users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'newsletter' | 'notifications'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'newsletter' | 'notifications'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -434,25 +433,15 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Artigos por Colunista</span>
                 <span className="sm:hidden">Col</span>
               </Button>
-              <Button
+               <Button
                 variant={activeTab === 'users' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('users')}
                 className={`${activeTab === 'users' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
                 size="sm"
               >
                 <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Usuários (Legacy)</span>
-                <span className="sm:hidden">User</span>
-              </Button>
-              <Button
-                variant={activeTab === 'supabase-users' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('supabase-users')}
-                className={`${activeTab === 'supabase-users' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <UserCog className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Usuários</span>
-                <span className="sm:hidden">Users</span>
+                <span className="sm:hidden">User</span>
               </Button>
               <Button
                 variant={activeTab === 'contact' ? 'default' : 'ghost'}
@@ -841,14 +830,9 @@ const AdminPanel = () => {
           <ColumnistArticlesManager />
         )}
 
-        {/* Usuários Legacy - apenas para admin */}
+        {/* Usuários - apenas para admin */}
         {activeTab === 'users' && isAdmin && (
           <UsersManager />
-        )}
-
-        {/* Usuários Supabase - apenas para admin */}
-        {activeTab === 'supabase-users' && isAdmin && (
-          <SupabaseUsersManager />
         )}
 
         {/* Informações de Contato - apenas para admin */}
