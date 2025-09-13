@@ -22,7 +22,7 @@ import { useBanners } from '@/hooks/useBanners';
 const ColumnistPage = () => {
   const { columnistId } = useParams<{ columnistId: string }>();
   const { getColumnistById, getArticlesByColumnist } = useNews();
-  const { users } = useUsers();
+  const { users, isLoading: usersLoading } = useUsers();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
   const { getActiveBanner } = useBanners();
@@ -40,8 +40,26 @@ const ColumnistPage = () => {
   // Use the user data directly to ensure we have the latest avatar
   const currentColumnist = columnistUser?.columnistProfile || columnist;
   
-  // Debug log to check avatar data
-  // Debug avatar data
+  // Data loading and banner fetch
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        announceLoadingState?.(true, 'perfil do colunista');
+        if (columnistId) {
+          const banner = await getActiveBanner('columnist', undefined, columnistId);
+          if (mounted) setColumnistBanner(banner);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar banner do colunista:', err);
+      } finally {
+        if (mounted) setIsLoading(false);
+        announceLoadingState?.(false, 'perfil do colunista');
+        announcePageChange?.(`Perfil do colunista ${currentColumnist?.name || ''}`);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [columnistId, getActiveBanner]);
   
   // Organizar artigos por data (mais recentes primeiro) - excluir cópias automáticas
   const sortedArticles = [...articles]
@@ -69,7 +87,7 @@ const ColumnistPage = () => {
   const breadcrumbData = generateBreadcrumbData(window.location.pathname, currentColumnist?.name);
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || usersLoading) {
     return (
       <div className="min-h-screen bg-background">
         <SEOHead 
