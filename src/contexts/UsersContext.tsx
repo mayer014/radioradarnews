@@ -83,7 +83,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const mappedUsers: User[] = (data || []).map(profile => ({
         id: profile.id,
         name: profile.name,
-        username: profile.username || '',
+        username: profile.username || '', // Only available for authenticated users
         password: 'supabase-managed', // Passwords are managed by Supabase Auth
         role: (profile.role || 'colunista') as UserRole,
         columnistProfile: {
