@@ -13,6 +13,7 @@ interface Profile {
   specialty?: string;
   allowed_categories?: string[];
   is_active: boolean;
+  temp_password?: string;
   created_at: string;
   updated_at: string;
 }

@@ -920,6 +920,7 @@ export type Database = {
           name: string
           role: Database["public"]["Enums"]["user_role"]
           specialty: string | null
+          temp_password: string | null
           updated_at: string | null
           username: string
         }
@@ -933,6 +934,7 @@ export type Database = {
           name: string
           role?: Database["public"]["Enums"]["user_role"]
           specialty?: string | null
+          temp_password?: string | null
           updated_at?: string | null
           username: string
         }
@@ -946,6 +948,7 @@ export type Database = {
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
           specialty?: string | null
+          temp_password?: string | null
           updated_at?: string | null
           username?: string
         }
@@ -1053,6 +1056,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      ensure_super_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       increment_article_views: {
         Args: { article_id: string }
         Returns: undefined
@@ -1071,6 +1078,10 @@ export type Database = {
       }
       is_admin_user: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      update_user_password: {
+        Args: { new_password: string; user_email: string }
         Returns: boolean
       }
     }
