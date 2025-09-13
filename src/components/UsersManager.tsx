@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import ColumnistProfileEditor from '@/components/ColumnistProfileEditor';
 
 const UsersManager: React.FC = () => {
-  const { users, columnists, addUser, deleteUser, resetPassword, updateUser } = useUsers();
+  const { users, columnists, addUser, deleteUser, resetPassword, updateUser, migrateFromSupabase, exportUsers, isLoading } = useUsers();
   const { toast } = useToast();
   const [form, setForm] = useState({
     role: 'colunista' as 'admin' | 'colunista',
@@ -118,6 +118,30 @@ const UsersManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with Migration Controls */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
+          <div className="flex gap-2">
+            <Button
+              onClick={migrateFromSupabase}
+              disabled={isLoading}
+              variant="outline"
+              className="border-primary/50"
+            >
+              {isLoading ? 'Migrando...' : 'Migrar do Supabase'}
+            </Button>
+            <Button
+              onClick={exportUsers}
+              variant="outline"
+              className="border-secondary/50"
+            >
+              Exportar Backup
+            </Button>
+          </div>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="bg-gradient-card border-primary/30 p-6 lg:col-span-1">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">

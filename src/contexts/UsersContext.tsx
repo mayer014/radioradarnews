@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { BASE_NEWS_CATEGORIES } from '@/contexts/NewsContext';
+import { migrateSupabaseUsersToLocal, validateUsersData, mergeUsers, createUsersBackup, exportUsersData } from '@/utils/userMigration';
+import { useToast } from '@/hooks/use-toast';
 
 export type UserRole = 'admin' | 'colunista';
 
@@ -29,6 +31,9 @@ interface UsersContextType {
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
   resetPassword: (id: string, newPassword: string) => void;
+  migrateFromSupabase: () => Promise<void>;
+  exportUsers: () => void;
+  isLoading: boolean;
 }
 
 const STORAGE_KEY = 'users_store';
@@ -79,26 +84,79 @@ const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>(defaultUsers);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Inicializar usuários após o componente montar
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    const initializeUsers = async () => {
+      setIsLoading(true);
+      
       try {
-        const parsed = JSON.parse(raw) as User[];
-        // basic validation
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsers(parsed);
-          return;
+        const raw = localStorage.getItem(STORAGE_KEY);
+        let localUsers = defaultUsers;
+        
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as User[];
+            const validation = validateUsersData(parsed);
+            
+            if (validation.isValid && Array.isArray(parsed) && parsed.length > 0) {
+              localUsers = parsed;
+              console.log('✅ Dados locais válidos carregados');
+            } else {
+              console.warn('⚠️ Dados locais inválidos, usando defaults:', validation.errors);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultUsers));
+            }
+          } catch (error) {
+            console.error('❌ Erro ao parsear dados locais:', error);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultUsers));
+          }
+        } else {
+          // Primeiro acesso - tentar migração do Supabase
+          console.log('🔄 Primeira inicialização - tentando migração do Supabase...');
+          try {
+            const migratedUsers = await migrateSupabaseUsersToLocal();
+            if (migratedUsers.length > 0) {
+              localUsers = mergeUsers(defaultUsers, migratedUsers);
+              console.log(`✅ ${migratedUsers.length} usuários migrados do Supabase`);
+              
+              toast({
+                title: "Migração Concluída",
+                description: `${migratedUsers.length} usuários foram migrados do sistema anterior.`,
+              });
+            }
+          } catch (error) {
+            console.error('❌ Erro na migração automática:', error);
+          }
+          
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(localUsers));
         }
-      } catch {}
-    }
-    // Seed defaults
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultUsers));
-  }, []);
+        
+        setUsers(localUsers);
+      } catch (error) {
+        console.error('❌ Erro fatal na inicialização:', error);
+        setUsers(defaultUsers);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultUsers));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    initializeUsers();
+  }, [toast]);
+
+  // Persistir mudanças no localStorage com validação
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    if (users.length > 0) {
+      const validation = validateUsersData(users);
+      if (validation.isValid) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+        console.log('💾 Dados salvos no localStorage');
+      } else {
+        console.error('❌ Dados inválidos não foram salvos:', validation.errors);
+      }
+    }
   }, [users]);
 
   const addUser: UsersContextType['addUser'] = (user) => {
@@ -153,10 +211,67 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, password: newPassword } : u)));
   };
 
+  const migrateFromSupabase: UsersContextType['migrateFromSupabase'] = async () => {
+    setIsLoading(true);
+    try {
+      const migratedUsers = await migrateSupabaseUsersToLocal();
+      if (migratedUsers.length > 0) {
+        const mergedUsers = mergeUsers(users, migratedUsers);
+        setUsers(mergedUsers);
+        
+        toast({
+          title: "Migração Concluída",
+          description: `${migratedUsers.length} usuários foram migrados do Supabase.`,
+        });
+      } else {
+        toast({
+          title: "Nenhum Usuário Encontrado",
+          description: "Não foram encontrados usuários para migrar.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro na migração:', error);
+      toast({
+        title: "Erro na Migração",
+        description: "Não foi possível migrar os usuários do Supabase.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const exportUsers: UsersContextType['exportUsers'] = () => {
+    try {
+      exportUsersData(users);
+      toast({
+        title: "Backup Exportado",
+        description: "Os dados dos usuários foram exportados com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no Export",
+        description: "Não foi possível exportar os dados.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const columnists = useMemo(() => users.filter((u) => u.role === 'colunista'), [users]);
 
   return (
-    <UsersContext.Provider value={{ users, columnists, addUser, updateUser, deleteUser, resetPassword }}>
+    <UsersContext.Provider value={{ 
+      users, 
+      columnists, 
+      addUser, 
+      updateUser, 
+      deleteUser, 
+      resetPassword, 
+      migrateFromSupabase, 
+      exportUsers, 
+      isLoading 
+    }}>
       {children}
     </UsersContext.Provider>
   );
