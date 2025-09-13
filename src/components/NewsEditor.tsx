@@ -13,7 +13,6 @@ import ArticleImageUpload from '@/components/news-editor/ArticleImageUpload';
 import ArticleMetadata from '@/components/news-editor/ArticleMetadata';
 import StepNav from '@/components/news-editor/StepNav';
 import ArticleReview from '@/components/news-editor/ArticleReview';
-import AIArticleGeneratorStep from '@/components/news-editor/AIArticleGeneratorStep';
 import FavoriteSites from '@/components/FavoriteSites';
 import type { RewrittenContent } from '@/services/AIContentRewriter';
 
@@ -217,36 +216,10 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
     });
   };
 
-  const handleAIGeneration = (article: {
-    title: string;
-    excerpt: string;
-    content: string;
-    category: string;
-    selectedColumnist?: string;
-  }) => {
-    setFormData({
-      ...formData,
-      title: article.title,
-      excerpt: article.excerpt,
-      content: article.content,
-      category: article.category,
-      selectedColumnist: article.selectedColumnist || '',
-    });
-
-    toast({
-      title: "Artigo gerado com sucesso!",
-      description: "O conteúdo foi preenchido automaticamente. Você pode revisar e ajustar antes de publicar.",
-    });
-
-    // Avançar para o próximo step
-    goNext();
-  };
-
   // Wizard steps configuration
   const steps = [
     { key: 'favorites', label: 'Sites Favoritos', hidden: !!articleId || profile?.role !== 'admin' },
     { key: 'import', label: 'Importar URL', hidden: !!articleId || profile?.role === 'colunista' },
-    { key: 'ai-generate', label: 'Gerar com IA', hidden: !!articleId },
     { key: 'basic', label: 'Informações Básicas' },
     { key: 'content', label: 'Conteúdo' },
     { key: 'media', label: 'Imagem e Configurações' },
@@ -330,12 +303,6 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         <div className="mb-6">
           <StepNav steps={steps} currentStep={activeStep} onStepChange={setActiveStep} />
         </div>
-
-        {visibleSteps[activeStep]?.key === 'ai-generate' && !articleId && (
-          <div className="mb-8">
-            <AIArticleGeneratorStep onArticleGenerated={handleAIGeneration} />
-          </div>
-        )}
 
         {visibleSteps[activeStep]?.key === 'import' && !articleId && (
           <div className="mb-8">
