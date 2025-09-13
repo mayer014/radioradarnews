@@ -39,13 +39,17 @@ Deno.serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify(extractedContent),
+      JSON.stringify({ 
+        success: true, 
+        data: extractedContent 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in content extraction:', error);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: 'Failed to extract content',
         details: error.message 
       }),
