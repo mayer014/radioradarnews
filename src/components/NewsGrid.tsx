@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import CategoryNewsSection from '@/components/CategoryNewsSection';
+import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
 
 const NewsGrid: React.FC = () => {
   const { articles, loading } = useSupabaseNews();
@@ -13,8 +14,16 @@ const NewsGrid: React.FC = () => {
 
   useEffect(() => {
     const categoria = searchParams.get('categoria');
-    if (categoria && BASE_NEWS_CATEGORIES.includes(categoria)) {
-      setSelectedCategory(categoria);
+    if (categoria) {
+      // Verificar se é um slug interno válido ou um nome de exibição válido
+      const internalSlug = getInternalCategorySlug(categoria);
+      const hasInternalCategory = BASE_NEWS_CATEGORIES.map(cat => getInternalCategorySlug(cat)).includes(internalSlug);
+      
+      if (hasInternalCategory) {
+        setSelectedCategory(getDisplayCategoryName(internalSlug));
+      } else {
+        setSelectedCategory('Todas');
+      }
     } else {
       setSelectedCategory('Todas');
     }
@@ -29,7 +38,9 @@ const NewsGrid: React.FC = () => {
     if (category === 'Todas') {
       setSearchParams({});
     } else {
-      setSearchParams({ categoria: category });
+      // Usar o slug interno para URL, mas manter o nome de exibição no estado
+      const internalSlug = getInternalCategorySlug(category);
+      setSearchParams({ categoria: internalSlug });
     }
   };
 
@@ -39,10 +50,11 @@ const NewsGrid: React.FC = () => {
 
   const categoriesWithArticles = useMemo(() => {
     if (selectedCategory === 'Todas') {
-      // Group articles by category
+      // Group articles by category usando slugs internos
       const grouped = BASE_NEWS_CATEGORIES.reduce((acc, category) => {
+        const internalSlug = getInternalCategorySlug(category);
         const allCategory = published
-          .filter(a => a.category === category)
+          .filter(a => a.category === internalSlug)
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         const featuredInCategory = allCategory.find(a => a.featured);
@@ -59,9 +71,10 @@ const NewsGrid: React.FC = () => {
       
       return grouped;
     } else {
-      // Single category view
+      // Single category view usando slug interno
+      const internalSlug = getInternalCategorySlug(selectedCategory);
       const categoryArticles = published
-        .filter(a => a.category === selectedCategory)
+        .filter(a => a.category === internalSlug)
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       return categoryArticles.length > 0 ? { [selectedCategory]: categoryArticles } : {};
@@ -69,7 +82,8 @@ const NewsGrid: React.FC = () => {
   }, [published, selectedCategory]);
 
   const handleViewMore = (category: string) => {
-    navigate(`/noticias?categoria=${category}`, { replace: false });
+    const internalSlug = getInternalCategorySlug(category);
+    navigate(`/noticias?categoria=${internalSlug}`, { replace: false });
   };
 
   return (
@@ -91,7 +105,8 @@ const NewsGrid: React.FC = () => {
               Todas ({published.length})
             </Button>
             {BASE_NEWS_CATEGORIES.map((category) => {
-              const count = published.filter(a => a.category === category).length;
+              const internalSlug = getInternalCategorySlug(category);
+              const count = published.filter(a => a.category === internalSlug).length;
               if (count === 0) return null;
               return (
                 <Button

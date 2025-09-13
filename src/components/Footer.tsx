@@ -31,7 +31,7 @@ const Footer = () => {
     { name: 'Entretenimento', href: '/noticias?categoria=Entretenimento' },
     { name: 'Internacional', href: '/noticias?categoria=Internacional' },
     { name: 'Esportes', href: '/noticias?categoria=Esportes' },
-    { name: 'Tecnologia', href: '/noticias?categoria=Tecnologia' },
+    { name: 'Tecnologia / Economia', href: '/noticias?categoria=Tecnologia' },
     { name: 'Ciência / Saúde', href: '/noticias?categoria=Ciência / Saúde' }
   ];
 

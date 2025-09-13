@@ -33,7 +33,7 @@ const Navigation = () => {
     { name: 'Entretenimento', icon: Clapperboard, href: '/noticias?categoria=Entretenimento' },
     { name: 'Internacional', icon: Globe, href: '/noticias?categoria=Internacional' },
     { name: 'Esportes', icon: Trophy, href: '/noticias?categoria=Esportes' },
-    { name: 'Tecnologia', icon: Smartphone, href: '/noticias?categoria=Tecnologia' },
+    { name: 'Tecnologia / Economia', icon: Smartphone, href: '/noticias?categoria=Tecnologia' },
     { name: 'Ciência / Saúde', icon: Activity, href: '/noticias?categoria=Ciência / Saúde' },
   ];
 
