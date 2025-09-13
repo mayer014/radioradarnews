@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
 import CommentsSection from '@/components/CommentsSection';
 import { ShareMenu } from '@/components/share/ShareMenu';
-import { useNews } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { getArticleLink } from '@/lib/utils';
 
 // Função para formatar o conteúdo do artigo
@@ -46,14 +46,14 @@ const formatArticleContent = (content: string): string => {
 
 const ColumnistArticlePage = () => {
   const { id } = useParams<{ id: string }>();
-  const { getArticleById, incrementViews, getArticlesByColumnist } = useNews();
+  const { getArticleById, incrementViews, getArticlesByColumnist } = useSupabaseNews();
   
   // Params: { id }
   
   const article = id ? getArticleById(id) : null;
   // Article found
   
-  const relatedArticles = article?.columnist ? getArticlesByColumnist(article.columnist.id).filter(a => a.id !== article.id) : [];
+  const relatedArticles = article?.columnist_id ? getArticlesByColumnist(article.columnist_id).filter(a => a.id !== article.id) : [];
   
   // Incrementar visualizações quando o artigo for encontrado
   React.useEffect(() => {
@@ -68,7 +68,7 @@ const ColumnistArticlePage = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  if (!article || !article.columnist) {
+  if (!article || !article.columnist_id) {
     // Article not found or not a columnist article
     return (
       <div className="min-h-screen bg-background">
@@ -107,9 +107,9 @@ const ColumnistArticlePage = () => {
       <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-sm border-b border-border/50">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link to={`/colunista/${article.columnist.id}`} className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors">
+            <Link to={`/colunista/${article.columnist_id}`} className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar aos artigos de {article.columnist.name}
+              Voltar aos artigos de {article.columnist_name}
             </Link>
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Início
@@ -130,7 +130,7 @@ const ColumnistArticlePage = () => {
             </Badge>
             <div className="flex items-center text-muted-foreground text-sm">
               <Calendar className="w-4 h-4 mr-2" />
-              {new Date(article.createdAt).toLocaleDateString('pt-BR')}
+              {new Date(article.created_at).toLocaleDateString('pt-BR')}
             </div>
           </div>
 
@@ -148,17 +148,17 @@ const ColumnistArticlePage = () => {
           <div className="flex items-center justify-between mb-6 p-6 bg-gradient-card rounded-lg border border-primary/20">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20 flex-shrink-0">
-                {article.columnist.avatar && (article.columnist.avatar.startsWith('http') || article.columnist.avatar.startsWith('data:image/')) ? (
+                {article.columnist_avatar && (article.columnist_avatar.startsWith('http') || article.columnist_avatar.startsWith('data:image/')) ? (
                   <img
-                    src={article.columnist.avatar}
-                    alt={article.columnist.name}
+                    src={article.columnist_avatar}
+                    alt={article.columnist_name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      console.error('Error loading columnist avatar in ColumnistArticlePage:', article.columnist?.avatar?.substring(0, 100));
+                      console.error('Error loading columnist avatar in ColumnistArticlePage:', article.columnist_avatar?.substring(0, 100));
                       (e.target as HTMLImageElement).style.display = 'none';
                       (e.target as HTMLImageElement).parentElement!.innerHTML = `
                         <div class="w-full h-full bg-muted/50 flex items-center justify-center">
-                          <span class="text-lg text-muted-foreground font-bold">${article.columnist?.name?.[0]?.toUpperCase()}</span>
+                          <span class="text-lg text-muted-foreground font-bold">${article.columnist_name?.[0]?.toUpperCase()}</span>
                         </div>
                       `;
                     }}
@@ -166,18 +166,18 @@ const ColumnistArticlePage = () => {
                 ) : (
                   <div className="w-full h-full bg-muted/50 flex items-center justify-center">
                     <span className="text-lg text-muted-foreground font-bold">
-                      {article.columnist.name[0]?.toUpperCase()}
+                      {article.columnist_name?.[0]?.toUpperCase()}
                     </span>
                   </div>
                 )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-lg">{article.columnist.name}</span>
+                  <span className="font-semibold text-lg">{article.columnist_name}</span>
                   <BookOpen className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-sm text-primary font-medium">{article.columnist.specialty}</p>
-                <p className="text-xs text-muted-foreground mt-1">{article.columnist.bio}</p>
+                <p className="text-sm text-primary font-medium">{article.columnist_specialty}</p>
+                <p className="text-xs text-muted-foreground mt-1">{article.columnist_bio}</p>
               </div>
             </div>
           </div>
@@ -185,12 +185,12 @@ const ColumnistArticlePage = () => {
           {/* Stats do artigo */}
           <div className="flex items-center text-sm text-muted-foreground mb-6">
             <Clock className="w-4 h-4 mr-2" />
-            <span>{new Date(article.createdAt).toLocaleString('pt-BR')}</span>
+            <span>{new Date(article.created_at).toLocaleString('pt-BR')}</span>
           </div>
 
           {/* Botões de ação - Ver perfil e Compartilhar */}
           <div className="flex items-center gap-3 mb-6">
-            <Link to={`/colunista/${article.columnist.id}`}>
+            <Link to={`/colunista/${article.columnist_id}`}>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -204,22 +204,22 @@ const ColumnistArticlePage = () => {
               title={article.title}
               excerpt={article.excerpt}
               url={window.location.href}
-              image={article.featuredImage}
+              image={article.featured_image}
               category={article.category}
-              author={article.columnist.name}
-              columnist={{
-                name: article.columnist.name,
-                specialty: article.columnist.specialty,
-                bio: article.columnist.bio,
-                avatar: article.columnist.avatar
-              }}
+              author={article.columnist_name}
+              columnist={article.columnist_name ? {
+                name: article.columnist_name,
+                specialty: article.columnist_specialty || '',
+                bio: article.columnist_bio || '',
+                avatar: article.columnist_avatar,
+              } : undefined}
             />
           </div>
 
           {/* Imagem principal */}
           <div className="relative rounded-lg mb-8 bg-muted/20">
             <img
-              src={article.featuredImage}
+              src={article.featured_image}
               alt={article.title}
               className="w-full h-96 object-contain rounded-lg"
             />
@@ -249,7 +249,7 @@ const ColumnistArticlePage = () => {
           <div className="mt-12">
             <h3 className="text-2xl font-bold mb-6 flex items-center">
               <BookOpen className="w-6 h-6 mr-2 text-primary" />
-              Mais artigos de {article.columnist.name}
+              Mais artigos de {article.columnist_name}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {relatedArticles.slice(0, 4).map((related) => (
@@ -258,7 +258,7 @@ const ColumnistArticlePage = () => {
                     <div className="flex gap-4 p-4">
                       <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
                         <img
-                          src={related.featuredImage}
+                          src={related.featured_image}
                           alt={related.title}
                           className="w-24 h-24 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                         />
@@ -269,7 +269,7 @@ const ColumnistArticlePage = () => {
                         </h4>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="w-3 h-3 mr-1" />
-                          <span>{new Date(related.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <span>{new Date(related.created_at).toLocaleDateString('pt-BR')}</span>
                         </div>
                       </div>
                     </div>
@@ -280,10 +280,10 @@ const ColumnistArticlePage = () => {
             
             {/* Link para ver todos os artigos do colunista */}
             <div className="text-center mt-6">
-              <Link to={`/colunista/${article.columnist.id}`}>
+              <Link to={`/colunista/${article.columnist_id}`}>
                 <Button className="bg-gradient-hero hover:shadow-glow-primary">
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Ver todos os artigos de {article.columnist.name}
+                  Ver todos os artigos de {article.columnist_name}
                 </Button>
               </Link>
             </div>
