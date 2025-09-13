@@ -19,7 +19,11 @@ import {
   EyeOff,
   Shield,
   UserX,
-  UserCheck
+  UserCheck,
+  Copy,
+  KeyRound,
+  UserPlus,
+  UserIcon
 } from 'lucide-react';
 
 interface Profile {
@@ -41,12 +45,12 @@ const SupabaseUsersManager = () => {
   const [loading, setLoading] = useState(true);
   const [newUser, setNewUser] = useState({
     email: '',
-    password: '',
+    password: '123456',
     username: '',
     name: '',
     role: 'colunista' as 'admin' | 'colunista'
   });
-  const [editingProfile, setEditingProfile] = useState<string | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, string>>({});
   const { profile: currentProfile } = useSupabaseAuth();
   const { toast } = useToast();
 
@@ -77,6 +81,15 @@ const SupabaseUsersManager = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newUser.name || !newUser.username || !newUser.email || !newUser.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -104,6 +117,12 @@ const SupabaseUsersManager = () => {
           .eq('id', authData.user.id);
 
         if (profileError) throw profileError;
+
+        // Store password temporarily for display
+        setVisiblePasswords(prev => ({
+          ...prev,
+          [authData.user.id]: newUser.password
+        }));
       }
 
       toast({
@@ -113,7 +132,7 @@ const SupabaseUsersManager = () => {
 
       setNewUser({
         email: '',
-        password: '',
+        password: '123456',
         username: '',
         name: '',
         role: 'colunista'
@@ -132,29 +151,65 @@ const SupabaseUsersManager = () => {
     }
   };
 
-  const handleUpdateRole = async (profileId: string, newRole: 'admin' | 'colunista') => {
+  const handleResetPassword = async (profileId: string, userName: string) => {
+    const newPassword = prompt(`Nova senha para ${userName}:`, '123456');
+    if (!newPassword) return;
+
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', profileId);
+      // Update password in Supabase Auth
+      const { error } = await supabase.auth.admin.updateUserById(profileId, {
+        password: newPassword
+      });
 
       if (error) throw error;
 
+      // Store temporarily for display
+      setVisiblePasswords(prev => ({
+        ...prev,
+        [profileId]: newPassword
+      }));
+
       toast({
-        title: "Função atualizada",
-        description: `Usuário promovido para ${newRole}`,
+        title: "Senha redefinida",
+        description: `Nova senha para ${userName}: ${newPassword}`,
       });
 
-      fetchProfiles();
+      // Clear displayed password after 30 seconds
+      setTimeout(() => {
+        setVisiblePasswords(prev => {
+          const updated = { ...prev };
+          delete updated[profileId];
+          return updated;
+        });
+      }, 30000);
+
     } catch (error: any) {
-      console.error('Error updating role:', error);
+      console.error('Error resetting password:', error);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar função do usuário",
+        description: "Erro ao redefinir senha",
         variant: "destructive",
       });
     }
+  };
+
+  const togglePasswordVisibility = (profileId: string) => {
+    if (visiblePasswords[profileId]) {
+      setVisiblePasswords(prev => {
+        const updated = { ...prev };
+        delete updated[profileId];
+        return updated;
+      });
+    }
+  };
+
+  const copyCredentials = (username: string, password: string) => {
+    const credentials = `Usuário: ${username}\nSenha: ${password}`;
+    navigator.clipboard.writeText(credentials);
+    toast({ 
+      title: 'Credenciais copiadas!', 
+      description: 'Login e senha copiados para a área de transferência' 
+    });
   };
 
   const handleToggleActive = async (profileId: string, isActive: boolean) => {
@@ -218,172 +273,251 @@ const SupabaseUsersManager = () => {
     );
   }
 
+  const admins = profiles.filter(p => p.role === 'admin');
+  const columnists = profiles.filter(p => p.role === 'colunista');
+
   return (
     <div className="space-y-6">
-      {/* Create User Form */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Criar Novo Usuário
-        </h3>
-        
-        <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="name">Nome Completo</Label>
-            <Input
-              id="name"
-              value={newUser.name}
-              onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Digite o nome completo"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="username">Nome de Usuário</Label>
-            <Input
-              id="username"
-              value={newUser.username}
-              onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value }))}
-              placeholder="Digite o nome de usuário"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={newUser.email}
-              onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="Digite o email"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              value={newUser.password}
-              onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Digite a senha"
-              required
-              minLength={6}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="role">Função</Label>
-            <Select 
-              value={newUser.role} 
-              onValueChange={(value: 'admin' | 'colunista') => setNewUser(prev => ({ ...prev, role: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="colunista">Colunista</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex items-end">
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Criando...' : 'Criar Usuário'}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Formulário de Criação */}
+        <Card className="bg-gradient-card border-primary/30 p-6 lg:col-span-1">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <UserPlus className="h-5 w-5" />
+            Novo usuário
+          </h3>
+          <form onSubmit={handleCreateUser} className="space-y-4">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={newUser.role} onValueChange={(v) => setNewUser({ ...newUser, role: v as any })}>
+                <SelectTrigger className="border-primary/30">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="colunista">Colunista</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Nome</Label>
+              <Input 
+                value={newUser.name} 
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} 
+                placeholder="Nome completo"
+                required
+              />
+            </div>
+            <div>
+              <Label>Usuário (login)</Label>
+              <Input 
+                value={newUser.username} 
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} 
+                placeholder="Nome de usuário"
+                required
+              />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input 
+                type="email"
+                value={newUser.email} 
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} 
+                placeholder="email@exemplo.com"
+                required
+              />
+            </div>
+            <div>
+              <Label>Senha</Label>
+              <Input 
+                type="text"
+                value={newUser.password} 
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} 
+                placeholder="Senha inicial"
+                required
+              />
+            </div>
+            {newUser.role === 'colunista' && (
+              <div className="p-4 bg-muted/20 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground">
+                  💡 <strong>Após criar o colunista:</strong> Configure categorias, biografia e foto no perfil.
+                </p>
+              </div>
+            )}
+            <Button type="submit" disabled={loading} className="w-full bg-gradient-hero">
+              {loading ? 'Criando...' : 'Adicionar'}
             </Button>
-          </div>
-        </form>
-      </Card>
+          </form>
+        </Card>
 
-      {/* Users List */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <UserCog className="h-5 w-5" />
-          Usuários do Sistema
-        </h3>
-        
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground mt-2">Carregando usuários...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {profiles.map((profile) => (
-              <div key={profile.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-gradient-hero flex items-center justify-center">
-                    {profile.role === 'admin' ? (
-                      <Crown className="h-5 w-5 text-white" />
-                    ) : (
-                      <User className="h-5 w-5 text-white" />
-                    )}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Administradores */}
+          <Card className="bg-gradient-card border-primary/30 p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Shield className="h-5 w-5" /> Administradores ({admins.length})
+            </h3>
+            <div className="space-y-3">
+              {admins.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-4 rounded-md bg-muted/20 border border-border/50">
+                  <div className="flex items-center gap-4">
+                    <Badge>Admin</Badge>
+                    <div className="space-y-1">
+                      <span className="font-medium">{user.name}</span>
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium">Login:</span>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">{user.username}</code>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium">Senha:</span>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">
+                            {visiblePasswords[user.id] ? visiblePasswords[user.id] : '••••••••'}
+                          </code>
+                          {visiblePasswords[user.id] && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0" 
+                                onClick={() => togglePasswordVisibility(user.id)}
+                              >
+                                <EyeOff className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0" 
+                                onClick={() => copyCredentials(user.username, visiblePasswords[user.id])}
+                                title="Copiar credenciais"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <h4 className="font-medium">{profile.name}</h4>
-                    <p className="text-sm text-muted-foreground">@{profile.username}</p>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
-                      {profile.role === 'admin' ? 'Admin' : 'Colunista'}
-                    </Badge>
-                    <Badge variant={profile.is_active ? 'default' : 'destructive'}>
-                      {profile.is_active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {profile.id !== currentProfile?.id && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleActive(profile.id, profile.is_active)}
-                      >
-                        {profile.is_active ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleUpdateRole(
-                          profile.id, 
-                          profile.role === 'admin' ? 'colunista' : 'admin'
-                        )}
-                      >
-                        {profile.role === 'admin' ? (
-                          <UserX className="h-4 w-4" />
-                        ) : (
-                          <UserCheck className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteProfile(profile.id)}
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleResetPassword(user.id, user.name)}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    {user.username !== 'admin' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-destructive border-destructive/40" 
+                        onClick={() => handleDeleteProfile(user.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              ))}
+              {admins.length === 0 && <p className="text-sm text-muted-foreground">Nenhum admin cadastrado.</p>}
+            </div>
+          </Card>
+
+          {/* Colunistas */}
+          <Card className="bg-gradient-card border-primary/30 p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <UserIcon className="h-5 w-5" /> Colunistas ({columnists.length})
+            </h3>
+            <div className="space-y-3">
+              {columnists.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-4 rounded-md bg-muted/20 border border-border/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+                      {user.avatar ? (
+                        <img 
+                          src={user.avatar} 
+                          alt={user.name} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted/50 flex items-center justify-center">
+                          <UserIcon className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{user.name}</span>
+                        <Badge variant={user.is_active ? "default" : "secondary"}>
+                          {user.is_active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium">Login:</span>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">{user.username}</code>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium">Senha:</span>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">
+                            {visiblePasswords[user.id] ? visiblePasswords[user.id] : '••••••••'}
+                          </code>
+                          {visiblePasswords[user.id] && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0" 
+                                onClick={() => togglePasswordVisibility(user.id)}
+                              >
+                                <EyeOff className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0" 
+                                onClick={() => copyCredentials(user.username, visiblePasswords[user.id])}
+                                title="Copiar credenciais"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant={user.is_active ? "outline" : "default"} 
+                      size="sm" 
+                      onClick={() => handleToggleActive(user.id, user.is_active)}
+                      title={user.is_active ? "Desativar" : "Ativar"}
+                    >
+                      {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleResetPassword(user.id, user.name)}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive border-destructive/40" 
+                      onClick={() => handleDeleteProfile(user.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {columnists.length === 0 && <p className="text-sm text-muted-foreground">Nenhum colunista cadastrado.</p>}
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
