@@ -4,7 +4,7 @@ import { Calendar, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import Banner from '@/components/Banner';
+import NewBanner from '@/components/NewBanner';
 import { getArticleLink } from '@/lib/utils';
 import { useCategoryColors } from '@/utils/categoryColors';
 
@@ -150,7 +150,7 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
         </div>
 
         {/* Category Banner */}
-        <Banner position="category" category={category} />
+        <NewBanner slotKey={`category-${category.toLowerCase()}`} />
       </div>
     </section>
   );

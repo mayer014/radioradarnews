@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
-import Banner from '@/components/Banner';
+import NewBanner from '@/components/NewBanner';
 import { useNews } from '@/contexts/NewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
@@ -221,9 +221,8 @@ const ColumnistPage = () => {
         {/* Banner do colunista - posicionado após o header */}
         {isColumnistActive && (
           <div className="mb-8">
-            <Banner 
-              position="columnist" 
-              columnistId={columnistId}
+            <NewBanner 
+              slotKey={`columnist-${columnistId}`}
               className=""
             />
           </div>
