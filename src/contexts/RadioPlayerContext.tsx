@@ -44,9 +44,13 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       console.log('Rádio pausada');
     } else {
       console.log('Tentando reproduzir stream:', radioStreamUrl);
+      
+      // Para streams ao vivo, sempre recarregar a fonte para garantir áudio atual
+      audioRef.current.load(); // Força reload da fonte
+      
       audioRef.current.play().then(() => {
         setIsPlaying(true);
-        console.log('Rádio reproduzindo com sucesso');
+        console.log('Rádio reproduzindo com sucesso (stream ao vivo)');
       }).catch((error) => {
         console.error('Erro ao reproduzir:', error);
         setIsPlaying(false);
@@ -59,11 +63,12 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (audioRef.current && radioStreamUrl) {
       audioRef.current.src = radioStreamUrl;
       audioRef.current.volume = volume;
+      audioRef.current.preload = 'none'; // Não precarregar para streams ao vivo
       
-      // Don't auto play to avoid browser blocking issues
-      // User needs to manually start the stream
+      // Para streams ao vivo, não autoplay para evitar problemas do browser
+      console.log('Stream configurado:', radioStreamUrl);
     }
-  }, [radioStreamUrl]); // Removido volume desta dependência para evitar resetar o src
+  }, [radioStreamUrl]);
 
   // Update volume when it changes - separado para não interferir no stream
   useEffect(() => {
@@ -87,10 +92,25 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       {/* Audio element global */}
       <audio 
         ref={audioRef}
-        onEnded={() => setIsPlaying(false)}
-        onError={() => {
+        onEnded={() => {
+          console.log('Stream ended, tentando reconectar...');
           setIsPlaying(false);
-          console.error('Erro no stream de áudio');
+          // Para streams ao vivo, tentar reconectar automaticamente após um breve delay
+          setTimeout(() => {
+            if (radioStreamUrl && audioRef.current) {
+              audioRef.current.load();
+            }
+          }, 1000);
+        }}
+        onError={(e) => {
+          setIsPlaying(false);
+          console.error('Erro no stream de áudio:', e);
+        }}
+        onLoadStart={() => {
+          console.log('Carregando stream...');
+        }}
+        onCanPlay={() => {
+          console.log('Stream pronto para reproduzir');
         }}
       />
     </RadioPlayerContext.Provider>
