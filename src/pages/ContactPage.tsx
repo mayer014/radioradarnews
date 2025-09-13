@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
-import { useContact } from '@/contexts/ContactContext';
 import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import { sanitizeText, sanitizeEmail, ClientRateLimiter } from '@/utils/contentS
 import { supabase } from '@/integrations/supabase/client';
 
 const ContactPage = () => {
-  const { addMessage } = useContact();
   const { publicContactInfo, contactInfo } = useSupabaseContactInfo();
   const { toast } = useToast();
   const { announcePageChange } = useAccessibility();

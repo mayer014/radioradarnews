@@ -1283,10 +1283,10 @@ export type Database = {
       submit_contact_message: {
         Args: {
           p_email: string
-          p_ip_address?: unknown
+          p_ip_address: unknown
           p_message: string
           p_name: string
-          p_phone?: string
+          p_phone: string
           p_subject: string
         }
         Returns: Json
