@@ -17,6 +17,7 @@ import {
   Heading2,
   Heading3
 } from 'lucide-react';
+import { sanitizeHtml } from '@/utils/contentSanitizer';
 
 interface RichTextEditorProps {
   content: string;
@@ -48,7 +49,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ content, onChange }) =>
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const content = editor.getHTML();
+      const sanitizedContent = sanitizeHtml(content);
+      onChange(sanitizedContent);
     },
     editorProps: {
       attributes: {

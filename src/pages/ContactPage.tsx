@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { BreadcrumbStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
+import { sanitizeText, sanitizeEmail, ClientRateLimiter } from '@/utils/contentSanitizer';
 
 const ContactPage = () => {
   const { addMessage } = useContact();
@@ -26,33 +27,80 @@ const ContactPage = () => {
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Rate limiter instance
+  const rateLimiter = new ClientRateLimiter(3, 60 * 1000); // 3 submissions per minute
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+    try {
+      // Rate limiting check
+      const clientId = 'contact-form';
+      if (!rateLimiter.canProceed(clientId)) {
+        const remainingTime = Math.ceil(rateLimiter.getRemainingTime(clientId) / 1000);
+        toast({
+          title: "Muitas tentativas",
+          description: `Aguarde ${remainingTime} segundos antes de enviar outra mensagem.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validation
+      if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha todos os campos obrigatórios.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Sanitize inputs
+      const sanitizedData = {
+        name: sanitizeText(formData.name),
+        email: sanitizeEmail(formData.email),
+        phone: sanitizeText(formData.phone),
+        subject: sanitizeText(formData.subject),
+        message: sanitizeText(formData.message)
+      };
+
+      // Validate sanitized email
+      if (!sanitizedData.email) {
+        toast({
+          title: "Email inválido",
+          description: "Por favor, insira um endereço de email válido.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      addMessage(sanitizedData);
+      
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Mensagem enviada!",
+        description: "Sua mensagem foi enviada com sucesso. Entraremos em contato em breve.",
+      });
+
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: ''
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao enviar",
+        description: "Ocorreu um erro ao enviar sua mensagem. Tente novamente.",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    addMessage(formData);
-    
-    toast({
-      title: "Mensagem enviada!",
-      description: "Sua mensagem foi enviada com sucesso. Entraremos em contato em breve.",
-    });
-
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -182,9 +230,13 @@ const ContactPage = () => {
                     />
                   </div>
                   
-                  <Button type="submit" className="bg-gradient-hero hover:shadow-glow-primary transition-all duration-300 w-full">
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="bg-gradient-hero hover:shadow-glow-primary transition-all duration-300 w-full disabled:opacity-50"
+                  >
                     <Send className="w-4 h-4 mr-2" />
-                    Enviar Mensagem
+                    {isSubmitting ? 'Enviando...' : 'Enviar Mensagem'}
                   </Button>
                 </form>
               </Card>

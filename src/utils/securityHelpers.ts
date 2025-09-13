@@ -35,7 +35,9 @@ export const CSP_CONFIG = {
     'https://*.supabase.co',
     'wss://*.supabase.co', // WebSocket for realtime
     'https://api.openai.com',
-    'https://api.anthropic.com'
+    'https://api.anthropic.com',
+    'https://lovable.dev',
+    'wss://lovable.dev'
   ],
   'media-src': [
     "'self'",
@@ -60,11 +62,14 @@ export const generateCSPHeader = (): string => {
 };
 
 /**
- * Sanitize user input to prevent XSS
+ * Enhanced input sanitization (deprecated - use contentSanitizer.ts)
+ * @deprecated Use sanitizeText from contentSanitizer.ts instead
  */
 export const sanitizeInput = (input: string): string => {
   return input
-    .replace(/[<>\"']/g, '') // Remove potentially dangerous characters
+    .replace(/[<>\"'&<>]/g, '') // Remove potentially dangerous characters
+    .replace(/javascript:/gi, '') // Remove javascript: URLs
+    .replace(/data:/gi, '') // Remove data: URLs
     .trim()
     .slice(0, 1000); // Limit length
 };

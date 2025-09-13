@@ -38,6 +38,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import PrivateRoute from "./components/PrivateRoute";
 import ScrollToTop from "./components/ScrollToTop";
+import SecurityProvider from "./components/SecurityProvider";
 
 const queryClient = new QueryClient();
 
@@ -79,8 +80,9 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <HelmetProvider>
-      <ThemeProvider>
+    <SecurityProvider>
+      <HelmetProvider>
+        <ThemeProvider>
         <SupabaseAuthProvider>
           <AuthProvider>
           <SupabaseNewsProvider>
@@ -118,6 +120,7 @@ const App = () => (
         </SupabaseAuthProvider>
       </ThemeProvider>
     </HelmetProvider>
+  </SecurityProvider>
   </QueryClientProvider>
 );
 
