@@ -12,36 +12,62 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
   const { getCurrentBanner } = useNewBanner();
   const [currentBanner, setCurrentBanner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchBanner = async () => {
       try {
         setLoading(true);
-        console.log(`[NewBanner] Fetching banner for slot: ${slotKey}`);
+        setError(null);
         const banner = await getCurrentBanner(slotKey);
-        console.log(`[NewBanner] Banner received for ${slotKey}:`, banner);
-        setCurrentBanner(banner);
-      } catch (error) {
+        
+        if (isMounted) {
+          setCurrentBanner(banner);
+        }
+      } catch (error: any) {
         console.error(`[NewBanner] Erro ao carregar banner para ${slotKey}:`, error);
+        if (isMounted) {
+          setError(error.message || 'Erro ao carregar banner');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchBanner();
 
     // Atualizar banner a cada 30 segundos para verificar mudanças na fila
-    const interval = setInterval(fetchBanner, 30000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (isMounted) {
+        fetchBanner();
+      }
+    }, 30000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [slotKey, getCurrentBanner]);
 
+  // Se está carregando, mostra loading discreto
   if (loading) {
-    console.log(`[NewBanner] Loading banner for slot: ${slotKey}`);
-    return null;
+    return (
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 my-4 sm:my-8 ${className}`}>
+        <div className="animate-pulse bg-muted/50 rounded-lg h-32 w-full">
+          <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
+            Carregando banner...
+          </div>
+        </div>
+      </div>
+    );
   }
-  
-  if (!currentBanner) {
-    console.log(`[NewBanner] No banner found for slot: ${slotKey}`);
+
+  // Se deu erro ou não tem banner, não renderiza nada
+  if (error || !currentBanner) {
     return null;
   }
 
@@ -51,17 +77,10 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
     }
   };
 
-  const getImageUrl = () => {
-    // Assumindo que a imagem está no payload_jsonb
-    const imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
-    console.log(`[NewBanner] Image URL for ${slotKey}:`, imageUrl);
-    return imageUrl;
-  };
-
-  const imageUrl = getImageUrl();
-
+  // Extrair URL da imagem do payload
+  const imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
+  
   if (!imageUrl) {
-    console.log(`[NewBanner] No image URL found for slot ${slotKey}, banner:`, currentBanner);
     return null;
   }
 
@@ -74,8 +93,13 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
         >
           <img
             src={imageUrl}
-            alt={currentBanner.name}
+            alt={currentBanner.payload_jsonb?.alt_text || currentBanner.name}
             className="w-full h-auto object-contain sm:object-cover transition-transform duration-300 group-hover:scale-[1.02] max-h-[120px] sm:max-h-[180px] md:max-h-[200px]"
+            loading="lazy"
+            onError={(e) => {
+              console.error(`[NewBanner] Erro ao carregar imagem do banner ${slotKey}:`, imageUrl);
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
           
           {/* Overlay sutil para melhor interação */}

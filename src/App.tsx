@@ -7,7 +7,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
-import { SupabaseBannerProvider } from "@/contexts/SupabaseBannerContext";
 import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
 import { SupabaseCommentsProvider } from "@/contexts/SupabaseCommentsContext";
 import { SupabaseProgrammingProvider } from "@/contexts/SupabaseProgrammingContext";
@@ -20,7 +19,6 @@ import { NewsProvider } from "@/contexts/NewsContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { ContactProvider } from "@/contexts/ContactContext";
-import { BannerProvider } from "@/contexts/BannerContext";
 import { NewBannerProvider } from "@/contexts/NewBannerContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -83,7 +81,6 @@ const App = () => (
         <SupabaseAuthProvider>
           <AuthProvider>
           <SupabaseNewsProvider>
-            <SupabaseBannerProvider>
               <SupabaseContactInfoProvider>
                   <SupabaseCommentsProvider>
                     <SupabaseProgrammingProvider>
@@ -95,13 +92,11 @@ const App = () => (
                                 <UsersProvider>
                                   <ContactProvider>
                                     <CommentsProvider>
-        <BannerProvider>
           <NewBannerProvider>
             <ProgrammingProvider>
                                             <AppContent />
             </ProgrammingProvider>
           </NewBannerProvider>
-        </BannerProvider>
                                     </CommentsProvider>
                                   </ContactProvider>
                                 </UsersProvider>
@@ -113,7 +108,6 @@ const App = () => (
                     </SupabaseProgrammingProvider>
                   </SupabaseCommentsProvider>
               </SupabaseContactInfoProvider>
-            </SupabaseBannerProvider>
           </SupabaseNewsProvider>
           </AuthProvider>
         </SupabaseAuthProvider>
