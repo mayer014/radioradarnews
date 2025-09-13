@@ -1280,6 +1280,17 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      submit_contact_message: {
+        Args: {
+          p_email: string
+          p_ip_address?: unknown
+          p_message: string
+          p_name: string
+          p_phone?: string
+          p_subject: string
+        }
+        Returns: Json
+      }
       update_user_password: {
         Args: { new_password: string; user_email: string }
         Returns: boolean

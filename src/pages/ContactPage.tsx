@@ -14,6 +14,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { BreadcrumbStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
 import { sanitizeText, sanitizeEmail, ClientRateLimiter } from '@/utils/contentSanitizer';
+import { supabase } from '@/integrations/supabase/client';
 
 const ContactPage = () => {
   const { addMessage } = useContact();
@@ -78,24 +79,53 @@ const ContactPage = () => {
         return;
       }
 
-      addMessage(sanitizedData);
-      
-      toast({
-        title: "Mensagem enviada!",
-        description: "Sua mensagem foi enviada com sucesso. Entraremos em contato em breve.",
+      // Use the secure function instead of direct database insert
+      const { data, error } = await supabase.rpc('submit_contact_message', {
+        p_name: sanitizedData.name,
+        p_email: sanitizedData.email,
+        p_subject: sanitizedData.subject,
+        p_message: sanitizedData.message,
+        p_phone: sanitizedData.phone || null,
+        p_ip_address: null // IP detection would need server-side implementation
       });
 
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
+      if (error) {
+        console.error('Contact form error:', error);
+        toast({
+          title: "Erro ao enviar",
+          description: "Ocorreu um erro ao enviar sua mensagem. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Handle response from secure function
+      const result = data as { success: boolean; message?: string; error?: string };
+      if (result?.success) {
+        toast({
+          title: "Mensagem enviada!",
+          description: result.message || "Sua mensagem foi enviada com sucesso. Entraremos em contato em breve.",
+        });
+
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+      } else {
+        toast({
+          title: "Erro de validação",
+          description: result?.error || "Erro ao validar os dados. Verifique os campos e tente novamente.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error('Contact form submission error:', error);
       toast({
         title: "Erro ao enviar",
-        description: "Ocorreu um erro ao enviar sua mensagem. Tente novamente.",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive"
       });
     } finally {
