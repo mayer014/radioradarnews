@@ -237,7 +237,10 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const getArticlesByColumnist = (columnistId: string) => {
-    return articles.filter(article => article.columnist_id === columnistId && article.status === 'published');
+    return articles.filter(article => 
+      (article.columnist_id === columnistId || article.author_id === columnistId) && 
+      article.status === 'published'
+    );
   };
 
   const incrementViews = async (id: string) => {

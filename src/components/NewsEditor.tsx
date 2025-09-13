@@ -39,6 +39,17 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
     selectedColumnist: ''
   });
 
+  // Estado para opções de publicação (administrador)
+  const [publishingOptions, setPublishingOptions] = useState<{
+    publishType: 'category' | 'columnist';
+    selectedCategory?: string;
+    selectedColumnist?: string;
+  }>({
+    publishType: 'category',
+    selectedCategory: '',
+    selectedColumnist: ''
+  });
+
   // Carregar dados se for edição
   useEffect(() => {
     if (articleId) {
@@ -68,13 +79,49 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
 
   const handleSave = async (forcedDraftStatus?: boolean) => {
     const isColumnist = profile?.role === 'colunista';
-    if (!formData.title.trim() || !formData.content.trim() || (!isColumnist && !formData.category)) {
+    const isAdmin = profile?.role === 'admin';
+    
+    // Validações básicas
+    if (!formData.title.trim() || !formData.content.trim()) {
       toast({
         title: "Campos obrigatórios",
-        description: isColumnist ? "Preencha título e conteúdo." : "Preencha título, conteúdo e categoria.",
+        description: "Preencha título e conteúdo.",
         variant: "destructive",
       });
       return;
+    }
+
+    // Validações específicas por tipo de usuário
+    if (isAdmin) {
+      // Administrador deve escolher tipo de publicação
+      if (!publishingOptions.publishType) {
+        toast({
+          title: "Opção de publicação obrigatória",
+          description: "Como administrador, você deve escolher onde publicar o artigo.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validar se categoria foi selecionada (se tipo for categoria)
+      if (publishingOptions.publishType === 'category' && !publishingOptions.selectedCategory) {
+        toast({
+          title: "Categoria obrigatória",
+          description: "Selecione uma categoria para publicar o artigo.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validar se colunista foi selecionado (se tipo for colunista)
+      if (publishingOptions.publishType === 'columnist' && !publishingOptions.selectedColumnist) {
+        toast({
+          title: "Colunista obrigatório",
+          description: "Selecione um colunista para publicar o artigo.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setLoading(true);
@@ -86,53 +133,73 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       // Auto-gerar excerpt se não fornecido
       const excerpt = formData.excerpt.trim() || generateExcerpt(formData.content);
 
-      // Obter informações do colunista selecionado (se houver)
-      let columnistInfo = undefined;
+      // Determinar dados do artigo baseado no tipo de usuário e opções
+      let articleData: any;
       
-      if (formData.selectedColumnist) {
-        // Buscar dados do colunista selecionado usando o contexto
-        const selectedUser = users.find(u => u.id === formData.selectedColumnist && u.role === 'colunista');
-        if (selectedUser?.columnistProfile) {
-          columnistInfo = {
-            id: selectedUser.id,
-            name: selectedUser.name,
-            avatar: selectedUser.columnistProfile.avatar,
-            bio: selectedUser.columnistProfile.bio,
-            specialty: selectedUser.columnistProfile.specialty
+      if (isColumnist) {
+        // Colunista: sempre publica em sua própria página
+        articleData = {
+          title: formData.title,
+          content: formData.content,
+          excerpt,
+          category: 'Artigo', // Categoria padrão para artigos de colunista
+          featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+          featured: formData.featured,
+          status: isDraft ? 'draft' as const : 'published' as const,
+          is_column_copy: false,
+          source_url: '',
+          source_domain: '',
+          columnist_id: profile.id,
+          columnist_name: profile.name,
+          columnist_avatar: profile.avatar,
+          columnist_bio: profile.bio,
+          columnist_specialty: profile.specialty
+        };
+      } else if (isAdmin) {
+        // Administrador: usar opções de publicação selecionadas
+        if (publishingOptions.publishType === 'category') {
+          // Publicar como artigo de categoria
+          articleData = {
+            title: formData.title,
+            content: formData.content,
+            excerpt,
+            category: publishingOptions.selectedCategory,
+            featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+            featured: formData.featured,
+            status: isDraft ? 'draft' as const : 'published' as const,
+            is_column_copy: false,
+            source_url: '',
+            source_domain: '',
+            columnist_id: null,
+            columnist_name: null,
+            columnist_avatar: null,
+            columnist_bio: null,
+            columnist_specialty: null
           };
+        } else {
+          // Publicar em nome de um colunista
+          const selectedUser = users.find(u => u.id === publishingOptions.selectedColumnist && u.role === 'colunista');
+          if (selectedUser?.columnistProfile) {
+            articleData = {
+              title: formData.title,
+              content: formData.content,
+              excerpt,
+              category: 'Artigo', // Categoria padrão para artigos de colunista
+              featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+              featured: formData.featured,
+              status: isDraft ? 'draft' as const : 'published' as const,
+              is_column_copy: false,
+              source_url: '',
+              source_domain: '',
+              columnist_id: selectedUser.id,
+              columnist_name: selectedUser.name,
+              columnist_avatar: selectedUser.columnistProfile.avatar || profile?.avatar,
+              columnist_bio: selectedUser.columnistProfile.bio || profile?.bio,
+              columnist_specialty: selectedUser.columnistProfile.specialty || profile?.specialty
+            };
+          }
         }
       }
-      
-      // Se o usuário atual é colunista, usar suas próprias informações
-      if (profile?.role === 'colunista') {
-        columnistInfo = {
-          id: profile.id,
-          name: profile.name,
-          avatar: profile.avatar,
-          bio: profile.bio,
-          specialty: profile.specialty
-        };
-      }
-
-      const categoryToUse = profile?.role === 'colunista' ? (formData.category || 'Artigo') : formData.category;
-      
-      const articleData = {
-        title: formData.title,
-        content: formData.content,
-        excerpt,
-        category: categoryToUse,
-        featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
-        featured: formData.featured,
-        status: isDraft ? 'draft' as const : 'published' as const,
-        is_column_copy: false,
-        source_url: '',
-        source_domain: '',
-        columnist_id: columnistInfo?.id,
-        columnist_name: columnistInfo?.name,
-        columnist_avatar: columnistInfo?.avatar,
-        columnist_bio: columnistInfo?.bio,
-        columnist_specialty: columnistInfo?.specialty
-      };
 
       // Save article data
       if (articleId) {
@@ -387,6 +454,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
                 featuredImage: formData.featuredImage,
                 content: formData.content,
               }}
+              publishingOptions={publishingOptions}
+              onPublishingOptionsChange={setPublishingOptions}
             />
           </div>
         )}
