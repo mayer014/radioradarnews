@@ -19,6 +19,7 @@ import { NewsProvider } from "@/contexts/NewsContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { ContactProvider } from "@/contexts/ContactContext";
+import { LegalContentProvider } from "@/contexts/LegalContentContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -84,23 +85,25 @@ const App = () => (
                   <SupabaseCommentsProvider>
                     <SupabaseProgrammingProvider>
                       <SupabaseFavoriteSitesProvider>
-                        <RadioPlayerProvider>
-                          <NotificationsProvider>
-                            <TooltipProvider>
-                              <NewsProvider>
-                                <UsersProvider>
-                                  <ContactProvider>
-                                    <CommentsProvider>
-                                        <ProgrammingProvider>
-                                            <AppContent />
-                                        </ProgrammingProvider>
-                                    </CommentsProvider>
-                                  </ContactProvider>
-                                </UsersProvider>
-                              </NewsProvider>
-                            </TooltipProvider>
-                          </NotificationsProvider>
-                        </RadioPlayerProvider>
+                        <LegalContentProvider>
+                          <RadioPlayerProvider>
+                            <NotificationsProvider>
+                              <TooltipProvider>
+                                <NewsProvider>
+                                  <UsersProvider>
+                                    <ContactProvider>
+                                      <CommentsProvider>
+                                          <ProgrammingProvider>
+                                              <AppContent />
+                                          </ProgrammingProvider>
+                                      </CommentsProvider>
+                                    </ContactProvider>
+                                  </UsersProvider>
+                                </NewsProvider>
+                              </TooltipProvider>
+                            </NotificationsProvider>
+                          </RadioPlayerProvider>
+                        </LegalContentProvider>
                       </SupabaseFavoriteSitesProvider>
                     </SupabaseProgrammingProvider>
                   </SupabaseCommentsProvider>
