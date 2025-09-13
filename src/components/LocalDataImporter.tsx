@@ -21,7 +21,10 @@ interface LocalArticle {
 
 const LocalDataImporter = () => {
   const [importing, setImporting] = useState(false);
-  const [imported, setImported] = useState(false);
+  const [imported, setImported] = useState(() => {
+    // Verificar se já foi dismissado ou importado anteriormente
+    return localStorage.getItem('local_import_dismissed') === 'true';
+  });
   const { addArticle } = useSupabaseNews();
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
@@ -83,6 +86,7 @@ const LocalDataImporter = () => {
       // Clear local storage after successful import
       if (successCount > 0) {
         localStorage.removeItem('news_articles');
+        localStorage.setItem('local_import_dismissed', 'true');
         setImported(true);
       }
 
@@ -148,7 +152,10 @@ const LocalDataImporter = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => setImported(true)}
+              onClick={() => {
+                setImported(true);
+                localStorage.setItem('local_import_dismissed', 'true');
+              }}
               className="border-primary/50"
             >
               Pular

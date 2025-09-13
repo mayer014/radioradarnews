@@ -190,12 +190,22 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const deleteArticle = async (id: string) => {
     try {
+      // Primeiro remover da UI para feedback imediato
+      setArticles(prev => prev.filter(a => a.id !== id));
+
       const { error } = await supabase
         .from('articles')
         .delete()
         .eq('id', id);
 
       if (error) {
+        // Se houver erro, restaurar o artigo na UI
+        fetchArticles();
+        toast({
+          title: "Erro",
+          description: `Erro ao remover artigo: ${error.message}`,
+          variant: "destructive",
+        });
         return { error: error.message };
       }
 
@@ -207,6 +217,13 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return {};
     } catch (error) {
       console.error('Error deleting article:', error);
+      // Restaurar artigos em caso de erro
+      fetchArticles();
+      toast({
+        title: "Erro",
+        description: "Erro de conexão ao remover artigo",
+        variant: "destructive",
+      });
       return { error: 'Erro de conexão' };
     }
   };
