@@ -47,7 +47,7 @@ import RadioPlayer from '@/components/RadioPlayer';
 import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor';
 import CommentsManager from '@/components/CommentsManager';
 import NotificationsManager from '@/components/NotificationsManager';
-import LocalDataImporter from '@/components/LocalDataImporter';
+
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -542,7 +542,7 @@ const AdminPanel = () => {
         {/* Lista de Artigos */}
         {(activeTab === 'articles' || isColunista) && (
           <div className="space-y-4">
-            <LocalDataImporter />
+            
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
                 Gerenciar Artigos ({filteredArticles.length})
