@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { BASE_NEWS_CATEGORIES } from '@/contexts/NewsContext';
+import { BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { Save, X, Plus, User as UserIcon, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ImageUploadColumnist from '@/components/ImageUploadColumnist';

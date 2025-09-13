@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole, ColumnistProfile } from '@/contexts/UsersContext';
-import { BASE_NEWS_CATEGORIES } from '@/contexts/NewsContext';
+import { BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 
 export interface SupabaseProfile {
   id: string;

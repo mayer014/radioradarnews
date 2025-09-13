@@ -8,7 +8,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { NEWS_CATEGORIES, BASE_NEWS_CATEGORIES } from '@/contexts/NewsContext';
+import { BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { Trash2, UserPlus, Shield, User as UserIcon, KeyRound, Plus, X, Settings, Eye, EyeOff, Copy, Edit, UserCheck, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ColumnistProfileEditor from '@/components/ColumnistProfileEditor';

@@ -5,9 +5,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { NEWS_CATEGORIES } from '@/contexts/NewsContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUsers } from '@/contexts/UsersContext';
+import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
 import { Star, Eye, Info, User } from 'lucide-react';
 
 interface ArticleSettingsProps {
@@ -27,31 +28,31 @@ const ArticleSettings: React.FC<ArticleSettingsProps> = ({
   onFeaturedChange,
   onColumnistChange,
 }) => {
-  const { currentUser } = useAuth();
+  const { profile } = useSupabaseAuth();
   const { columnists } = useUsers();
   
   // Para colunistas, categoria é automática (sua própria área)
   React.useEffect(() => {
-    if (currentUser?.role === 'colunista' && !category) {
+    if (profile?.role === 'colunista' && !category) {
       // Categoria automática para colunistas - sempre "Artigo"
       onCategoryChange('Artigo');
     }
-  }, [currentUser?.role, category, onCategoryChange]);
+  }, [profile?.role, category, onCategoryChange]);
 
   // Limitar categorias - colunistas não escolhem categoria
   const availableCategories = React.useMemo(() => {
-    if (currentUser?.role === 'colunista') {
+    if (profile?.role === 'colunista') {
       return []; // Colunistas não selecionam categoria
     }
-    return NEWS_CATEGORIES;
-  }, [currentUser?.role]);
+    return BASE_NEWS_CATEGORIES;
+  }, [profile?.role]);
 
   // Verificar permissões de destaque
   const canHighlight = React.useMemo(() => {
-    if (currentUser?.role === 'admin') return true;
-    if (currentUser?.role === 'colunista') return true; // Colunistas podem destacar seus próprios artigos
+    if (profile?.role === 'admin') return true;
+    if (profile?.role === 'colunista') return true; // Colunistas podem destacar seus próprios artigos
     return true;
-  }, [currentUser?.role]);
+  }, [profile?.role]);
 
   return (
     <Card className="bg-gradient-card border-primary/30 p-6">
@@ -62,20 +63,24 @@ const ArticleSettings: React.FC<ArticleSettingsProps> = ({
       
       <div className="space-y-6">
         {/* Categoria - apenas para admins, colunistas têm categoria automática */}
-        {currentUser?.role === 'admin' && (
+        {profile?.role === 'admin' && (
           <div>
             <Label htmlFor="category" className="text-base font-medium mb-3 block">
               Categoria
             </Label>
             <Select
               value={category}
-              onValueChange={onCategoryChange}
+              onValueChange={(value) => {
+                // Converter display name para slug interno ao salvar
+                const internalSlug = getInternalCategorySlug(value);
+                onCategoryChange(internalSlug);
+              }}
             >
               <SelectTrigger className="border-primary/30 focus:border-primary">
                 <SelectValue placeholder="Escolha a categoria do artigo" />
               </SelectTrigger>
               <SelectContent className="bg-background border-primary/30">
-                {NEWS_CATEGORIES.map((cat) => (
+                {BASE_NEWS_CATEGORIES.map((cat) => (
                   <SelectItem key={cat} value={cat} className="hover:bg-primary/10">
                     {cat}
                   </SelectItem>
@@ -84,14 +89,14 @@ const ArticleSettings: React.FC<ArticleSettingsProps> = ({
             </Select>
             {category && (
               <Badge variant="secondary" className="mt-2">
-                {category}
+                {getDisplayCategoryName(category)}
               </Badge>
             )}
           </div>
         )}
 
         {/* Informação para colunistas */}
-        {currentUser?.role === 'colunista' && (
+        {profile?.role === 'colunista' && (
           <Alert className="border-primary/30">
             <Info className="h-4 w-4" />
             <AlertDescription>
@@ -101,7 +106,7 @@ const ArticleSettings: React.FC<ArticleSettingsProps> = ({
         )}
 
         {/* Seleção de Colunista - apenas para admins */}
-        {currentUser?.role === 'admin' && columnists.length > 0 && onColumnistChange && (
+        {profile?.role === 'admin' && columnists.length > 0 && onColumnistChange && (
           <div>
             <Label htmlFor="columnist" className="text-base font-medium mb-3 block">
               <div className="flex items-center gap-2">

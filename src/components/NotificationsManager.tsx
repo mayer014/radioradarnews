@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { NEWS_CATEGORIES } from '@/contexts/NewsContext';
+import { BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { 
   Bell, 
   Send, 
@@ -419,7 +419,7 @@ const NotificationsManager = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Todas as categorias</SelectItem>
-                        {NEWS_CATEGORIES.map(category => (
+                        {BASE_NEWS_CATEGORIES.map(category => (
                           <SelectItem key={category} value={category}>
                             {category}
                           </SelectItem>

@@ -15,6 +15,7 @@ import StepNav from '@/components/news-editor/StepNav';
 import ArticleReview from '@/components/news-editor/ArticleReview';
 import FavoriteSites from '@/components/FavoriteSites';
 import type { RewrittenContent } from '@/services/AIContentRewriter';
+import { getInternalCategorySlug } from '@/utils/categoryMapper';
 
 interface NewsEditorProps {
   articleId?: string | null;
@@ -59,7 +60,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           title: article.title,
           content: article.content,
           excerpt: article.excerpt,
-          category: article.category,
+          category: article.category, // Manter categoria como slug interno
           featuredImage: article.featured_image || '',
           featured: article.featured,
           isDraft: article.status === 'draft',
@@ -158,12 +159,13 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       } else if (isAdmin) {
         // Administrador: usar opções de publicação selecionadas
         if (publishingOptions.publishType === 'category') {
-          // Publicar como artigo de categoria
+          // Publicar como artigo de categoria - converter para slug interno
+          const categorySlug = getInternalCategorySlug(publishingOptions.selectedCategory || '');
           articleData = {
             title: formData.title,
             content: formData.content,
             excerpt,
-            category: publishingOptions.selectedCategory,
+            category: categorySlug,
             featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
             featured: formData.featured,
             status: isDraft ? 'draft' as const : 'published' as const,
@@ -273,7 +275,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       title: rewrittenContent.title,
       content: rewrittenContent.content_html,
       excerpt: rewrittenContent.excerpt,
-      category: rewrittenContent.category_suggestion,
+      category: getInternalCategorySlug(rewrittenContent.category_suggestion),
       featuredImage,
       featured: false,
       isDraft: saveAsDraft,
