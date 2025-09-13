@@ -112,7 +112,12 @@ const BannerManager: React.FC = () => {
       };
 
       if (editingBanner) {
-        await updateBanner(editingBanner.id, bannerData);
+        // Manter o status de piloto se estiver editando um banner piloto
+        const finalBannerData = {
+          ...bannerData,
+          is_pilot: editingBanner.is_pilot
+        };
+        await updateBanner(editingBanner.id, finalBannerData);
       } else {
         await createBanner(bannerData);
       }
@@ -396,7 +401,6 @@ const BannerManager: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(banner)}
-                      disabled={banner.is_pilot}
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
@@ -404,7 +408,6 @@ const BannerManager: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(banner.id)}
-                      disabled={banner.is_pilot}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
