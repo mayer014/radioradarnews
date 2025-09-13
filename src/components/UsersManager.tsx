@@ -27,6 +27,7 @@ const UsersManager: React.FC = () => {
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   const admins = useMemo(() => users.filter(u => u.role === 'admin'), [users]);
+  const columnists = useMemo(() => users.filter(u => u.role === 'colunista'), [users]);
 
   const handleAdd = () => {
     if (!form.name || !form.username) {
@@ -117,13 +118,6 @@ const UsersManager: React.FC = () => {
     toast({ title: 'Credenciais copiadas!', description: 'Login e senha copiados para a área de transferência' });
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header with Migration Controls */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
-          <div className="flex gap-2">
   const handleMigrateSupabase = async () => {
     try {
       setIsSubmitting(true);
@@ -142,6 +136,67 @@ const UsersManager: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  const handleExportBackup = () => {
+    try {
+      const backup = {
+        timestamp: new Date().toISOString(),
+        version: '1.0',
+        users: users,
+        metadata: {
+          totalUsers: users.length,
+          admins: users.filter(u => u.role === 'admin').length,
+          columnists: users.filter(u => u.role === 'colunista').length,
+        }
+      };
+
+      const dataStr = JSON.stringify(backup, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `usuarios-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Backup exportado",
+        description: "Arquivo de backup baixado com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no export",
+        description: "Não foi possível exportar os dados.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Migration Controls */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleMigrateSupabase}
+              disabled={isSubmitting}
+              variant="outline"
+              className="border-primary/50"
+            >
+              {isSubmitting ? 'Migrando...' : 'Atualizar do Supabase'}
+            </Button>
+            <Button
+              onClick={handleExportBackup}
+              variant="outline"
+              className="border-secondary/50"
+            >
+              Exportar Backup
+            </Button>
           </div>
         </div>
       </div>
