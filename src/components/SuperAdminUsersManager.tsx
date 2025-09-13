@@ -38,6 +38,7 @@ interface Profile {
   allowed_categories?: string[];
   is_active: boolean;
   temp_password?: string;
+  email?: string;
   created_at: string;
   updated_at: string;
 }
@@ -58,13 +59,29 @@ const SuperAdminUsersManager = () => {
 
   const fetchProfiles = async () => {
     try {
-      const { data, error } = await supabase
+      // Get profiles with emails from auth.users
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setProfiles(data || []);
+      if (profilesError) throw profilesError;
+
+      // Get user emails from auth.users
+      const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+      
+      if (usersError) throw usersError;
+
+      // Merge profile data with email information
+      const profilesWithEmails = profiles?.map(profile => {
+        const authUser = users?.users?.find((user: any) => user.id === profile.id);
+        return {
+          ...profile,
+          email: authUser?.email || ''
+        };
+      }) || [];
+
+      setProfiles(profilesWithEmails);
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast({
@@ -413,7 +430,7 @@ const SuperAdminUsersManager = () => {
                       <div className="text-sm space-y-1">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <span className="font-medium">Login:</span>
-                          <code className="bg-muted px-2 py-1 rounded text-xs">{user.username}</code>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">{user.email || user.username}</code>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <span className="font-medium">Senha:</span>
@@ -504,7 +521,11 @@ const SuperAdminUsersManager = () => {
                       </div>
                       <div className="text-sm space-y-1">
                         <div className="flex items-center gap-2 text-muted-foreground">
-                          <span className="font-medium">Login:</span>
+                          <span className="font-medium">Email/Login:</span>
+                          <code className="bg-muted px-2 py-1 rounded text-xs">{user.email}</code>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="font-medium">Usuário:</span>
                           <code className="bg-muted px-2 py-1 rounded text-xs">{user.username}</code>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
