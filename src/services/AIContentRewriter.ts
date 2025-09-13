@@ -16,27 +16,25 @@ export interface RewrittenContent {
 
 export class AIContentRewriter {
   private static readonly SYSTEM_PROMPT = `
-Você é uma assistente editorial especializada em reescrever notícias de forma profissional e ética. 
+Você é uma assistente editorial especializada em reescrever notícias de forma profissional e ética.
 
-IMPORTANTE: Retorne APENAS o texto jornalístico final. NÃO inclua instruções, exemplos ou notas explicativas no resultado.
+TAREFA: Transforme o conteúdo fornecido em um RESUMO JORNALÍSTICO claro, coeso e atrativo, sem copiar trechos literais.
 
-Sua tarefa é transformar o conteúdo fornecido em um RESUMO JORNALÍSTICO claro, coeso e atrativo, seguindo estas diretrizes internas:
+Diretrizes (internas — não reproduzir no resultado):
+1. Produzir entre 3 e 6 parágrafos mantendo fatos, contexto e relevância.
+2. Linguagem jornalística objetiva, apropriada para portal de notícias moderno.
+3. Não inventar informações; evitar frases idênticas ao texto de origem (SEO).
+4. Ao final do texto, incluir: "Fonte: [NOME DO SITE] – Leia a matéria completa em: [LINK DA MATÉRIA ORIGINAL]".
 
-1. O resumo deve ter entre 3 e 6 parágrafos — não muito curto, mas também não deve reproduzir a matéria inteira.
-2. Reescreva o conteúdo com suas próprias palavras, mantendo os principais fatos, contexto e relevância.
-3. Use linguagem jornalística objetiva e direta, mas adaptada para um portal de notícias moderno.
-4. No final do texto, insira a seguinte nota de crédito: "Fonte: [NOME DO SITE] – Leia a matéria completa em: [LINK DA MATÉRIA ORIGINAL]"
-5. Não invente informações. Apenas reescreva e resuma o que está no texto original.
-6. Evite frases iguais às do texto de origem para não gerar duplicação (problemas de SEO).
+Saída:
+- Retorne APENAS um JSON válido com a estrutura abaixo.
+- O campo content_html deve conter SOMENTE o texto jornalístico final em HTML (parágrafos, negritos/ênfases quando necessário) seguido da nota de crédito. Não inclua instruções, exemplos, disclaimers ou notas explicativas em nenhum campo.
 
-ATENÇÃO: O resultado deve conter SOMENTE o texto jornalístico reescrito com a nota de crédito. Nenhuma instrução ou exemplo deve aparecer no conteúdo final.
-
-Retorne APENAS um JSON válido com esta estrutura:
 {
   "title": "Título SEO-friendly (máx 60 chars)",
   "slug": "titulo-em-kebab-case",
   "lead": "Lead de 2-3 frases resumindo a notícia",
-  "content_html": "Resumo em 3-6 parágrafos com tags HTML (P, STRONG, EM)",
+  "content_html": "Resumo em 3-6 parágrafos com tags HTML (p, strong, em) + nota de crédito final",
   "excerpt": "Resumo até 160 caracteres",
   "category_suggestion": "Política|Economia|Esportes|Cultura|Segurança Pública|Opinião",
   "tags": ["tag1", "tag2", "tag3"],
@@ -49,26 +47,12 @@ Retorne APENAS um JSON válido com esta estrutura:
 
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
     const userPrompt = `
-TAREFA: Transforme este conteúdo em uma matéria jornalística TÉCNICA e ESPECÍFICA.
+TAREFA: Reescreva o conteúdo abaixo em formato jornalístico, retornando APENAS o JSON conforme instruções do sistema.
 
 CONTEÚDO ORIGINAL:
 Título: ${extractedContent.title}
 Fonte: ${extractedContent.url}
 Conteúdo: ${this.cleanTextContent(extractedContent.content)}
-
-INSTRUÇÕES ESPECÍFICAS:
-1. Crie um título TÉCNICO que inclua ferramentas/conceitos específicos mencionados
-2. Identifique e destaque informações CONCRETAS: nomes, versões, preços, empresas
-3. Organize com subtítulos (H2, H3) para facilitar leitura
-4. Inclua listas quando apropriado para organizar informações
-5. Foque no que é PRÁTICO e ÚTIL para o leitor
-6. Evite análises genéricas - priorize fatos verificáveis
-
-EXEMPLO DE TRANSFORMAÇÃO:
-Título genérico: "Nova tecnologia para criadores"
-Título específico: "Blender 4.0 adiciona ferramentas de IA para modelagem 3D"
-
-Transforme seguindo essas diretrizes para criar conteúdo jornalístico técnico.
 `;
 
     try {
@@ -122,8 +106,15 @@ Transforme seguindo essas diretrizes para criar conteúdo jornalístico técnico
     
     const originalTitle = titleMatch?.[1]?.trim() || 'Título não encontrado';
     const sourceUrl = sourceMatch?.[1]?.trim() || '';
-    const originalContent = contentMatch?.[1]?.trim() || '';
-    
+
+    // Remove qualquer bloco de instruções ou exemplos internos do conteúdo capturado
+    let originalContent = (contentMatch?.[1] || '').trim();
+    originalContent = originalContent
+      .replace(/INSTRUÇÕES ESPECÍFICAS:[\s\S]*/i, '')
+      .replace(/EXEMPLO DE TRANSFORMAÇÃO:[\s\S]*/i, '')
+      .replace(/Objetivo:?[\s\S]*$/i, '')
+      .trim();
+
     // Actually rewrite the content instead of just cleaning it
     const rewrittenContent = this.rewriteContentLocally(originalContent, originalTitle);
     const rewrittenTitle = this.rewriteTitleLocally(originalTitle);
@@ -512,17 +503,28 @@ Transforme seguindo essas diretrizes para criar conteúdo jornalístico técnico
     try {
       // Clean the response and extract JSON
       const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
-      const parsed = JSON.parse(cleanContent);
+      const parsed = JSON.parse(cleanContent) as RewrittenContent;
       
       // Validate required fields
       const required = ['title', 'slug', 'lead', 'content_html', 'excerpt', 'category_suggestion', 'tags', 'image_prompt'];
       for (const field of required) {
-        if (!parsed[field]) {
+        if (!(parsed as any)[field]) {
           throw new Error(`Campo obrigatório ausente: ${field}`);
         }
       }
+
+      // Sanitize to ensure no internal instructions leak into output
+      const strip = (txt: string) => (txt || '')
+        .replace(/INSTRUÇÕES ESPECÍFICAS:[\s\S]*$/i, '')
+        .replace(/EXEMPLO DE TRANSFORMAÇÃO:[\s\S]*$/i, '')
+        .replace(/Objetivo:?[\s\S]*$/i, '')
+        .trim();
+
+      parsed.content_html = strip(parsed.content_html);
+      parsed.lead = strip(parsed.lead);
+      parsed.excerpt = strip(parsed.excerpt);
       
-      return parsed as RewrittenContent;
+      return parsed;
     } catch (error) {
       console.error('Failed to parse AI response:', content);
       throw new Error(`Resposta da IA inválida: ${error instanceof Error ? error.message : 'Formato JSON inválido'}`);
