@@ -42,13 +42,14 @@ import ProgrammingEditor from '@/components/ProgrammingEditor';
 import SuperAdminUsersManager from '@/components/SuperAdminUsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';
 import ContactInfoManager from '@/components/ContactInfoManager';
-import AIConfigPanel from '@/components/AIConfigPanel';
+
 import RadioPlayer from '@/components/RadioPlayer';
 import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor';
 import CommentsManager from '@/components/CommentsManager';
 import NotificationsManager from '@/components/NotificationsManager';
 import BannerManager from '@/components/BannerManager';
 import LegalContentManager from '@/components/LegalContentManager';
+import SystemSettingsManager from '@/components/SystemSettingsManager';
 
 
 const AdminPanel = () => {
@@ -60,7 +61,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal' | 'system'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -465,6 +466,26 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Notificações</span>
                 <span className="sm:hidden">Not</span>
               </Button>
+              <Button
+                variant={activeTab === 'system' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('system')}
+                className={`${activeTab === 'system' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Configurações</span>
+                <span className="sm:hidden">Conf</span>
+              </Button>
+              <Button
+                variant={activeTab === 'legal' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('legal')}
+                className={`${activeTab === 'legal' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Informações Legais</span>
+                <span className="sm:hidden">Legal</span>
+              </Button>
             </div>
           </div>
         )}
@@ -827,11 +848,6 @@ const AdminPanel = () => {
           <ContactInfoManager />
         )}
 
-        {/* Configuração da IA - apenas para admin */}
-        {activeTab === 'ai-config' && isAdmin && (
-          <AIConfigPanel />
-        )}
-
         {/* Comentários - apenas para admin */}
         {activeTab === 'comments' && isAdmin && (
           <CommentsManager />
@@ -845,6 +861,11 @@ const AdminPanel = () => {
         {/* Banners - apenas para admin */}
         {activeTab === 'banners' && isAdmin && (
           <BannerManager />
+        )}
+
+        {/* Configurações do Sistema - apenas para admin */}
+        {activeTab === 'system' && isAdmin && (
+          <SystemSettingsManager />
         )}
 
         {/* Informações Legais - apenas para admin */}

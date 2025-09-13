@@ -20,6 +20,7 @@ import { CommentsProvider } from "@/contexts/CommentsContext";
 import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { ContactProvider } from "@/contexts/ContactContext";
 import { LegalContentProvider } from "@/contexts/LegalContentContext";
+import { SupabaseAIConfigProvider } from "@/contexts/SupabaseAIConfigContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -86,6 +87,7 @@ const App = () => (
                     <SupabaseProgrammingProvider>
                       <SupabaseFavoriteSitesProvider>
                         <LegalContentProvider>
+                          <SupabaseAIConfigProvider>
                           <RadioPlayerProvider>
                             <NotificationsProvider>
                               <TooltipProvider>
@@ -103,6 +105,7 @@ const App = () => (
                               </TooltipProvider>
                             </NotificationsProvider>
                           </RadioPlayerProvider>
+                          </SupabaseAIConfigProvider>
                         </LegalContentProvider>
                       </SupabaseFavoriteSitesProvider>
                     </SupabaseProgrammingProvider>
