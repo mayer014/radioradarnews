@@ -1064,6 +1064,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      execute_full_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_orphaned_files: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1079,6 +1083,10 @@ export type Database = {
           file_count: number
           total_size_mb: number
         }[]
+      }
+      hard_delete_article: {
+        Args: { article_id_param: string }
+        Returns: boolean
       }
       increment_article_views: {
         Args: { article_id: string }

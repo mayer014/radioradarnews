@@ -35,7 +35,8 @@ import {
   AlertCircle,
   Bell,
   User,
-  Shield
+  Shield,
+  HardDrive
 } from 'lucide-react';
 import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
@@ -50,6 +51,7 @@ import NotificationsManager from '@/components/NotificationsManager';
 import BannerManager from '@/components/BannerManager';
 import LegalContentManager from '@/components/LegalContentManager';
 import SystemSettingsManager from '@/components/SystemSettingsManager';
+import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
 
 
 const AdminPanel = () => {
@@ -61,7 +63,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal' | 'system'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -486,6 +488,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Informações Legais</span>
                 <span className="sm:hidden">Legal</span>
               </Button>
+              <Button
+                variant={activeTab === 'storage' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('storage')}
+                className={`${activeTab === 'storage' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <HardDrive className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Otimização</span>
+                <span className="sm:hidden">Opt</span>
+              </Button>
             </div>
           </div>
         )}
@@ -871,6 +883,11 @@ const AdminPanel = () => {
         {/* Informações Legais - apenas para admin */}
         {activeTab === 'legal' && isAdmin && (
           <LegalContentManager />
+        )}
+
+        {/* Otimização de Armazenamento - apenas para admin */}
+        {activeTab === 'storage' && isAdmin && (
+          <StorageOptimizationPanel />
         )}
       </div>
       
