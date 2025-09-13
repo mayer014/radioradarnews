@@ -249,4 +249,43 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Melhorias de responsividade para dispositivos móveis */
+  .banner-display img {
+    object-fit: cover;
+    object-position: center;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Garantir que containers não transbordem */
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Melhorar responsividade de imagens */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Containers responsivos */
+  .container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
 }

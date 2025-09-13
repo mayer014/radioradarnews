@@ -168,7 +168,7 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
 
         {/* Category Banner */}
         {!skipBanner && categoryBanner && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6 px-2 sm:px-0">
             <BannerDisplay 
               banner={categoryBanner} 
               position="category"

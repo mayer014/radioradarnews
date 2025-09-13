@@ -283,7 +283,7 @@ const ColumnistPage = () => {
 
         {/* Columnist Banner */}
         {columnistBanner && (
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8 px-2 sm:px-0">
             <BannerDisplay 
               banner={columnistBanner} 
               position="columnist"

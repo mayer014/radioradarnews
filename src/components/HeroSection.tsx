@@ -41,24 +41,24 @@ const HeroSection = () => {
       </div>
 
       {/* Conteúdo Principal */}
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-6">
+      <div className="relative z-10 text-center max-w-4xl mx-auto px-4 sm:px-6">
         <div className="animate-bounce-in">
-          <div className="inline-flex items-center space-x-2 bg-gradient-card backdrop-blur-sm border border-primary/30 rounded-full px-4 py-2 mb-6 animate-neon-pulse">
+          <div className="inline-flex items-center space-x-2 bg-gradient-card backdrop-blur-sm border border-primary/30 rounded-full px-3 py-1.5 sm:px-4 sm:py-2 mb-6 animate-neon-pulse">
             <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-accent">AO VIVO AGORA</span>
+            <span className="text-xs sm:text-sm font-medium text-accent">AO VIVO AGORA</span>
           </div>
           
           <div className="mb-6 animate-gradient-flow">
-            <div className="inline-block bg-background/10 backdrop-blur-sm rounded-2xl p-4 shadow-lg">
+            <div className="inline-block bg-background/10 backdrop-blur-sm rounded-2xl p-2 sm:p-4 shadow-lg">
               <img 
                 src={logoUrl} 
                 alt="Radio Radar RRN News" 
-                className="max-w-full h-auto mx-auto max-h-32 md:max-h-40 drop-shadow-lg"
+                className="max-w-full h-auto mx-auto max-h-20 xs:max-h-24 sm:max-h-28 md:max-h-32 lg:max-h-40 drop-shadow-lg"
               />
             </div>
           </div>
           
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 animate-slide-up delay-200">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 sm:mb-8 animate-slide-up delay-200 px-2">
             O futuro do jornalismo digital está aqui. Notícias, música e entretenimento em uma experiência única e imersiva.
           </p>
 
@@ -66,7 +66,7 @@ const HeroSection = () => {
 
         {/* Hero Banner */}
         {heroBanner && (
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8 px-2 sm:px-0">
             <BannerDisplay 
               banner={heroBanner} 
               position="hero"
