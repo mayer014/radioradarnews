@@ -67,10 +67,11 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
   };
 
   const handleSave = async (forcedDraftStatus?: boolean) => {
-    if (!formData.title.trim() || !formData.content.trim() || !formData.category) {
+    const isColumnist = profile?.role === 'colunista';
+    if (!formData.title.trim() || !formData.content.trim() || (!isColumnist && !formData.category)) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha título, conteúdo e categoria.",
+        description: isColumnist ? "Preencha título e conteúdo." : "Preencha título, conteúdo e categoria.",
         variant: "destructive",
       });
       return;
@@ -113,11 +114,13 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         };
       }
 
+      const categoryToUse = profile?.role === 'colunista' ? (formData.category || 'Artigo') : formData.category;
+      
       const articleData = {
         title: formData.title,
         content: formData.content,
         excerpt,
-        category: formData.category,
+        category: categoryToUse,
         featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
         featured: formData.featured,
         status: isDraft ? 'draft' as const : 'published' as const,
