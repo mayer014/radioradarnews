@@ -87,7 +87,7 @@ const ColumnistPage = () => {
     );
   }
 
-  if (!columnist || !isColumnistActive) {
+  if (!currentColumnist || !isColumnistActive) {
     return (
       <div className="min-h-screen bg-background">
         <SEOHead 

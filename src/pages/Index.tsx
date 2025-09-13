@@ -41,7 +41,7 @@ const Index = () => {
       <NewBanner slotKey="hero" />
       
       {/* Banner Lateral (teste) */}
-      <NewBanner slotKey="sidebar" />
+      
       
       {/* Últimas Notícias */}
       <LatestNews />
@@ -56,7 +56,7 @@ const Index = () => {
       <LiveSection />
       
       {/* Banner Teste Categoria */}
-      <NewBanner slotKey="category-tecnologia" />
+      
       
       </main>
       

@@ -13,9 +13,19 @@ const LatestColumnistArticles = () => {
   const { users } = useUsers();
   const [profilesCache, setProfilesCache] = useState<Record<string, any>>({});
   
-  // Filtrar apenas artigos publicados de colunistas e pegar os 6 mais recentes
+  // Identificar IDs de colunistas a partir dos perfis
+  const columnistIdsSet = new Set(users.filter(u => u.role === 'colunista').map(u => u.id));
+
+  // Filtrar apenas artigos publicados de colunistas (via columnist_id ou author_id) e pegar os 6 mais recentes
   const latestColumnistArticles = articles
-    .filter(article => article.status === 'published' && article.columnist_id && !article.is_column_copy)
+    .filter(article => 
+      article.status === 'published' && 
+      !article.is_column_copy &&
+      (
+        !!article.columnist_id ||
+        (article.author_id && columnistIdsSet.has(article.author_id))
+      )
+    )
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
@@ -31,7 +41,7 @@ const LatestColumnistArticles = () => {
   useEffect(() => {
     const loadProfiles = async () => {
       const columnistIds = latestColumnistArticles
-        .map(article => article.columnist_id)
+        .map(article => article.columnist_id || article.author_id)
         .filter(Boolean) as string[];
 
       if (columnistIds.length > 0) {
@@ -90,8 +100,9 @@ const LatestColumnistArticles = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {latestColumnistArticles.map((article) => {
+            const profileId = (article.columnist_id || article.author_id) as string;
             // Get cached profile or fallback to article data
-            const cachedProfile = profilesCache[article.columnist_id || ''];
+            const cachedProfile = profilesCache[profileId || ''];
             const currentAvatar = cachedProfile?.avatar || article.columnist_avatar;
             
             return (
@@ -100,6 +111,7 @@ const LatestColumnistArticles = () => {
                 article={article}
                 currentAvatar={currentAvatar}
                 profilesCache={profilesCache}
+                profileId={profileId}
               />
             );
           })}
@@ -121,10 +133,11 @@ const LatestColumnistArticles = () => {
 };
 
 // Separate component for each article card
-const ColumnistArticleCard = ({ article, currentAvatar, profilesCache }: {
+const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId }: {
   article: any,
   currentAvatar: string,
-  profilesCache: Record<string, any>
+  profilesCache: Record<string, any>,
+  profileId: string
 }) => {
   return (
     <Link to={getArticleLink(article)}>
@@ -213,7 +226,7 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache }: {
           <div className="mt-auto pt-2">
             <div className="flex flex-col gap-2">
               <Link 
-                to={`/colunista/${article.columnist_id}`}
+                to={`/colunista/${profileId}`}
                 className="flex items-center text-[10px] md:text-xs text-muted-foreground hover:text-primary transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
