@@ -53,34 +53,64 @@ const StorageOptimizationPanel: React.FC = () => {
   const loadStats = async () => {
     setLoading(true);
     try {
-      // Carregar estatísticas de otimização
-      const { data: statsData, error: statsError } = await supabase
-        .from('settings')
-        .select('*');
+      // Buscar estatísticas do banco diretamente
+      const [
+        { data: storageData, error: storageError },
+        { data: orphanedData, error: orphanedError },
+        { count: articlesCount },
+        { count: commentsCount },
+        { count: auditCount },
+        { count: notificationsCount }
+      ] = await Promise.all([
+        supabase.rpc('get_storage_usage'),
+        supabase.rpc('get_orphaned_files'),
+        supabase.from('articles').select('*', { count: 'exact', head: true }),
+        supabase.from('comments').select('*', { count: 'exact', head: true }),
+        supabase.from('audit_log').select('*', { count: 'exact', head: true }),
+        supabase.from('notifications').select('*', { count: 'exact', head: true })
+      ]);
 
-      if (statsError) throw statsError;
-      
-      // Por enquanto, vamos simular os dados até a função estar disponível
-      const mockStats: StorageStats = {
+      if (storageError) throw storageError;
+      if (orphanedError) throw orphanedError;
+
+      // Buscar artigos publicados separadamente
+      const { count: publishedCount } = await supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'published');
+
+      // Buscar comentários aprovados
+      const { count: approvedCommentsCount } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'approved');
+
+      // Calcular tamanho estimado do banco (kB para MB)
+      const totalRecords = (articlesCount || 0) + (commentsCount || 0) + (auditCount || 0);
+      const estimatedDbSizeMB = (totalRecords * 2) / 1024; // Estimativa: 2kB por registro
+
+      const realStats: StorageStats = {
         database_stats: {
-          total_articles: 0,
-          published_articles: 0,
-          draft_articles: 0,
-          total_comments: 0,
-          approved_comments: 0,
-          audit_logs: 0,
-          notifications: 0,
+          total_articles: articlesCount || 0,
+          published_articles: publishedCount || 0,
+          draft_articles: (articlesCount || 0) - (publishedCount || 0),
+          total_comments: commentsCount || 0,
+          approved_comments: approvedCommentsCount || 0,
+          audit_logs: auditCount || 0,
+          notifications: notificationsCount || 0,
           storage_backup_entries: 0
         },
-        storage_usage: [],
-        database_size: '0 MB',
+        storage_usage: (storageData || []).map((bucket: any) => ({
+          bucket: bucket.bucket_name,
+          files: Number(bucket.file_count),
+          size_mb: Number(bucket.total_size_mb)
+        })),
+        database_size: `${estimatedDbSizeMB.toFixed(2)} MB`,
         last_check: new Date().toISOString()
       };
-      setStats(mockStats);
-
-      // Carregar arquivos órfãos - simulado por enquanto
-      const mockOrphaned: OrphanedFile[] = [];
-      setOrphanedFiles(mockOrphaned);
+      
+      setStats(realStats);
+      setOrphanedFiles(orphanedData || []);
 
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
