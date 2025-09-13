@@ -86,22 +86,43 @@ const UsersManager: React.FC = () => {
     setEditingColumnistId(id);
   };
 
-  const toggleColumnistStatus = (id: string) => {
+  const toggleColumnistStatus = async (id: string) => {
     const columnist = users.find(u => u.id === id && u.role === 'colunista');
     if (columnist?.columnistProfile) {
       const newStatus = !columnist.columnistProfile.isActive;
-      updateUser(id, {
-        columnistProfile: {
-          ...columnist.columnistProfile,
-          isActive: newStatus
+      
+      try {
+        const { error } = await updateUser(id, {
+          columnistProfile: {
+            ...columnist.columnistProfile,
+            isActive: newStatus
+          }
+        });
+
+        if (error) {
+          console.error('Erro ao atualizar status do colunista:', error);
+          toast({ 
+            title: 'Erro ao atualizar status',
+            description: 'Não foi possível alterar o status do colunista. Tente novamente.',
+            variant: 'destructive'
+          });
+          return;
         }
-      });
-      toast({ 
-        title: newStatus ? 'Colunista ativado' : 'Colunista desativado',
-        description: newStatus 
-          ? `${columnist.name} pode fazer login e seus artigos estão visíveis.`
-          : `${columnist.name} não pode fazer login e seus artigos estão ocultos.`
-      });
+
+        toast({ 
+          title: newStatus ? 'Colunista ativado' : 'Colunista desativado',
+          description: newStatus 
+            ? `${columnist.name} pode fazer login e seus artigos estão visíveis.`
+            : `${columnist.name} não pode fazer login e seus artigos estão ocultos.`
+        });
+      } catch (error) {
+        console.error('Erro ao atualizar status do colunista:', error);
+        toast({ 
+          title: 'Erro ao atualizar status',
+          description: 'Ocorreu um erro inesperado. Tente novamente.',
+          variant: 'destructive'
+        });
+      }
     }
   };
 

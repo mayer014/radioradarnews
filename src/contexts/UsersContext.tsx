@@ -135,26 +135,44 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateUser = async (id: string, updates: Partial<User>) => {
     try {
-      const profileUpdates: any = {
-        name: updates.name,
-        username: updates.username,
-        role: updates.role,
-      };
-
-      if (updates.columnistProfile) {
-        profileUpdates.bio = updates.columnistProfile.bio;
-        profileUpdates.specialty = updates.columnistProfile.specialty;
-        profileUpdates.allowed_categories = updates.columnistProfile.allowedCategories;
-        profileUpdates.avatar = updates.columnistProfile.avatar;
-        profileUpdates.is_active = updates.columnistProfile.isActive;
+      // Buscar o usuário atual para preservar dados existentes
+      const currentUser = users.find(u => u.id === id);
+      if (!currentUser) {
+        throw new Error('Usuário não encontrado');
       }
+
+      const profileUpdates: any = {};
+
+      // Só incluir campos que foram fornecidos nas atualizações
+      if (updates.name !== undefined) profileUpdates.name = updates.name;
+      if (updates.username !== undefined) profileUpdates.username = updates.username;
+      if (updates.role !== undefined) profileUpdates.role = updates.role;
+
+      if (updates.columnistProfile && currentUser.columnistProfile) {
+        // Mesclar com dados existentes do perfil do colunista
+        const existingProfile = currentUser.columnistProfile;
+        const updatedProfile = { ...existingProfile, ...updates.columnistProfile };
+        
+        profileUpdates.bio = updatedProfile.bio;
+        profileUpdates.specialty = updatedProfile.specialty;
+        profileUpdates.allowed_categories = updatedProfile.allowedCategories;
+        profileUpdates.avatar = updatedProfile.avatar;
+        profileUpdates.is_active = updatedProfile.isActive;
+      }
+
+      console.log('Atualizando perfil:', id, profileUpdates);
 
       const { error } = await supabase
         .from('profiles')
         .update(profileUpdates)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro do Supabase ao atualizar:', error);
+        throw error;
+      }
+
+      console.log('Perfil atualizado com sucesso');
       return { error: null };
     } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
