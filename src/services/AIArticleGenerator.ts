@@ -85,53 +85,68 @@ export class AIArticleGenerator {
     };
 
     return `
-Você é um jornalista especializado que deve criar um artigo TÉCNICO e ESPECÍFICO sobre: "${request.idea}"
+Você é um jornalista especializado que deve criar um artigo TÉCNICO e ESPECÍFICO baseado na ideia: "${request.idea}"
+
+ATENÇÃO: A ideia "${request.idea}" é apenas o PONTO DE PARTIDA. Você deve:
+1. REESCREVER COMPLETAMENTE O TÍTULO com informações específicas e técnicas
+2. TRANSFORMAR a ideia genérica em conteúdo específico com nomes reais
+3. CRIAR um título jornalístico profissional diferente da ideia original
 
 INSTRUÇÕES CRÍTICAS:
-1. SEJA EXTREMAMENTE ESPECÍFICO: Cite nomes reais de ferramentas, empresas, versões, preços, datas
-2. EVITE GENERALIDADES: Nada de "especialistas afirmam" ou "dados mostram" - seja concreto
-3. INFORMAÇÕES PRÁTICAS: Foque no que é útil, verificável e aplicável
-4. ESTRUTURA JORNALÍSTICA: Use subtítulos (H2, H3) para organizar claramente
+- NUNCA use o título da ideia original - crie um título técnico novo
+- SEJA EXTREMAMENTE ESPECÍFICO: Cite nomes reais de ferramentas, empresas, versões, preços
+- EVITE GENERALIDADES: Nada de "especialistas afirmam" ou "dados mostram"
+- INFORMAÇÕES PRÁTICAS: Foque no que é útil, verificável e aplicável
+- ESTRUTURA JORNALÍSTICA: Use subtítulos (H2, H3) para organizar
 
-Especificações do artigo:
+Especificações:
 - Categoria: ${request.category}
 - Abordagem: ${toneMap[request.tone || 'formal']}
 - Extensão: ${lengthMap[request.length || 'medio']}
 
-ESTRUTURA OBRIGATÓRIA:
-1. **Título**: Específico e técnico (máximo 60 caracteres)
-2. **Lead**: 2-3 frases com a informação principal
-3. **Introdução**: O que é, para que serve, contexto atual
-4. **Desenvolvimento**: 
-   - Ferramentas/métodos específicos com nomes e versões
-   - Comparações práticas entre opções
-   - Dados concretos: preços, recursos, limitações
-   - Exemplos reais de uso ou aplicação
-5. **Conclusão**: Recomendações práticas e próximos passos
+EXEMPLO DE TRANSFORMAÇÃO DE TÍTULO:
+❌ Ideia original: "Criação de games: programas disponíveis"
+✅ Título reescrito: "Unity vs Unreal Engine 5: qual motor escolher para jogos indie em 2024"
 
-EXEMPLOS DE CONTEÚDO ESPECÍFICO:
-- Se for sobre programação: cite linguagens (Python 3.12), frameworks (React 18), IDEs (VS Code)
-- Se for sobre games: motores específicos (Unity 2023.3, Unreal Engine 5), plataformas
-- Se for sobre design: softwares (Photoshop CC 2024, Figma, Canva Pro), recursos
-- Se for sobre negócios: ferramentas (Slack, Notion, Google Workspace), preços, funcionalidades
+❌ Ideia original: "Marketing digital para pequenas empresas"
+✅ Título reescrito: "Instagram Ads vs Google Ads: comparativo de custos para PMEs"
+
+ESTRUTURA OBRIGATÓRIA DO ARTIGO:
+1. **Título Técnico**: Completamente diferente da ideia original (máximo 60 caracteres)
+2. **Lead**: 2-3 frases com informação específica e prática
+3. **Introdução**: Contexto atual com dados concretos
+4. **Desenvolvimento com subtítulos**:
+   - Ferramentas/métodos específicos (nomes, versões, preços)
+   - Comparações práticas entre opções
+   - Tutoriais ou passos específicos
+   - Vantagens e limitações de cada opção
+5. **Conclusão**: Recomendações práticas específicas
+
+CONTEÚDO DEVE INCLUIR:
+- Nomes específicos de softwares, plataformas, ferramentas
+- Versões atuais (2024) quando relevante
+- Preços aproximados ou faixas de valor
+- Requisitos técnicos específicos
+- Casos de uso práticos e reais
+- Links conceituais para recursos mencionados
 
 PROIBIDO:
+❌ Usar o título da ideia original
 ❌ "Especialistas debatem"
-❌ "Dados mostram tendência"
+❌ "Dados mostram tendência"  
 ❌ "Mercado em transformação"
-❌ "Tecnologia revolucionária"
-❌ Análises genéricas sem dados concretos
+❌ Análises genéricas sem especificidade
 
 Retorne JSON válido:
 {
-  "title": "Título específico e técnico",
-  "excerpt": "Lead direto com informação principal (2-3 frases)",
+  "title": "Título técnico COMPLETAMENTE NOVO e específico",
+  "excerpt": "Lead direto com informação técnica específica",
   "content": "Artigo completo em HTML com <h2>, <h3>, <p>, <strong>, <ul>, <li>",
   "suggestedCategory": "${request.category}",
-  "keywords": ["termo-técnico-1", "ferramenta-específica", "categoria-relevante"]
+  "keywords": ["ferramenta-específica", "versão-atual", "categoria-técnica"]
 }
 
-FOQUE EM: Informações concretas, nomes específicos, dados verificáveis e utilidade prática.
+OBJETIVO: Criar título e conteúdo TÉCNICO, ESPECÍFICO e ÚTIL, completamente diferente da ideia original.
 `;
   }
 
