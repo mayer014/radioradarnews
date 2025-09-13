@@ -110,7 +110,7 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Configurar real-time updates
   useEffect(() => {
     const channel = supabase
-      .channel('articles-changes')
+      .channel('articles-realtime')
       .on(
         'postgres_changes',
         {
@@ -119,9 +119,43 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           table: 'articles'
         },
         (payload) => {
-          console.log('Article change:', payload);
-          // Recarregar artigos quando houver mudanças
-          fetchArticles();
+          console.log('Real-time article change:', payload);
+          
+          // Atualização otimizada baseada no tipo de evento
+          if (payload.eventType === 'INSERT') {
+            const newArticle = payload.new as NewsArticle;
+            
+            // Verificar se o usuário tem permissão para ver este artigo
+            const shouldShow = profile?.role === 'admin' || 
+                              newArticle.status === 'published' || 
+                              newArticle.author_id === profile?.id;
+            
+            if (shouldShow) {
+              setArticles(prev => {
+                // Evitar duplicatas
+                const exists = prev.some(a => a.id === newArticle.id);
+                if (exists) return prev;
+                
+                // Adicionar e ordenar por data
+                return [newArticle, ...prev].sort((a, b) => 
+                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
+              });
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedArticle = payload.new as NewsArticle;
+            
+            setArticles(prev => prev.map(article => 
+              article.id === updatedArticle.id ? updatedArticle : article
+            ).sort((a, b) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setArticles(prev => prev.filter(a => a.id !== deletedId));
+            }
+          }
         }
       )
       .subscribe();
@@ -129,7 +163,7 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchArticles]);
+  }, [profile?.role, profile?.id]);
 
   const addArticle = async (articleData: Omit<NewsArticle, 'id' | 'created_at' | 'updated_at' | 'views' | 'comments_count'>) => {
     if (!profile) {
