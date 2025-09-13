@@ -198,20 +198,8 @@ class ApiService {
     });
   }
 
-  // Métodos de banners
-  public async getBanners(): Promise<ApiResponse<any[]>> {
-    return this.request('/banners');
-  }
-
-  public async updateBanner(id: string, updates: any): Promise<ApiResponse<any>> {
-    return this.request(`/banners/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates)
-    });
-  }
-
   // Upload de arquivos
-  public async uploadFile(file: File, type: 'article' | 'banner' | 'avatar'): Promise<ApiResponse<{ url: string }>> {
+  public async uploadFile(file: File, type: 'article' | 'avatar'): Promise<ApiResponse<{ url: string }>> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);

@@ -231,43 +231,6 @@ export class SupabaseServiceLayer {
     }, config, `deleteMedia:${mediaId}`);
   }
 
-  // Banner Service Methods
-  async getCurrentBanner(slotKey: string, config?: RetryConfig): Promise<ServiceResponse> {
-    return this.executeWithRetry(async () => {
-      const { data, error } = await supabase.functions.invoke('banner-service', {
-        body: {
-          action: 'get_current_banner',
-          slot_key: slotKey
-        }
-      });
-
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
-      
-      return data.data;
-    }, config, `getCurrentBanner:${slotKey}`);
-  }
-
-  async scheduleBanner(slotKey: string, bannerId: string, startsAt: string, endsAt?: string, priority?: number, config?: RetryConfig): Promise<ServiceResponse> {
-    return this.executeWithRetry(async () => {
-      const { data, error } = await supabase.functions.invoke('banner-service', {
-        body: {
-          action: 'schedule_banner',
-          slot_key: slotKey,
-          banner_id: bannerId,
-          starts_at: startsAt,
-          ends_at: endsAt,
-          priority
-        }
-      });
-
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
-      
-      return data.data;
-    }, config, `scheduleBanner:${slotKey}`);
-  }
-
   // Audit Service Methods
   async getAuditLogs(filters?: any, config?: RetryConfig): Promise<ServiceResponse> {
     return this.executeWithRetry(async () => {

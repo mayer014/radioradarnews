@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import NewsEditor from '@/components/NewsEditor';
 import ProgrammingEditor from '@/components/ProgrammingEditor';
-import NewBannerManager from '@/components/NewBannerManager';
 import UsersManager from '@/components/UsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';
 import ContactInfoManager from '@/components/ContactInfoManager';
@@ -58,7 +57,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'banners' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -93,7 +92,7 @@ const AdminPanel = () => {
       if (validation.isValid) {
         toast({
           title: "✅ Dados íntegros",
-          description: `Sistema validado: ${validation.stats.users} usuários, ${validation.stats.articles} artigos, ${validation.stats.banners} banners, ${validation.stats.programs} programas.`,
+          description: `Sistema validado: ${validation.stats.users} usuários, ${validation.stats.articles} artigos, ${validation.stats.programs} programas.`,
         });
       } else {
         toast({
@@ -140,7 +139,7 @@ const AdminPanel = () => {
 
       toast({
         title: "✅ Exportação concluída",
-        description: `SQL gerado com ${exportData.stats.users + exportData.stats.articles + exportData.stats.banners + exportData.stats.programs} registros.`,
+        description: `SQL gerado com ${exportData.stats.users + exportData.stats.articles + exportData.stats.programs} registros.`,
       });
     } catch (error) {
       console.error('Error exporting data:', error);
@@ -399,16 +398,6 @@ const AdminPanel = () => {
                 <Radio className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Programação</span>
                 <span className="sm:hidden">Prog</span>
-              </Button>
-              <Button
-                variant={activeTab === 'banners' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('banners')}
-                className={`${activeTab === 'banners' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <Image className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Banners</span>
-                <span className="sm:hidden">Ban</span>
               </Button>
             </div>
             
@@ -809,11 +798,6 @@ const AdminPanel = () => {
         {/* Programação - Apenas para admin */}
         {activeTab === 'programming' && isAdmin && (
           <ProgrammingEditor />
-        )}
-
-        {/* Banners - Apenas para admin */}
-        {activeTab === 'banners' && isAdmin && (
-          <NewBannerManager />
         )}
 
         {/* Artigos por colunista - apenas para admin */}

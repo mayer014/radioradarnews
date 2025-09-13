@@ -1,7 +1,6 @@
 import React from 'react';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
-import NewBanner from '@/components/NewBanner';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -37,29 +36,17 @@ const Index = () => {
       <main id="main-content" tabIndex={-1}>
         <HeroSection />
       
-      {/* Banner Principal */}
-      <NewBanner slotKey="hero" />
-      
-      {/* Banner Lateral (teste) */}
-      
-      
       {/* Últimas Notícias */}
       <LatestNews />
       
       {/* Últimos Artigos dos Colunistas */}
       <LatestColumnistArticles />
       
-        {/* Seção de Notícias */}
-        <NewsGrid />
-        
-        {/* Banner fixo do NewsGrid */}
-        <NewBanner slotKey="news-grid" />
+      {/* Seção de Notícias */}
+      <NewsGrid />
       
       {/* Seção Ao Vivo */}
       <LiveSection />
-      
-      {/* Banner Teste Categoria */}
-      
       
       </main>
       

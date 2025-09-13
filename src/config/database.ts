@@ -121,19 +121,6 @@ CREATE TABLE IF NOT EXISTS radio_programs (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de banners
-CREATE TABLE IF NOT EXISTS banners (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  gif_url TEXT NOT NULL,
-  position VARCHAR(20) NOT NULL CHECK (position IN ('hero', 'category')),
-  category VARCHAR(100),
-  is_active BOOLEAN DEFAULT TRUE,
-  click_url TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Índices para melhor performance
 CREATE INDEX IF NOT EXISTS idx_articles_category ON news_articles(category);
 CREATE INDEX IF NOT EXISTS idx_articles_featured ON news_articles(featured);
@@ -141,7 +128,6 @@ CREATE INDEX IF NOT EXISTS idx_articles_columnist ON news_articles(columnist_id)
 CREATE INDEX IF NOT EXISTS idx_articles_created_at ON news_articles(created_at);
 CREATE INDEX IF NOT EXISTS idx_contact_read ON contact_messages(read);
 CREATE INDEX IF NOT EXISTS idx_programs_status ON radio_programs(status);
-CREATE INDEX IF NOT EXISTS idx_banners_position ON banners(position);
 
 -- Trigger para atualizar updated_at automaticamente
 CREATE OR REPLACE FUNCTION update_modified_column()
@@ -156,7 +142,6 @@ CREATE TRIGGER update_users_modtime BEFORE UPDATE ON users FOR EACH ROW EXECUTE 
 CREATE TRIGGER update_columnist_profiles_modtime BEFORE UPDATE ON columnist_profiles FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_news_articles_modtime BEFORE UPDATE ON news_articles FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_radio_programs_modtime BEFORE UPDATE ON radio_programs FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-CREATE TRIGGER update_banners_modtime BEFORE UPDATE ON banners FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 `;
 
 // SQL para inserir dados iniciais (seeds)

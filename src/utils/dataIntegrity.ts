@@ -28,18 +28,6 @@ export const validateArticleData = (article: any): boolean => {
 };
 
 /**
- * Validates banner data structure
- */
-export const validateBannerData = (banner: any): boolean => {
-  const required = ['id', 'name', 'gifUrl', 'position'];
-  return required.every(field => 
-    banner && 
-    typeof banner[field] === 'string' && 
-    banner[field].trim() !== ''
-  ) && typeof banner.isActive === 'boolean';
-};
-
-/**
  * Validates program data structure
  */
 export const validateProgramData = (program: any): boolean => {
@@ -60,14 +48,12 @@ export const validateAllLocalStorageData = (): {
   stats: {
     users: number;
     articles: number;
-    banners: number;
     programs: number;
   };
 } => {
   const issues: string[] = [];
   let userCount = 0;
   let articleCount = 0;
-  let bannerCount = 0;
   let programCount = 0;
 
   try {
@@ -103,22 +89,6 @@ export const validateAllLocalStorageData = (): {
       }
     }
 
-    // Validate banners
-    const bannersData = localStorage.getItem('banners_store');
-    if (bannersData) {
-      const banners = JSON.parse(bannersData);
-      if (Array.isArray(banners)) {
-        bannerCount = banners.length;
-        banners.forEach((banner, index) => {
-          if (!validateBannerData(banner)) {
-            issues.push(`Invalid banner data at index ${index}: ${banner?.name || 'Unknown'}`);
-          }
-        });
-      } else {
-        issues.push('Banners data is not an array');
-      }
-    }
-
     // Validate programs
     const programsData = localStorage.getItem('programs_store');
     if (programsData) {
@@ -144,7 +114,6 @@ export const validateAllLocalStorageData = (): {
     stats: {
       users: userCount,
       articles: articleCount,
-      banners: bannerCount,
       programs: programCount
     }
   };
@@ -205,19 +174,6 @@ export const generateMigrationSQL = (): string => {
         if (validateProgramData(program)) {
           sqlStatements.push(
             `INSERT INTO radio_programs (id, title, host, start_time, end_time, description, status, is_active, created_at, updated_at) VALUES ('${program.id}', '${program.title}', '${program.host}', '${program.startTime}', '${program.endTime}', '${program.description || ''}', '${program.status}', ${program.isActive}, NOW(), NOW()) ON CONFLICT (id) DO NOTHING;`
-          );
-        }
-      });
-    }
-
-    // Generate banner inserts
-    const bannersData = localStorage.getItem('banners_store');
-    if (bannersData) {
-      const banners = JSON.parse(bannersData);
-      banners.forEach((banner: any) => {
-        if (validateBannerData(banner)) {
-          sqlStatements.push(
-            `INSERT INTO banners (id, name, gif_url, position, category, is_active, click_url, created_at, updated_at) VALUES ('${banner.id}', '${banner.name}', '${banner.gifUrl}', '${banner.position}', ${banner.category ? `'${banner.category}'` : 'NULL'}, ${banner.isActive}, '${banner.clickUrl || ''}', '${banner.createdAt}', '${banner.updatedAt}') ON CONFLICT (id) DO NOTHING;`
           );
         }
       });
