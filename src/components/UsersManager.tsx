@@ -29,42 +29,55 @@ const UsersManager: React.FC = () => {
   const admins = useMemo(() => users.filter(u => u.role === 'admin'), [users]);
   const columnists = useMemo(() => users.filter(u => u.role === 'colunista'), [users]);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!form.name || !form.username) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
-    if (form.role === 'admin') {
-      addUser({
-        role: 'admin',
+
+    try {
+      setIsSubmitting(true);
+      const basePayload = {
         name: form.name,
         username: form.username,
         password: form.password,
+      } as const;
+
+      const result = await addUser(
+        form.role === 'admin'
+          ? { role: 'admin', ...basePayload }
+          : {
+              role: 'colunista',
+              ...basePayload,
+              columnistProfile: {
+                id: form.username.replace(/[^a-z0-9-]/gi, '-').toLowerCase(),
+                name: form.name,
+                avatar: '',
+                bio: 'Colunista do portal.',
+                specialty: 'Colunista',
+                allowedCategories: [BASE_NEWS_CATEGORIES[0]],
+                isActive: true,
+              },
+            }
+      );
+
+      if (result.error) {
+        toast({ title: 'Erro ao criar usuário', description: result.error, variant: 'destructive' });
+        return;
+      }
+
+      await refreshUsers();
+      toast({
+        title: 'Usuário criado',
+        description:
+          form.role === 'admin'
+            ? `Administrador ${form.username} adicionado.`
+            : `Colunista ${form.username} adicionado. Configure o perfil completo clicando em "Editar Perfil".`,
       });
-    } else {
-      addUser({
-        role: 'colunista',
-        name: form.name,
-        username: form.username,
-        password: form.password,
-        columnistProfile: {
-          id: form.username.replace(/[^a-z0-9-]/gi, '-').toLowerCase(),
-          name: form.name,
-          avatar: '', // Será definido via upload posteriormente
-          bio: 'Colunista do portal.',
-          specialty: 'Colunista',
-          allowedCategories: [BASE_NEWS_CATEGORIES[0]], // Categoria padrão inicial
-          isActive: true,
-        },
-      });
+      setForm({ role: 'colunista', name: '', username: '', password: '123456' });
+    } finally {
+      setIsSubmitting(false);
     }
-    toast({ 
-      title: 'Usuário criado', 
-      description: form.role === 'admin' 
-        ? `Administrador ${form.username} adicionado.`
-        : `Colunista ${form.username} adicionado. Configure o perfil completo clicando em "Editar Perfil".`
-    });
-    setForm({ role: 'colunista', name: '', username: '', password: '123456' });
   };
 
   const handleDelete = (id: string) => {

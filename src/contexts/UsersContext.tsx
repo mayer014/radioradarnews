@@ -109,8 +109,10 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addUser = async (user: Omit<User, 'id'> & { id?: string }) => {
     try {
+      const profileId = user.id ?? (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+
       const profileData = {
-        id: user.id,
+        id: profileId,
         username: user.username,
         name: user.name,
         role: user.role,
@@ -126,6 +128,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .insert([profileData]);
 
       if (error) throw error;
+      await fetchUsers();
       return { error: null };
     } catch (error: any) {
       console.error('Erro ao adicionar usuário:', error);
