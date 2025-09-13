@@ -2,50 +2,20 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { useUsers } from '@/contexts/UsersContext';
-import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
-import { Star, Eye, Info, User } from 'lucide-react';
+import { Star, Eye, Info } from 'lucide-react';
 
 interface ArticleSettingsProps {
-  category: string;
   featured: boolean;
-  selectedColumnist?: string;
-  onCategoryChange: (category: string) => void;
   onFeaturedChange: (featured: boolean) => void;
-  onColumnistChange?: (columnistId: string) => void;
 }
 
 const ArticleSettings: React.FC<ArticleSettingsProps> = ({
-  category,
   featured,
-  selectedColumnist,
-  onCategoryChange,
   onFeaturedChange,
-  onColumnistChange,
 }) => {
   const { profile } = useSupabaseAuth();
-  const { columnists } = useUsers();
-  
-  // Para colunistas, categoria é automática (sua própria área)
-  React.useEffect(() => {
-    if (profile?.role === 'colunista' && !category) {
-      // Categoria automática para colunistas - sempre "Artigo"
-      onCategoryChange('Artigo');
-    }
-  }, [profile?.role, category, onCategoryChange]);
-
-  // Limitar categorias - colunistas não escolhem categoria
-  const availableCategories = React.useMemo(() => {
-    if (profile?.role === 'colunista') {
-      return []; // Colunistas não selecionam categoria
-    }
-    return BASE_NEWS_CATEGORIES;
-  }, [profile?.role]);
 
   // Verificar permissões de destaque
   const canHighlight = React.useMemo(() => {
@@ -62,39 +32,6 @@ const ArticleSettings: React.FC<ArticleSettingsProps> = ({
       </h3>
       
       <div className="space-y-6">
-        {/* Categoria - apenas para admins, colunistas têm categoria automática */}
-        {profile?.role === 'admin' && (
-          <div>
-            <Label htmlFor="category" className="text-base font-medium mb-3 block">
-              Categoria
-            </Label>
-            <Select
-              value={category}
-              onValueChange={(value) => {
-                // Converter display name para slug interno ao salvar
-                const internalSlug = getInternalCategorySlug(value);
-                onCategoryChange(internalSlug);
-              }}
-            >
-              <SelectTrigger className="border-primary/30 focus:border-primary">
-                <SelectValue placeholder="Escolha a categoria do artigo" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-primary/30">
-                {BASE_NEWS_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat} className="hover:bg-primary/10">
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {category && (
-              <Badge variant="secondary" className="mt-2">
-                {getDisplayCategoryName(category)}
-              </Badge>
-            )}
-          </div>
-        )}
-
         {/* Informação para colunistas */}
         {profile?.role === 'colunista' && (
           <Alert className="border-primary/30">
@@ -103,57 +40,6 @@ const ArticleSettings: React.FC<ArticleSettingsProps> = ({
               Como colunista, seus artigos são publicados automaticamente na sua seção de artigos.
             </AlertDescription>
           </Alert>
-        )}
-
-        {/* Seleção de Colunista - apenas para admins */}
-        {profile?.role === 'admin' && columnists.length > 0 && onColumnistChange && (
-          <div>
-            <Label htmlFor="columnist" className="text-base font-medium mb-3 block">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
-                Atribuir Colunista (Opcional)
-              </div>
-            </Label>
-            <Select
-              value={selectedColumnist || 'none'}
-              onValueChange={(value) => onColumnistChange(value === 'none' ? '' : value)}
-            >
-              <SelectTrigger className="border-primary/30 focus:border-primary">
-                <SelectValue placeholder="Selecione um colunista para este artigo" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-primary/30">
-                <SelectItem value="none" className="hover:bg-primary/10">
-                  Nenhum colunista
-                </SelectItem>
-                {columnists.map((columnist) => (
-                  <SelectItem key={columnist.id} value={columnist.id} className="hover:bg-primary/10">
-                    <div className="flex items-center gap-2">
-                      <img 
-                        src={columnist.columnistProfile?.avatar} 
-                        alt={columnist.name}
-                        className="w-4 h-4 rounded-full object-cover"
-                      />
-                      {columnist.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedColumnist && (
-              <div className="mt-2 flex items-center gap-2">
-                <Badge variant="outline" className="border-primary/50">
-                  <User className="w-3 h-3 mr-1" />
-                  {columnists.find(c => c.id === selectedColumnist)?.name}
-                </Badge>
-              </div>
-            )}
-            <Alert className="mt-3">
-              <Info className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                Ao atribuir um colunista, o artigo aparecerá na seção do colunista quando publicado.
-              </AlertDescription>
-            </Alert>
-          </div>
         )}
 
         <div className="border-t border-primary/20 pt-6">

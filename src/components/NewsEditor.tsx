@@ -98,7 +98,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       if (!publishingOptions.publishType) {
         toast({
           title: "Opção de publicação obrigatória",
-          description: "Como administrador, você deve escolher onde publicar o artigo.",
+          description: "Como administrador, você deve escolher onde publicar o artigo na etapa de Revisão.",
           variant: "destructive",
         });
         return;
@@ -108,7 +108,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       if (publishingOptions.publishType === 'category' && !publishingOptions.selectedCategory) {
         toast({
           title: "Categoria obrigatória",
-          description: "Selecione uma categoria para publicar o artigo.",
+          description: "Selecione uma categoria na etapa de Revisão para publicar o artigo.",
           variant: "destructive",
         });
         return;
@@ -118,7 +118,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       if (publishingOptions.publishType === 'columnist' && !publishingOptions.selectedColumnist) {
         toast({
           title: "Colunista obrigatório",
-          description: "Selecione um colunista para publicar o artigo.",
+          description: "Selecione um colunista na etapa de Revisão para publicar o artigo.",
           variant: "destructive",
         });
         return;
@@ -403,12 +403,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
             </div>
             <div className="xl:col-span-1 space-y-6">
               <ArticleSettings
-                category={formData.category}
                 featured={formData.featured}
-                selectedColumnist={formData.selectedColumnist}
-                onCategoryChange={(category) => setFormData({ ...formData, category })}
                 onFeaturedChange={(featured) => setFormData({ ...formData, featured })}
-                onColumnistChange={(selectedColumnist) => setFormData({ ...formData, selectedColumnist })}
               />
               {articleId && (() => {
                 const article = getArticleById(articleId);
@@ -435,12 +431,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
             </div>
             <div className="xl:col-span-1">
               <ArticleSettings
-                category={formData.category}
                 featured={formData.featured}
-                selectedColumnist={formData.selectedColumnist}
-                onCategoryChange={(category) => setFormData({ ...formData, category })}
                 onFeaturedChange={(featured) => setFormData({ ...formData, featured })}
-                onColumnistChange={(selectedColumnist) => setFormData({ ...formData, selectedColumnist })}
               />
             </div>
           </div>
