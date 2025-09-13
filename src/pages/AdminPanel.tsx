@@ -401,17 +401,6 @@ const AdminPanel = () => {
                 )}
               </Button>
             </div>
-              <Button
-                variant={activeTab === 'programming' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('programming')}
-                className={`${activeTab === 'programming' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <Radio className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Programação</span>
-                <span className="sm:hidden">Prog</span>
-              </Button>
-            </div>
             {/* Segunda linha de navegação */}
             <div className="flex flex-wrap gap-1">
               <Button
@@ -434,7 +423,7 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Artigos por Colunista</span>
                 <span className="sm:hidden">Col</span>
               </Button>
-               <Button
+              <Button
                 variant={activeTab === 'users' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('users')}
                 className={`${activeTab === 'users' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
