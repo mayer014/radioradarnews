@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import CategoryNewsSection from '@/components/CategoryNewsSection';
+import NewBanner from '@/components/NewBanner';
 
 const NewsGrid: React.FC = () => {
   const { articles, loading } = useSupabaseNews();
@@ -75,6 +76,9 @@ const NewsGrid: React.FC = () => {
   return (
     <section id="news-grid" className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Banner Principal */}
+        <NewBanner slotKey="news-grid" className="mb-8" />
+        
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl sm:text-2xl font-bold">Destaques</h2>
         </div>

@@ -29,21 +29,25 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const authorization = req.headers.get('Authorization');
-    if (!authorization) {
-      throw new Error('Authorization header required');
-    }
-
-    const jwt = authorization.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
     
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
+    // Para chamadas do frontend, não requer autenticação
+    const isPublicCall = !authorization || authorization.includes('anon');
+    
+    let user = null;
+    if (!isPublicCall) {
+      const jwt = authorization.replace('Bearer ', '');
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(jwt);
+      
+      if (authError || !authUser) {
+        throw new Error('Invalid authentication');
+      }
+      user = authUser;
     }
 
     const requestData: BannerRequest = await req.json();
     const { action, slot_key, banner_id, starts_at, ends_at, priority, queue_id, is_pilot } = requestData;
 
-    console.log(`Banner Service: ${action} by user ${user.id}`, { slot_key, banner_id });
+    console.log(`Banner Service: ${action}`, { slot_key, banner_id, user_id: user?.id || 'anonymous' });
 
     // Audit function
     const auditLog = async (event: string, entity_id: string, payload: any, level: 'info' | 'warn' | 'error' = 'info') => {
@@ -53,8 +57,8 @@ serve(async (req) => {
         entity_id,
         payload_jsonb: payload,
         level,
-        context: { user_id: user.id, action },
-        user_id: user.id
+        context: { user_id: user?.id || 'anonymous', action },
+        user_id: user?.id
       });
     };
 
