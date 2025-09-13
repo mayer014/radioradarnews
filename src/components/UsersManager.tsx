@@ -12,14 +12,16 @@ import { NEWS_CATEGORIES, BASE_NEWS_CATEGORIES } from '@/contexts/NewsContext';
 import { Trash2, UserPlus, Shield, User as UserIcon, KeyRound, Plus, X, Settings, Eye, EyeOff, Copy, Edit, UserCheck, UserX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ColumnistProfileEditor from '@/components/ColumnistProfileEditor';
+import { supabase } from '@/integrations/supabase/client';
 
 const UsersManager: React.FC = () => {
-  const { users, addUser, updateUser, deleteUser, resetPassword, isLoading, refreshUsers } = useUsers();
+  const { users, updateUser, deleteUser, resetPassword, isLoading, refreshUsers } = useUsers();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     role: 'colunista' as 'admin' | 'colunista',
     name: '',
+    email: '',
     username: '',
     password: '123456',
   });
@@ -30,39 +32,30 @@ const UsersManager: React.FC = () => {
   const columnists = useMemo(() => users.filter(u => u.role === 'colunista'), [users]);
 
   const handleAdd = async () => {
-    if (!form.name || !form.username) {
-      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+    if (!form.name || !form.username || !form.email) {
+      toast({ title: 'Preencha nome, e-mail e usuário', variant: 'destructive' });
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const basePayload = {
-        name: form.name,
-        username: form.username,
-        password: form.password,
-      } as const;
 
-      const result = await addUser(
-        form.role === 'admin'
-          ? { role: 'admin', ...basePayload }
-          : {
-              role: 'colunista',
-              ...basePayload,
-              columnistProfile: {
-                id: form.username.replace(/[^a-z0-9-]/gi, '-').toLowerCase(),
-                name: form.name,
-                avatar: '',
-                bio: 'Colunista do portal.',
-                specialty: 'Colunista',
-                allowedCategories: [BASE_NEWS_CATEGORIES[0]],
-                isActive: true,
-              },
-            }
-      );
+      const { data, error } = await supabase.functions.invoke('user-service', {
+        body: {
+          action: 'create_user',
+          payload: {
+            role: form.role,
+            name: form.name,
+            username: form.username,
+            email: form.email,
+            password: form.password,
+          },
+        },
+      });
 
-      if (result.error) {
-        toast({ title: 'Erro ao criar usuário', description: result.error, variant: 'destructive' });
+      if (error || !data?.ok) {
+        const msg = (error as any)?.message || data?.error || 'Falha ao criar usuário';
+        toast({ title: 'Erro ao criar usuário', description: msg, variant: 'destructive' });
         return;
       }
 
@@ -72,9 +65,9 @@ const UsersManager: React.FC = () => {
         description:
           form.role === 'admin'
             ? `Administrador ${form.username} adicionado.`
-            : `Colunista ${form.username} adicionado. Configure o perfil completo clicando em "Editar Perfil".`,
+            : `Colunista ${form.username} adicionado. Configure o perfil em "Editar Perfil".`,
       });
-      setForm({ role: 'colunista', name: '', username: '', password: '123456' });
+      setForm({ role: 'colunista', name: '', email: '', username: '', password: '123456' });
     } finally {
       setIsSubmitting(false);
     }
@@ -258,6 +251,10 @@ const UsersManager: React.FC = () => {
               <div className="col-span-2">
                 <Label>Nome</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <Label>E-mail</Label>
+                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
               <div className="col-span-2">
                 <Label>Usuário (login)</Label>
