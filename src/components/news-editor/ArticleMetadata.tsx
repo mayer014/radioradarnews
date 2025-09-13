@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Eye, Clock } from 'lucide-react';
-import type { NewsArticle } from '@/contexts/NewsContext';
+import type { NewsArticle } from '@/contexts/SupabaseNewsContext';
 
 interface ArticleMetadataProps {
   article: NewsArticle;
@@ -22,7 +22,7 @@ const ArticleMetadata: React.FC<ArticleMetadataProps> = ({ article }) => {
           <div>
             <p className="text-sm font-medium">Data de Criação</p>
             <p className="text-sm text-muted-foreground">
-              {new Date(article.createdAt).toLocaleDateString('pt-BR', {
+              {new Date(article.created_at).toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: 'long',
                 year: 'numeric',
@@ -38,7 +38,7 @@ const ArticleMetadata: React.FC<ArticleMetadataProps> = ({ article }) => {
           <div>
             <p className="text-sm font-medium">Última Atualização</p>
             <p className="text-sm text-muted-foreground">
-              {new Date(article.updatedAt).toLocaleDateString('pt-BR', {
+              {new Date(article.updated_at).toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: 'long',
                 year: 'numeric',
@@ -62,8 +62,8 @@ const ArticleMetadata: React.FC<ArticleMetadataProps> = ({ article }) => {
         <div className="border-t border-accent/20 pt-4">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium">Status:</p>
-            <Badge variant={article.isDraft ? "secondary" : "default"}>
-              {article.isDraft ? "Rascunho" : "Publicado"}
+            <Badge variant={article.status === 'draft' ? "secondary" : "default"}>
+              {article.status === 'draft' ? "Rascunho" : "Publicado"}
             </Badge>
           </div>
         </div>

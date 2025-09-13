@@ -3,19 +3,19 @@ import { Radio, Mail, Phone, MapPin, Facebook, Instagram, Clock, Users } from 'l
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
-import { useNews } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
 
 const Footer = () => {
   const navigate = useNavigate();
-  const { articles } = useNews();
+  const { articles } = useSupabaseNews();
   const { columnists } = useUsers();
 
-  // Pegar as 6 notícias mais recentes
+  // Pegar as 6 notícias mais recentes diretamente do Supabase
   const recentNews = articles
-    .filter(article => !article.isDraft)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter(article => article.status === 'published' && !article.columnist_id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
   const navigationItems = [
@@ -51,7 +51,7 @@ const Footer = () => {
                     <div className="flex gap-3 p-4">
                       <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
                         <img
-                          src={article.featuredImage}
+                          src={article.featured_image}
                           alt={article.title}
                           className="w-20 h-16 object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
@@ -63,7 +63,7 @@ const Footer = () => {
                         </h4>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="w-3 h-3 mr-1" />
-                          <span>{new Date(article.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
                         </div>
                       </div>
                     </div>

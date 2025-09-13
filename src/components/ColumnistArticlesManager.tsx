@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useNews, filterActiveColumnistArticles } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ import NewsEditor from '@/components/NewsEditor';
 import { getArticleLink } from '@/lib/utils';
 
 const ColumnistArticlesManager: React.FC = () => {
-  const { articles, deleteArticle, toggleFeaturedArticle } = useNews();
+  const { articles, deleteArticle, updateArticle } = useSupabaseNews();
   const { columnists } = useUsers();
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -26,14 +26,14 @@ const ColumnistArticlesManager: React.FC = () => {
 
   const columnistArticles = useMemo(() => {
     if (selectedColumnist === 'all') {
-      return filterActiveColumnistArticles(articles.filter(article => article.columnist));
+      return articles.filter(article => article.columnist_id && article.status === 'published');
     }
-    return filterActiveColumnistArticles(articles.filter(article => article.columnist?.id === selectedColumnist));
+    return articles.filter(article => article.columnist_id === selectedColumnist && article.status === 'published');
   }, [articles, selectedColumnist]);
 
   const articlesByColumnist = useMemo(() => {
     const grouped = columnists.reduce((acc, columnist) => {
-      acc[columnist.id] = filterActiveColumnistArticles(articles.filter(article => article.columnist?.id === columnist.id));
+      acc[columnist.id] = articles.filter(article => article.columnist_id === columnist.id && article.status === 'published');
       return acc;
     }, {} as Record<string, typeof articles>);
     return grouped;
@@ -73,7 +73,7 @@ Deseja substituir por "${article.title}"?`;
       
       if (confirm(confirmMessage)) {
         // User confirmed replacement
-        toggleFeaturedArticle(articleId, currentUser?.id);
+        updateArticle(articleId, { featured: !article.featured });
         toast({
           title: "Destaque alterado",
           description: `"${article.title}" agora é destaque na categoria ${article.category}.`,
@@ -82,7 +82,7 @@ Deseja substituir por "${article.title}"?`;
     } else {
       // No conflict, proceeding with toggle
       const oldFeaturedStatus = article.featured;
-      toggleFeaturedArticle(articleId, currentUser?.id);
+      updateArticle(articleId, { featured: !article.featured });
       
       // Toast será baseado no status anterior, pois a mudança pode não ter acontecido ainda
       toast({
@@ -209,9 +209,9 @@ Deseja substituir por "${article.title}"?`;
                           <p className="line-clamp-2">{article.title}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <p className="text-xs text-muted-foreground">
-                              Por {article.columnist?.name}
+                              Por {article.columnist_name}
                             </p>
-                            {article.isColumnCopy && (
+                            {article.is_column_copy && (
                               <Badge variant="secondary" className="text-xs">
                                 Cópia da Coluna
                               </Badge>
@@ -225,7 +225,7 @@ Deseja substituir por "${article.title}"?`;
                       <TableCell>
                         <div className="flex items-center gap-1 text-sm">
                           <CalendarDays className="h-3 w-3" />
-                          {format(new Date(article.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                          {format(new Date(article.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                         </div>
                       </TableCell>
                       <TableCell>

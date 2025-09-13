@@ -13,7 +13,7 @@ interface ReviewData {
   title: string;
   excerpt: string;
   category: string;
-  featuredImage: string;
+  featured_image: string;
   content: string;
 }
 
@@ -34,7 +34,7 @@ const ArticleReview: React.FC<ArticleReviewProps> = ({
   publishingOptions, 
   onPublishingOptionsChange 
 }) => {
-  const { title, excerpt, category, featuredImage, content } = data;
+  const { title, excerpt, category, featured_image, content } = data;
   const { profile } = useSupabaseAuth();
   const { users } = useUsers();
   
@@ -72,11 +72,11 @@ const ArticleReview: React.FC<ArticleReviewProps> = ({
   return (
     <div className="space-y-6">
       <Card className="bg-gradient-card border-primary/30 overflow-hidden">
-        {featuredImage && (
+        {featured_image && (
           <div className="aspect-[16/7] w-full overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={featuredImage}
+              src={featured_image}
               alt={`Imagem de destaque do artigo: ${title}`}
               className="h-full w-full object-cover"
               loading="lazy"

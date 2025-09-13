@@ -5,12 +5,12 @@ import ImageUpload from '@/components/ImageUpload';
 import { Image } from 'lucide-react';
 
 interface ArticleImageUploadProps {
-  featuredImage: string;
+  featured_image: string;
   onImageChange: (url: string) => void;
 }
 
 const ArticleImageUpload: React.FC<ArticleImageUploadProps> = ({
-  featuredImage,
+  featured_image,
   onImageChange,
 }) => {
   return (
@@ -26,12 +26,12 @@ const ArticleImageUpload: React.FC<ArticleImageUploadProps> = ({
       </p>
       
       <ImageUpload
-        value={featuredImage}
+        value={featured_image}
         onChange={onImageChange}
         label=""
       />
       
-      {featuredImage && (
+      {featured_image && (
         <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
           <p className="text-xs text-muted-foreground">
             Imagem selecionada: A imagem será exibida na listagem e no topo do artigo

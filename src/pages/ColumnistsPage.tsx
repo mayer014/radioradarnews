@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, User, ArrowRight, Pen } from 'lucide-react';
 import { useUsers } from '@/contexts/UsersContext';
-import { useNews } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -14,7 +14,7 @@ import useAccessibility from '@/hooks/useAccessibility';
 
 const ColumnistsPage = () => {
   const { columnists } = useUsers();
-  const { articles } = useNews();
+  const { articles } = useSupabaseNews();
   const { announcePageChange } = useAccessibility();
 
   // Scroll to top when component mounts
@@ -31,7 +31,7 @@ const ColumnistsPage = () => {
   // Get article count for each columnist
   const getColumnistArticleCount = (columnistId: string) => {
     return articles.filter(article => 
-      article.columnist?.id === columnistId
+      article.columnist_id === columnistId
     ).length;
   };
 

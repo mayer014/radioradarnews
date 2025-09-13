@@ -34,7 +34,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
     content: '',
     excerpt: '',
     category: '',
-    featuredImage: '',
+    featured_image: '',
     featured: false,
     isDraft: false,
     selectedColumnist: ''
@@ -61,7 +61,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           content: article.content,
           excerpt: article.excerpt,
           category: article.category, // Manter categoria como slug interno
-          featuredImage: article.featured_image || '',
+          featured_image: article.featured_image || '',
           featured: article.featured,
           isDraft: article.status === 'draft',
           selectedColumnist: article.columnist_id || ''
@@ -144,7 +144,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           content: formData.content,
           excerpt,
           category: 'Artigo', // Categoria padrão para artigos de colunista
-          featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+          featured_image: formData.featured_image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
           featured: formData.featured,
           status: isDraft ? 'draft' as const : 'published' as const,
           is_column_copy: false,
@@ -166,7 +166,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
             content: formData.content,
             excerpt,
             category: categorySlug,
-            featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+            featured_image: formData.featured_image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
             featured: formData.featured,
             status: isDraft ? 'draft' as const : 'published' as const,
             is_column_copy: false,
@@ -187,7 +187,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
               content: formData.content,
               excerpt,
               category: 'Artigo', // Categoria padrão para artigos de colunista
-              featured_image: formData.featuredImage || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
+              featured_image: formData.featured_image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
               featured: formData.featured,
               status: isDraft ? 'draft' as const : 'published' as const,
               is_column_copy: false,
@@ -252,9 +252,9 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         .substring(0, 60);
 
     // Use generated image if available, otherwise use a default based on category
-    let featuredImage = '';
+    let featured_image = '';
     if (generatedImage?.url) {
-      featuredImage = generatedImage.url;
+      featured_image = generatedImage.url;
     } else {
       // Category-based default images
       const categoryImages = {
@@ -266,8 +266,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         'Tecnologia / Economia': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop',
         'Ciência / Saúde': 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&h=400&fit=crop'
       };
-      featuredImage = categoryImages[rewrittenContent.category_suggestion as keyof typeof categoryImages] || 
-                     'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop';
+      featured_image = categoryImages[rewrittenContent.category_suggestion as keyof typeof categoryImages] || 
+                       'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop';
     }
 
     // Fill form with imported content
@@ -276,7 +276,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       content: rewrittenContent.content_html,
       excerpt: rewrittenContent.excerpt,
       category: getInternalCategorySlug(rewrittenContent.category_suggestion),
-      featuredImage,
+      featured_image,
       featured: false,
       isDraft: saveAsDraft,
       selectedColumnist: ''
@@ -425,8 +425,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 lg:gap-8">
             <div className="xl:col-span-3">
               <ArticleImageUpload
-                featuredImage={formData.featuredImage}
-                onImageChange={(featuredImage) => setFormData({ ...formData, featuredImage })}
+                featured_image={formData.featured_image}
+                onImageChange={(featured_image) => setFormData({ ...formData, featured_image })}
               />
             </div>
             <div className="xl:col-span-1">
@@ -445,7 +445,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
                 title: formData.title,
                 excerpt: formData.excerpt,
                 category: formData.category,
-                featuredImage: formData.featuredImage,
+                featured_image: formData.featured_image,
                 content: formData.content,
               }}
               publishingOptions={publishingOptions}
