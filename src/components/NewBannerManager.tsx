@@ -78,16 +78,16 @@ const NewBannerManager = () => {
       { key: 'footer', label: 'Rodapé', category: 'Sistema' }
     ];
 
-    // Adicionar slots para colunistas ativos
-    const columnistSlots = columnists
-      .filter(user => user.columnistProfile?.isActive !== false) // Verificar se o perfil de colunista está ativo
-      .map(user => ({
-        key: `columnist-${user.id}`,
-        label: `Colunista - ${user.name}`,
-        category: 'Colunistas'
-      }));
+      // Adicionar slots para colunistas ativos
+      const columnistSlots = columnists
+        .filter(user => user.columnistProfile?.isActive !== false)
+        .map(user => ({
+          key: `columnist-${user.id}`,
+          label: `Colunista - ${user.name}`,
+          category: 'Colunistas'
+        }));
 
-    return [...baseSlots, ...columnistSlots];
+      return [...baseSlots, ...columnistSlots];
   }, [columnists]);
   
   const [activeTab, setActiveTab] = useState('banners');
@@ -363,9 +363,15 @@ const NewBannerManager = () => {
                       <div className="w-16 h-16 bg-muted rounded border overflow-hidden">
                         {banner.payload_jsonb?.image_url && (
                           <img
-                            src={banner.payload_jsonb.image_url}
+                            src={banner.payload_jsonb.image_url.startsWith('/src/assets/') 
+                              ? banner.payload_jsonb.image_url.replace('/src/assets/', '/') 
+                              : banner.payload_jsonb.image_url}
                             alt={banner.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Erro ao carregar imagem do banner:', banner.payload_jsonb.image_url);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
                           />
                         )}
                       </div>
@@ -493,9 +499,15 @@ const NewBannerManager = () => {
                 <div className="w-20 h-20 bg-muted rounded border overflow-hidden">
                   {pilotBanner.payload_jsonb?.image_url && (
                     <img
-                      src={pilotBanner.payload_jsonb.image_url}
+                      src={pilotBanner.payload_jsonb.image_url.startsWith('/src/assets/') 
+                        ? pilotBanner.payload_jsonb.image_url.replace('/src/assets/', '/') 
+                        : pilotBanner.payload_jsonb.image_url}
                       alt={pilotBanner.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Erro ao carregar imagem do banner piloto:', pilotBanner.payload_jsonb.image_url);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   )}
                 </div>

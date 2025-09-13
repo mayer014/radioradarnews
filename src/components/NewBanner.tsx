@@ -78,7 +78,12 @@ const NewBanner: React.FC<NewBannerProps> = ({ slotKey, className = '' }) => {
   };
 
   // Extrair URL da imagem do payload
-  const imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
+  let imageUrl = currentBanner.payload_jsonb?.image_url || currentBanner.payload_jsonb?.gif_url;
+  
+  // Converter URLs de /src/assets/ para URLs publicamente acessíveis
+  if (imageUrl && imageUrl.startsWith('/src/assets/')) {
+    imageUrl = imageUrl.replace('/src/assets/', '/');
+  }
   
   if (!imageUrl) {
     return null;

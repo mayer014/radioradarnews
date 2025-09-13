@@ -150,7 +150,7 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
         </div>
 
         {/* Category Banner */}
-        <NewBanner slotKey={`category-${category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '-').replace(/[\/]/g, '-')}`} />
+        <NewBanner slotKey={`category-${category.toLowerCase().replace(/[\s\/]+/g, '-').replace(/[^\w-]/g, '')}`} />
       </div>
     </section>
   );
