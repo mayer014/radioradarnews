@@ -28,6 +28,8 @@ const ColumnistPage = () => {
   const { getActiveBanner } = useBanners();
   const [isLoading, setIsLoading] = React.useState(true);
   const [columnistBanner, setColumnistBanner] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   
   const columnist = columnistId ? getColumnistById(columnistId) : null;
   const articles = columnistId ? getArticlesByColumnist(columnistId) : [];
@@ -45,6 +47,18 @@ const ColumnistPage = () => {
   const sortedArticles = [...articles]
     .filter(article => !article.isColumnCopy)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Pagination
+  const totalPages = Math.ceil(sortedArticles.length / itemsPerPage);
+  const paginatedArticles = sortedArticles.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Generate SEO data
   const currentUrl = window.location.href;
@@ -217,8 +231,13 @@ const ColumnistPage = () => {
               <p className="text-muted-foreground">Nenhum artigo encontrado.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {sortedArticles.map((article) => (
+            <>
+              <div className="mb-6 text-sm text-muted-foreground">
+                Mostrando {paginatedArticles.length} de {sortedArticles.length} artigos
+              </div>
+              
+              <div className="grid grid-cols-1 gap-6 mb-8">
+                {paginatedArticles.map((article) => (
                 <Link key={article.id} to={getArticleLink(article)}>
                   <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden">
                     <div className="flex gap-6 p-6">
@@ -276,8 +295,44 @@ const ColumnistPage = () => {
                     </div>
                   </Card>
                 </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="w-10"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
