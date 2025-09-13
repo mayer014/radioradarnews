@@ -1056,9 +1056,29 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_obsolete_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       ensure_super_admin: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_orphaned_files: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bucket_name: string
+          file_path: string
+          file_size: number
+        }[]
+      }
+      get_storage_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          bucket_name: string
+          file_count: number
+          total_size_mb: number
+        }[]
       }
       increment_article_views: {
         Args: { article_id: string }
