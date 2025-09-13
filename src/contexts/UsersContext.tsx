@@ -172,7 +172,32 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         throw error;
       }
 
-      console.log('Perfil atualizado com sucesso');
+      // Atualizar o estado local imediatamente após sucesso no banco
+      setUsers(prevUsers => 
+        prevUsers.map(user => {
+          if (user.id === id) {
+            const updatedUser = { ...user };
+            
+            // Aplicar atualizações básicas
+            if (updates.name !== undefined) updatedUser.name = updates.name;
+            if (updates.username !== undefined) updatedUser.username = updates.username;
+            if (updates.role !== undefined) updatedUser.role = updates.role;
+            
+            // Aplicar atualizações do perfil do colunista
+            if (updates.columnistProfile && updatedUser.columnistProfile) {
+              updatedUser.columnistProfile = {
+                ...updatedUser.columnistProfile,
+                ...updates.columnistProfile
+              };
+            }
+            
+            return updatedUser;
+          }
+          return user;
+        })
+      );
+
+      console.log('Perfil atualizado com sucesso e estado local atualizado');
       return { error: null };
     } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
