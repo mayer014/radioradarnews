@@ -1,116 +1,145 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { User } from '@/contexts/UsersContext';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+
+interface Profile {
+  id: string;
+  username: string;
+  name: string;
+  role: 'admin' | 'colunista';
+  bio?: string;
+  specialty?: string;
+  allowed_categories?: string[];
+  avatar?: string;
+  is_active: boolean;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  currentUser: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  currentUser: SupabaseUser | null;
+  currentProfile: Profile | null;
+  session: Session | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, userData: { username: string; name: string; role?: 'admin' | 'colunista' }) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
 }
-
-const SESSION_KEY = 'current_user';
-const USERS_KEY = 'users_store';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const isAuthenticated = !!currentUser;
+  const [currentUser, setCurrentUser] = useState<SupabaseUser | null>(null);
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Restore session if exists and sync with latest user data
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as User;
-        
-        // Get the most up-to-date user data from users store
-        const usersRaw = localStorage.getItem(USERS_KEY);
-        if (usersRaw) {
-          const users: User[] = JSON.parse(usersRaw);
-          const updatedUser = users.find((u) => u.id === parsed.id);
-          if (updatedUser) {
-            console.log('🔄 Sessão restaurada:', updatedUser.name);
-            setCurrentUser(updatedUser);
-            localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser));
-            return;
-          }
-        }
-        
-        console.log('⚠️ Usuário da sessão não encontrado no contexto');
-        setCurrentUser(parsed);
-      } catch (error) {
-        console.error('❌ Erro ao restaurar sessão:', error);
-        localStorage.removeItem(SESSION_KEY);
-      }
-    }
-  }, []);
+  const isAuthenticated = !!currentUser && !!session;
 
-  // Listen for changes in users store to update current user
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === USERS_KEY && currentUser) {
-        try {
-          const users: User[] = e.newValue ? JSON.parse(e.newValue) : [];
-          const updatedUser = users.find((u) => u.id === currentUser.id);
-          if (updatedUser) {
-            console.log('🔄 Dados do usuário atualizados via storage:', updatedUser.name);
-            setCurrentUser(updatedUser);
-            localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser));
-          }
-        } catch (error) {
-          console.error('❌ Erro ao sincronizar usuário atual:', error);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [currentUser]);
-
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const fetchProfile = async (userId: string) => {
     try {
-      console.log('🔐 Tentativa de login:', username);
-      
-      // Buscar usuário no localStorage consolidado
-      const raw = localStorage.getItem(USERS_KEY);
-      const users: User[] = raw ? JSON.parse(raw) : [];
-      const user = users.find((u) => u.username === username && u.password === password);
-      
-      if (!user) {
-        console.log('❌ Usuário/senha inválidos');
-        return false;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao buscar perfil:', error);
+        return null;
       }
 
-      // Verificar se colunista está ativo
-      if (user.role === 'colunista' && user.columnistProfile && !user.columnistProfile.isActive) {
-        console.log('❌ Colunista inativo:', user.name);
-        return false;
-      }
-
-      console.log('✅ Login bem-sucedido:', user.name);
-      
-      // Salvar sessão
-      setCurrentUser(user);
-      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      localStorage.setItem('admin_authenticated', 'true'); // Compatibility
-      
-      return true;
+      return data;
     } catch (error) {
-      console.error('❌ Erro no login:', error);
-      return false;
+      console.error('Erro ao buscar perfil:', error);
+      return null;
     }
   };
 
-  const logout = (): void => {
-    console.log('🚪 Logout realizado');
-    setCurrentUser(null);
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem('admin_authenticated');
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setCurrentUser(session?.user ?? null);
+        
+        if (session?.user) {
+          setTimeout(async () => {
+            const profile = await fetchProfile(session.user.id);
+            setCurrentProfile(profile);
+          }, 0);
+        } else {
+          setCurrentProfile(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setCurrentUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id).then(profile => {
+          setCurrentProfile(profile);
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message || 'Erro ao fazer login' };
+    }
+  };
+
+  const signUp = async (email: string, password: string, userData: { username: string; name: string; role?: 'admin' | 'colunista' }) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: userData
+        }
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message || 'Erro ao criar conta' };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, currentUser, login, logout }}>
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      currentUser,
+      currentProfile,
+      session,
+      loading,
+      signIn,
+      signUp,
+      signOut
+    }}>
       {children}
     </AuthContext.Provider>
   );

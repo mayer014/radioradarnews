@@ -14,8 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import ColumnistProfileEditor from '@/components/ColumnistProfileEditor';
 
 const UsersManager: React.FC = () => {
-  const { users, columnists, addUser, deleteUser, resetPassword, updateUser, migrateFromSupabase, exportUsers, isLoading } = useUsers();
+  const { users, addUser, updateUser, deleteUser, resetPassword, isLoading, refreshUsers } = useUsers();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     role: 'colunista' as 'admin' | 'colunista',
     name: '',
@@ -123,21 +124,24 @@ const UsersManager: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
           <div className="flex gap-2">
-            <Button
-              onClick={migrateFromSupabase}
-              disabled={isLoading}
-              variant="outline"
-              className="border-primary/50"
-            >
-              {isLoading ? 'Migrando...' : 'Migrar do Supabase'}
-            </Button>
-            <Button
-              onClick={exportUsers}
-              variant="outline"
-              className="border-secondary/50"
-            >
-              Exportar Backup
-            </Button>
+  const handleMigrateSupabase = async () => {
+    try {
+      setIsSubmitting(true);
+      await refreshUsers();
+      toast({
+        title: "Migração concluída",
+        description: "Usuários atualizados do Supabase.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro na migração",
+        description: "Não foi possível migrar os usuários.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
           </div>
         </div>
       </div>

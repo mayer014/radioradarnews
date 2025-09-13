@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_configurations: {
+        Row: {
+          api_key_encrypted: string | null
+          config_json: Json | null
+          created_at: string | null
+          id: string
+          provider_name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          config_json?: Json | null
+          created_at?: string | null
+          id?: string
+          provider_name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          config_json?: Json | null
+          created_at?: string | null
+          id?: string
+          provider_name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       article_tags: {
         Row: {
           article_id: string
@@ -559,6 +589,51 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_settings: {
+        Row: {
+          allow_replies: boolean | null
+          auto_approve: boolean | null
+          auto_approve_keywords: string[] | null
+          auto_reject_keywords: string[] | null
+          blocked_emails: string[] | null
+          created_at: string | null
+          id: string
+          max_content_length: number | null
+          moderation_enabled: boolean | null
+          require_email: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          allow_replies?: boolean | null
+          auto_approve?: boolean | null
+          auto_approve_keywords?: string[] | null
+          auto_reject_keywords?: string[] | null
+          blocked_emails?: string[] | null
+          created_at?: string | null
+          id?: string
+          max_content_length?: number | null
+          moderation_enabled?: boolean | null
+          require_email?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          allow_replies?: boolean | null
+          auto_approve?: boolean | null
+          auto_approve_keywords?: string[] | null
+          auto_reject_keywords?: string[] | null
+          blocked_emails?: string[] | null
+          created_at?: string | null
+          id?: string
+          max_content_length?: number | null
+          moderation_enabled?: boolean | null
+          require_email?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           article_id: string
@@ -742,6 +817,30 @@ export type Database = {
         }
         Relationships: []
       }
+      local_storage_backup: {
+        Row: {
+          id: string
+          migrated_at: string | null
+          storage_key: string
+          storage_value: Json
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          migrated_at?: string | null
+          storage_key: string
+          storage_value: Json
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          migrated_at?: string | null
+          storage_key?: string
+          storage_value?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       media_assets: {
         Row: {
           bucket_name: string
@@ -895,6 +994,69 @@ export type Database = {
           id?: string
           name?: string
           subject?: string
+        }
+        Relationships: []
+      }
+      notification_rules: {
+        Row: {
+          actions: Json | null
+          conditions: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          rule_name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          actions?: Json | null
+          conditions?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
