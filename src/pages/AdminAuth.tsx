@@ -134,9 +134,6 @@ const AdminAuth = () => {
               </Button>
             </form>
 
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Super Admin: adm@radioradar.news</p>
-            </div>
           </div>
         </Card>
       </div>
