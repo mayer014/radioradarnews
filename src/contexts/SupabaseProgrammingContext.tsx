@@ -161,8 +161,11 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
       if (error) {
         console.error('Error adding program:', error);
-        return { error: 'Erro ao adicionar programa' };
+        return { error: error.message || 'Erro ao adicionar programa' };
       }
+
+      // Atualiza imediatamente a lista (sem depender do realtime)
+      await fetchPrograms();
 
       toast({
         title: "Programa adicionado",
@@ -170,9 +173,9 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding program:', error);
-      return { error: 'Erro ao adicionar programa' };
+      return { error: error?.message || 'Erro ao adicionar programa' };
     }
   };
 
@@ -185,8 +188,11 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
       if (error) {
         console.error('Error updating program:', error);
-        return { error: 'Erro ao atualizar programa' };
+        return { error: error.message || 'Erro ao atualizar programa' };
       }
+
+      // Atualiza imediatamente a lista (sem depender do realtime)
+      await fetchPrograms();
 
       toast({
         title: "Programa atualizado",
@@ -194,9 +200,9 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating program:', error);
-      return { error: 'Erro ao atualizar programa' };
+      return { error: error?.message || 'Erro ao atualizar programa' };
     }
   };
 
@@ -209,8 +215,11 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
       if (error) {
         console.error('Error deleting program:', error);
-        return { error: 'Erro ao deletar programa' };
+        return { error: error.message || 'Erro ao deletar programa' };
       }
+
+      // Atualiza imediatamente a lista (sem depender do realtime)
+      await fetchPrograms();
 
       toast({
         title: "Programa deletado",
@@ -218,9 +227,9 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting program:', error);
-      return { error: 'Erro ao deletar programa' };
+      return { error: error?.message || 'Erro ao deletar programa' };
     }
   };
 
