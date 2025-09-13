@@ -9,19 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBanners } from '@/hooks/useBanners';
-import { ImageUpload } from '@/components/ImageUpload';
+import ImageUpload from '@/components/ImageUpload';
 import { useUsers } from '@/contexts/UsersContext';
 
 interface Banner {
   id: string;
   title: string;
   image_url: string;
-  banner_type: 'pilot' | 'hero' | 'category' | 'columnist';
+  banner_type: string;
   target_category?: string;
   target_columnist_id?: string;
   start_date?: string;
   end_date?: string;
-  status: 'active' | 'scheduled' | 'expired' | 'draft';
+  status: string;
   sort_order: number;
   is_pilot: boolean;
   created_at: string;
@@ -47,12 +47,12 @@ const BannerManager: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     image_url: '',
-    banner_type: 'hero' as 'pilot' | 'hero' | 'category' | 'columnist',
+    banner_type: 'hero',
     target_category: '',
     target_columnist_id: '',
     start_date: '',
     end_date: '',
-    status: 'draft' as 'active' | 'scheduled' | 'expired' | 'draft',
+    status: 'draft',
     sort_order: 0
   });
 
@@ -193,8 +193,8 @@ const BannerManager: React.FC = () => {
               <div>
                 <Label>Imagem do Banner</Label>
                 <ImageUpload
-                  onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
-                  currentImage={formData.image_url}
+                  value={formData.image_url}
+                  onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
                 />
                 {formData.image_url && (
                   <div className="mt-2">
@@ -211,7 +211,7 @@ const BannerManager: React.FC = () => {
                 <Label htmlFor="banner_type">Tipo do Banner</Label>
                 <Select
                   value={formData.banner_type}
-                  onValueChange={(value: 'hero' | 'category' | 'columnist') => 
+                  onValueChange={(value) => 
                     setFormData(prev => ({ 
                       ...prev, 
                       banner_type: value,
@@ -299,7 +299,7 @@ const BannerManager: React.FC = () => {
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value: 'active' | 'scheduled' | 'expired' | 'draft') => 
+                    onValueChange={(value) => 
                       setFormData(prev => ({ ...prev, status: value }))
                     }
                   >

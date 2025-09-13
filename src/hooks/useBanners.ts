@@ -1,17 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+// Use proper Supabase types
+type BannerRow = Database['public']['Tables']['banners']['Row'];
+type BannerInsert = Database['public']['Tables']['banners']['Insert'];
+type BannerUpdate = Database['public']['Tables']['banners']['Update'];
 
 interface Banner {
   id: string;
   title: string;
   image_url: string;
-  banner_type: 'pilot' | 'hero' | 'category' | 'columnist';
+  banner_type: string;
   target_category?: string;
   target_columnist_id?: string;
   start_date?: string;
   end_date?: string;
-  status: 'active' | 'scheduled' | 'expired' | 'draft';
+  status: string;
   sort_order: number;
   is_pilot: boolean;
   created_at: string;
@@ -23,7 +29,7 @@ interface ActiveBanner {
   id: string;
   title: string;
   image_url: string;
-  banner_type: 'pilot' | 'hero' | 'category' | 'columnist';
+  banner_type: string;
   is_pilot: boolean;
 }
 
@@ -64,14 +70,37 @@ export const useBanners = () => {
     targetColumnistId?: string
   ): Promise<ActiveBanner | null> => {
     try {
-      const { data, error } = await supabase.rpc('get_active_banner', {
-        p_banner_type: bannerType,
-        p_target_category: targetCategory || null,
-        p_target_columnist_id: targetColumnistId || null
-      });
+      let query = supabase
+        .from('banners')
+        .select('id, title, image_url, banner_type, is_pilot')
+        .eq('banner_type', bannerType)
+        .in('status', ['active', 'scheduled'])
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (bannerType === 'category' && targetCategory) {
+        query = query.eq('target_category', targetCategory);
+      } else if (bannerType === 'columnist' && targetColumnistId) {
+        query = query.eq('target_columnist_id', targetColumnistId);
+      }
+
+      const { data, error } = await query.limit(1).single();
+
+      if (error && error.code === 'PGRST116') {
+        // No banner found, try to get pilot banner
+        const { data: pilotData, error: pilotError } = await supabase
+          .from('banners')
+          .select('id, title, image_url, banner_type, is_pilot')
+          .eq('is_pilot', true)
+          .eq('status', 'active')
+          .single();
+        
+        if (pilotError) return null;
+        return pilotData;
+      }
 
       if (error) throw error;
-      return data && data.length > 0 ? data[0] : null;
+      return data;
     } catch (error) {
       console.error('Error getting active banner:', error);
       return null;
@@ -79,11 +108,11 @@ export const useBanners = () => {
   }, []);
 
   // Create new banner
-  const createBanner = useCallback(async (bannerData: Omit<Banner, 'id' | 'created_at' | 'updated_at'>) => {
+  const createBanner = useCallback(async (bannerData: Partial<Banner>) => {
     try {
       const { data, error } = await supabase
         .from('banners')
-        .insert([bannerData])
+        .insert([bannerData as BannerInsert])
         .select()
         .single();
 
@@ -112,7 +141,7 @@ export const useBanners = () => {
     try {
       const { data, error } = await supabase
         .from('banners')
-        .update(updates)
+        .update(updates as BannerUpdate)
         .eq('id', id)
         .select()
         .single();

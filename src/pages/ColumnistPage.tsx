@@ -32,36 +32,6 @@ const ColumnistPage = () => {
   const columnist = columnistId ? getColumnistById(columnistId) : null;
   const articles = columnistId ? getArticlesByColumnist(columnistId) : [];
   
-  // Loading state and scroll management
-  useEffect(() => {
-    setIsLoading(true);
-    announceLoadingState(true, 'perfil do colunista');
-    window.scrollTo(0, 0);
-    
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      announceLoadingState(false, 'perfil do colunista');
-      
-      if (columnist) {
-        announcePageChange(`Perfil do colunista carregado: ${columnist.name}`);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [columnistId, columnist, announceLoadingState, announcePageChange]);
-
-  // Load columnist banner
-  useEffect(() => {
-    if (columnistId && currentColumnist) {
-      const loadColumnistBanner = async () => {
-        const banner = await getActiveBanner('columnist', undefined, columnistId);
-        setColumnistBanner(banner);
-      };
-      
-      loadColumnistBanner();
-    }
-  }, [columnistId, currentColumnist, getActiveBanner]);
-  
   const columnistUser = users.find(user => user.id === columnistId && user.role === 'colunista');
   const isColumnistActive = columnistUser?.columnistProfile?.isActive ?? false;
   

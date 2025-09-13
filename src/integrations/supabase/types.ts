@@ -327,6 +327,57 @@ export type Database = {
         }
         Relationships: []
       }
+      banners: {
+        Row: {
+          banner_type: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          id: string
+          image_url: string
+          is_pilot: boolean
+          sort_order: number
+          start_date: string | null
+          status: string
+          target_category: string | null
+          target_columnist_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          banner_type?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          image_url: string
+          is_pilot?: boolean
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          target_category?: string | null
+          target_columnist_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          banner_type?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          is_pilot?: boolean
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          target_category?: string | null
+          target_columnist_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color_hex: string | null

@@ -46,6 +46,7 @@ import RadioPlayer from '@/components/RadioPlayer';
 import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor';
 import CommentsManager from '@/components/CommentsManager';
 import NotificationsManager from '@/components/NotificationsManager';
+import BannerManager from '@/components/BannerManager';
 
 
 const AdminPanel = () => {
@@ -57,7 +58,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -453,6 +454,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Notificações</span>
                 <span className="sm:hidden">Not</span>
               </Button>
+              <Button
+                variant={activeTab === 'banners' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('banners')}
+                className={`${activeTab === 'banners' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Image className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Banners</span>
+                <span className="sm:hidden">Ban</span>
+              </Button>
             </div>
           </div>
         )}
@@ -828,6 +839,11 @@ const AdminPanel = () => {
         {/* Notificações - apenas para admin */}
         {activeTab === 'notifications' && isAdmin && (
           <NotificationsManager />
+        )}
+
+        {/* Banners - apenas para admin */}
+        {activeTab === 'banners' && isAdmin && (
+          <BannerManager />
         )}
       </div>
       
