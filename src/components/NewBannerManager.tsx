@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { useNewBanner } from '@/contexts/NewBannerContext';
+import { useUsers } from '@/contexts/UsersContext';
 import { useToast } from '@/hooks/use-toast';
+import { useBannerSync } from '@/hooks/useBannerSync';
 import { 
   Edit, 
   Plus, 
@@ -22,23 +25,10 @@ import {
   Play,
   Settings,
   Target,
-  ExternalLink
+  ExternalLink,
+  Users
 } from 'lucide-react';
 import { uploadBannerFile, validateImageFile } from '@/utils/fileUpload';
-
-const SLOT_KEYS = [
-  { key: 'hero', label: 'Banner Principal (Hero)' },
-  { key: 'category-politica', label: 'Categoria - Política' },
-  { key: 'category-economia', label: 'Categoria - Economia' },
-  { key: 'category-esportes', label: 'Categoria - Esportes' },
-  { key: 'category-entretenimento', label: 'Categoria - Entretenimento' },
-  { key: 'category-tecnologia', label: 'Categoria - Tecnologia' },
-  { key: 'category-saude', label: 'Categoria - Saúde' },
-  { key: 'category-internacional', label: 'Categoria - Internacional' },
-  { key: 'category-policial', label: 'Categoria - Policial' },
-  { key: 'sidebar', label: 'Barra Lateral' },
-  { key: 'footer', label: 'Rodapé' }
-];
 
 interface BannerForm {
   name: string;
@@ -70,7 +60,39 @@ const NewBannerManager = () => {
     cleanupExpired 
   } = useNewBanner();
   
+  const { users, columnists } = useUsers();
   const { toast } = useToast();
+  
+  // Hook para sincronizar banners de colunistas
+  useBannerSync();
+
+  // Gerar slots dinamicamente baseado nos usuários
+  const dynamicSlotKeys = useMemo(() => {
+    const baseSlots = [
+      { key: 'hero', label: 'Banner Principal (Hero)', category: 'Sistema' },
+      { key: 'category-politica', label: 'Categoria - Política', category: 'Categorias' },
+      { key: 'category-economia', label: 'Categoria - Economia', category: 'Categorias' },
+      { key: 'category-esportes', label: 'Categoria - Esportes', category: 'Categorias' },
+      { key: 'category-entretenimento', label: 'Categoria - Entretenimento', category: 'Categorias' },
+      { key: 'category-tecnologia', label: 'Categoria - Tecnologia', category: 'Categorias' },
+      { key: 'category-saude', label: 'Categoria - Saúde', category: 'Categorias' },
+      { key: 'category-internacional', label: 'Categoria - Internacional', category: 'Categorias' },
+      { key: 'category-policial', label: 'Categoria - Policial', category: 'Categorias' },
+      { key: 'sidebar', label: 'Barra Lateral', category: 'Sistema' },
+      { key: 'footer', label: 'Rodapé', category: 'Sistema' }
+    ];
+
+    // Adicionar slots para colunistas ativos
+    const columnistSlots = columnists
+      .filter(user => user.columnistProfile?.isActive !== false) // Verificar se o perfil de colunista está ativo
+      .map(user => ({
+        key: `columnist-${user.id}`,
+        label: `Colunista - ${user.name}`,
+        category: 'Colunistas'
+      }));
+
+    return [...baseSlots, ...columnistSlots];
+  }, [columnists]);
   
   const [activeTab, setActiveTab] = useState('banners');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -399,10 +421,25 @@ const NewBannerManager = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {SLOT_KEYS.map(slot => (
-                  <SelectItem key={slot.key} value={slot.key}>
-                    {slot.label}
-                  </SelectItem>
+                {/* Agrupar slots por categoria */}
+                {Object.entries(
+                  dynamicSlotKeys.reduce((acc, slot) => {
+                    if (!acc[slot.category]) acc[slot.category] = [];
+                    acc[slot.category].push(slot);
+                    return acc;
+                  }, {} as Record<string, typeof dynamicSlotKeys>)
+                ).map(([category, slots]) => (
+                  <div key={category}>
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                      {category}
+                    </div>
+                    {slots.map(slot => (
+                      <SelectItem key={slot.key} value={slot.key} className="pl-4">
+                        {slot.label}
+                      </SelectItem>
+                    ))}
+                    <Separator className="my-1" />
+                  </div>
                 ))}
               </SelectContent>
             </Select>
@@ -651,10 +688,25 @@ const NewBannerManager = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SLOT_KEYS.map(slot => (
-                    <SelectItem key={slot.key} value={slot.key}>
-                      {slot.label}
-                    </SelectItem>
+                  {/* Agrupar slots por categoria */}
+                  {Object.entries(
+                    dynamicSlotKeys.reduce((acc, slot) => {
+                      if (!acc[slot.category]) acc[slot.category] = [];
+                      acc[slot.category].push(slot);
+                      return acc;
+                    }, {} as Record<string, typeof dynamicSlotKeys>)
+                  ).map(([category, slots]) => (
+                    <div key={category}>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                        {category}
+                      </div>
+                      {slots.map(slot => (
+                        <SelectItem key={slot.key} value={slot.key} className="pl-4">
+                          {slot.label}
+                        </SelectItem>
+                      ))}
+                      <Separator className="my-1" />
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
