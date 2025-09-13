@@ -75,7 +75,7 @@ const NewsPage = () => {
       'Entretenimento': 'bg-gradient-to-br from-purple-50/80 via-background to-purple-50/40',
       'Internacional': 'bg-gradient-to-br from-green-50/80 via-background to-green-50/40',
       'Esportes': 'bg-gradient-to-br from-orange-50/80 via-background to-orange-50/40',
-      'Tecnologia': 'bg-gradient-to-br from-cyan-50/80 via-background to-cyan-50/40',
+      'Tecnologia / Economia': 'bg-gradient-to-br from-cyan-50/80 via-background to-cyan-50/40',
       'Ciência / Saúde': 'bg-gradient-to-br from-violet-50/80 via-background to-violet-50/40',
       'Todas': 'bg-background'
     };

@@ -32,7 +32,7 @@ export const getCategoryColors = (categoryName: string, theme: 'light' | 'dark')
       bgClass: 'bg-neutral-50',
       borderClass: 'border-neutral-200'
     },
-    'Tecnologia': {
+    'Tecnologia / Economia': {
       colorClass: 'text-slate-700',
       bgClass: 'bg-slate-100',
       borderClass: 'border-slate-300'
@@ -75,7 +75,7 @@ export const getCategoryColors = (categoryName: string, theme: 'light' | 'dark')
       bgClass: 'bg-orange-400/20',
       borderClass: 'border-orange-400/30'
     },
-    'Tecnologia': {
+    'Tecnologia / Economia': {
       colorClass: 'text-cyan-400',
       bgClass: 'bg-cyan-400/20',
       borderClass: 'border-cyan-400/30'

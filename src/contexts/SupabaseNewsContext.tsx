@@ -39,7 +39,7 @@ export const BASE_NEWS_CATEGORIES = [
   'Entretenimento',
   'Internacional',
   'Esportes',
-  'Tecnologia',
+  'Tecnologia / Economia',
   'Ciência / Saúde'
 ];
 

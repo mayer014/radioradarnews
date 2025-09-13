@@ -261,7 +261,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
         'Entretenimento': 'https://images.unsplash.com/photo-1499364615650-ec38552909c6?w=800&h=400&fit=crop',
         'Internacional': 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&h=400&fit=crop',
         'Esportes': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=400&fit=crop',
-        'Tecnologia': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop',
+        'Tecnologia / Economia': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop',
         'Ciência / Saúde': 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&h=400&fit=crop'
       };
       featuredImage = categoryImages[rewrittenContent.category_suggestion as keyof typeof categoryImages] || 
