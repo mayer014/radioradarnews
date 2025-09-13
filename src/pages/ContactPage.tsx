@@ -3,7 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
 import { useContact } from '@/contexts/ContactContext';
-import { useContactInfo } from '@/contexts/ContactInfoContext';
+import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import useAccessibility from '@/hooks/useAccessibility';
 
 const ContactPage = () => {
   const { addMessage } = useContact();
-  const { contactInfo } = useContactInfo();
+  const { contactInfo } = useSupabaseContactInfo();
   const { toast } = useToast();
   const { announcePageChange } = useAccessibility();
   const [formData, setFormData] = useState({
@@ -198,8 +198,8 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Telefone</h3>
-                      <p className="text-muted-foreground">{contactInfo.phone1}</p>
-                      {contactInfo.phone2 && (
+                      <p className="text-muted-foreground">{contactInfo?.phone1}</p>
+                      {contactInfo?.phone2 && (
                         <p className="text-muted-foreground">{contactInfo.phone2}</p>
                       )}
                     </div>
@@ -213,8 +213,8 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Email</h3>
-                      <p className="text-muted-foreground">{contactInfo.email1}</p>
-                      {contactInfo.email2 && (
+                      <p className="text-muted-foreground">{contactInfo?.email1}</p>
+                      {contactInfo?.email2 && (
                         <p className="text-muted-foreground">{contactInfo.email2}</p>
                       )}
                     </div>
@@ -229,9 +229,9 @@ const ContactPage = () => {
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Endereço</h3>
                       <p className="text-muted-foreground">
-                        {contactInfo.address}<br />
-                        {contactInfo.city} - {contactInfo.state}<br />
-                        {contactInfo.zipCode && `CEP: ${contactInfo.zipCode}`}
+                        {contactInfo?.address}<br />
+                        {contactInfo?.city} - {contactInfo?.state}<br />
+                        {contactInfo?.zip_code && `CEP: ${contactInfo.zip_code}`}
                       </p>
                     </div>
                   </div>
@@ -245,9 +245,9 @@ const ContactPage = () => {
                     <div>
                       <h3 className="font-semibold text-foreground mb-1">Horário</h3>
                       <p className="text-muted-foreground">
-                        {contactInfo.hours.weekdays}<br />
-                        {contactInfo.hours.saturday}<br />
-                        {contactInfo.hours.sunday}
+                        {contactInfo?.weekdays_hours}<br />
+                        {contactInfo?.saturday_hours}<br />
+                        {contactInfo?.sunday_hours}
                       </p>
                     </div>
                   </div>
