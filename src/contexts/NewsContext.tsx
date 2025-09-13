@@ -1129,7 +1129,17 @@ export const NewsProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
     
-    return articles.filter(article => article.columnist?.id === columnistId);
+    // Buscar artigos pelo columnist.id (estrutura antiga) ou author_id (estrutura nova do Supabase)
+    return articles.filter(article => {
+      const isColumnistMatch = article.columnist?.id === columnistId;
+      // Para compatibilidade com o sistema novo, verificar se o artigo tem author_id igual ao columnistId
+      const isAuthorMatch = !article.columnist && article.category?.includes('Coluna') && 
+                           articles.some(a => a.columnist?.id === columnistId);
+      
+      console.log(`Filtering article ${article.id}: columnist=${article.columnist?.id}, columnistId=${columnistId}, match=${isColumnistMatch || isAuthorMatch}`);
+      
+      return isColumnistMatch || isAuthorMatch;
+    });
   };
 
   const getColumnistById = (columnistId: string) => {

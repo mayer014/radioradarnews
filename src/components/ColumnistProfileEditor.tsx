@@ -35,7 +35,7 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
     bio: columnist?.columnistProfile?.bio || 'Colunista do portal.',
     specialty: columnist?.columnistProfile?.specialty || 'Colunista',
     avatar: columnist?.columnistProfile?.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&crop=face',
-    allowedCategories: columnist?.columnistProfile?.allowedCategories || []
+    allowedCategories: [] // Colunistas não usam categorias
   });
 
   const handleSave = async () => {
@@ -46,10 +46,7 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
       return;
     }
 
-    if (profileData.allowedCategories.length === 0) {
-      toast({ title: 'Selecione pelo menos uma categoria', variant: 'destructive' });
-      return;
-    }
+    // Colunistas não necessitam de categorias - removida validação
 
     try {
       // Atualizar no localStorage (UsersContext)
@@ -61,7 +58,7 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
           bio: profileData.bio,
           specialty: profileData.specialty,
           avatar: profileData.avatar,
-          allowedCategories: profileData.allowedCategories,
+          allowedCategories: [], // Colunistas não usam categorias
           isActive: columnist.columnistProfile?.isActive ?? true,
         }
       });
@@ -74,7 +71,7 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
           bio: profileData.bio,
           specialty: profileData.specialty,
           avatar: profileData.avatar,
-          allowed_categories: profileData.allowedCategories,
+          allowed_categories: [], // Colunistas não usam categorias
           updated_at: new Date().toISOString()
         })
         .eq('id', columnistId);
@@ -104,21 +101,7 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
     onClose();
   };
 
-  const addCategory = (category: string) => {
-    if (!profileData.allowedCategories.includes(category)) {
-      setProfileData({
-        ...profileData,
-        allowedCategories: [...profileData.allowedCategories, category]
-      });
-    }
-  };
-
-  const removeCategory = (category: string) => {
-    setProfileData({
-      ...profileData,
-      allowedCategories: profileData.allowedCategories.filter(c => c !== category)
-    });
-  };
+  // Funções de categoria removidas - colunistas não usam categorias
 
   if (!columnist) return null;
 
@@ -181,51 +164,13 @@ const ColumnistProfileEditor: React.FC<ColumnistProfileEditorProps> = ({
             columnistName={profileData.name}
           />
 
-          {/* Categorias Permitidas */}
+          {/* Informação sobre categoria - removida seção de categorias para colunistas */}
           <Card className="bg-gradient-card border-primary/30 p-6">
-            <h3 className="text-lg font-semibold mb-4">Categorias Permitidas</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label>Categorias atuais</Label>
-                <div className="flex flex-wrap gap-2 min-h-[40px] p-3 border border-border/50 rounded-md bg-muted/20">
-                  {profileData.allowedCategories.length === 0 ? (
-                    <span className="text-muted-foreground text-sm">Nenhuma categoria selecionada</span>
-                  ) : (
-                    profileData.allowedCategories.map((cat) => (
-                      <Badge key={cat} variant="secondary" className="flex items-center gap-1">
-                        {cat}
-                        <X 
-                          className="h-3 w-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => removeCategory(cat)}
-                        />
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label>Adicionar categoria</Label>
-                <Select value="" onValueChange={addCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria para adicionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BASE_NEWS_CATEGORIES
-                      .filter(c => !profileData.allowedCategories.includes(c))
-                      .map((c) => (
-                        <SelectItem key={c} value={c}>
-                          <div className="flex items-center gap-2">
-                            <Plus className="h-4 w-4" />
-                            {c}
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <h3 className="text-lg font-semibold mb-4">Informações do Colunista</h3>
+            <p className="text-muted-foreground text-sm">
+              Colunistas publicam artigos de opinião independentes de categorias. 
+              Seus textos aparecem na seção "Últimos Artigos dos Colunistas" e na página pessoal do colunista.
+            </p>
           </Card>
 
           {/* Botões de Ação */}

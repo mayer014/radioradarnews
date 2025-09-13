@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import RadioPlayer from '@/components/RadioPlayer';
-import { useNews } from '@/contexts/NewsContext';
+import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -21,7 +21,7 @@ import { useBanners } from '@/hooks/useBanners';
 
 const ColumnistPage = () => {
   const { columnistId } = useParams<{ columnistId: string }>();
-  const { getColumnistById, getArticlesByColumnist } = useNews();
+  const { getArticlesByColumnist } = useSupabaseNews();
   const { users, isLoading: usersLoading } = useUsers();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
@@ -31,14 +31,13 @@ const ColumnistPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   
-  const columnist = columnistId ? getColumnistById(columnistId) : null;
   const articles = columnistId ? getArticlesByColumnist(columnistId) : [];
   
   const columnistUser = users.find(user => user.id === columnistId && user.role === 'colunista');
   const isColumnistActive = columnistUser?.columnistProfile?.isActive ?? false;
   
   // Use the user data directly to ensure we have the latest avatar
-  const currentColumnist = columnistUser?.columnistProfile || columnist;
+  const currentColumnist = columnistUser?.columnistProfile;
   
   // Data loading and banner fetch
   useEffect(() => {
@@ -63,8 +62,8 @@ const ColumnistPage = () => {
   
   // Organizar artigos por data (mais recentes primeiro) - excluir cópias automáticas
   const sortedArticles = [...articles]
-    .filter(article => !article.isColumnCopy)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .filter(article => !article.is_column_copy)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   // Pagination
   const totalPages = Math.ceil(sortedArticles.length / itemsPerPage);
@@ -115,10 +114,10 @@ const ColumnistPage = () => {
         <main className="flex items-center justify-center min-h-screen" id="main-content">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">
-              {!columnist ? 'Colunista não encontrado' : 'Colunista não está ativo no momento'}
+              {!currentColumnist ? 'Colunista não encontrado' : 'Colunista não está ativo no momento'}
             </h1>
             <p className="text-muted-foreground mb-6">
-              {!columnist 
+              {!currentColumnist 
                 ? 'O colunista que você está procurando não existe.' 
                 : 'Este colunista não está publicando artigos no momento.'
               }
@@ -262,7 +261,7 @@ const ColumnistPage = () => {
                       {/* Imagem do artigo */}
                       <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
                         <img
-                          src={article.featuredImage}
+                          src={article.featured_image}
                           alt={article.title}
                           className="w-32 h-32 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                         />
@@ -283,7 +282,7 @@ const ColumnistPage = () => {
                           </Badge>
                           <div className="flex items-center text-xs text-muted-foreground">
                             <Calendar className="w-3 h-3 mr-1" />
-                            <span>{new Date(article.createdAt).toLocaleDateString('pt-BR')}</span>
+                            <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
 
@@ -298,7 +297,7 @@ const ColumnistPage = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center text-xs text-muted-foreground">
                             <Clock className="w-3 h-3 mr-1" />
-                            <span>{new Date(article.createdAt).toLocaleString('pt-BR')}</span>
+                            <span>{new Date(article.created_at).toLocaleString('pt-BR')}</span>
                           </div>
                           
                           <Button 
