@@ -35,10 +35,10 @@ export const ENV = {
   },
   
   // Radio - prefer runtime (env.js), then build-time, then default
-  get RADIO_STREAM_URL() {
-    const runtime = getRuntimeEnv();
-    return runtime.RADIO_STREAM_URL || import.meta.env.VITE_RADIO_STREAM_URL || 'https://servidor25.brlogic.com:8166/live';
-  },
+      get RADIO_STREAM_URL() {
+        console.warn('RADIO_STREAM_URL is no longer supported - Radio system has been removed');
+        return '';
+      },
   
   // Groq API Key - from runtime env.js (Easypanel will inject it)
   get GROQ_API_KEY() {

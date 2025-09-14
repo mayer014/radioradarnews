@@ -9,15 +9,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SupabaseNewsProvider } from "@/contexts/SupabaseNewsContext";
 import { SupabaseContactInfoProvider } from "@/contexts/SupabaseContactInfoContext";
 import { SupabaseCommentsProvider } from "@/contexts/SupabaseCommentsContext";
-import { SupabaseProgrammingProvider } from "@/contexts/SupabaseProgrammingContext";
 import { SupabaseFavoriteSitesProvider } from "@/contexts/SupabaseFavoriteSitesContext";
-import { RadioPlayerProvider } from "@/contexts/RadioPlayerContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { UsersProvider } from "@/contexts/UsersContext";
 import { NewsProvider } from "@/contexts/NewsContext";
 import { CommentsProvider } from "@/contexts/CommentsContext";
-import { ProgrammingProvider } from "@/contexts/ProgrammingContext";
 import { ContactProvider } from "@/contexts/ContactContext";
 import { LegalContentProvider } from "@/contexts/LegalContentContext";
 import { SupabaseAIConfigProvider } from "@/contexts/SupabaseAIConfigContext";
@@ -28,8 +25,6 @@ import AdminAuth from "./pages/AdminAuth";
 import AdminPanel from "./pages/AdminPanel";
 import AccountSecurity from "./pages/AccountSecurity";
 import NewsPage from "./pages/NewsPage";
-import RadioPage from "./pages/RadioPage";
-import LivePage from "./pages/LivePage";
 import ContactPage from "./pages/ContactPage";
 import ColumnistPage from "./pages/ColumnistPage";
 import ColumnistArticlePage from "./pages/ColumnistArticlePage";
@@ -53,8 +48,6 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/noticias" element={<NewsPage />} />
-          <Route path="/radio" element={<RadioPage />} />
-          <Route path="/ao-vivo" element={<LivePage />} />
           <Route path="/contato" element={<ContactPage />} />
           <Route path="/colunistas" element={<ColumnistsPage />} />
           <Route path="/artigo/:id" element={<ArticlePage />} />
@@ -88,31 +81,25 @@ const App = () => (
           <SupabaseNewsProvider>
               <SupabaseContactInfoProvider>
                   <SupabaseCommentsProvider>
-                    <SupabaseProgrammingProvider>
-                      <SupabaseFavoriteSitesProvider>
-                        <LegalContentProvider>
-                          <SupabaseAIConfigProvider>
-                          <RadioPlayerProvider>
-                            <NotificationsProvider>
-                              <TooltipProvider>
-                                <NewsProvider>
-                                  <UsersProvider>
-                                    <ContactProvider>
-                                      <CommentsProvider>
-                                          <ProgrammingProvider>
-                                              <AppContent />
-                                          </ProgrammingProvider>
-                                      </CommentsProvider>
-                                    </ContactProvider>
-                                  </UsersProvider>
-                                </NewsProvider>
-                              </TooltipProvider>
-                            </NotificationsProvider>
-                          </RadioPlayerProvider>
-                          </SupabaseAIConfigProvider>
-                        </LegalContentProvider>
-                      </SupabaseFavoriteSitesProvider>
-                    </SupabaseProgrammingProvider>
+                    <SupabaseFavoriteSitesProvider>
+                      <LegalContentProvider>
+                        <SupabaseAIConfigProvider>
+                        <NotificationsProvider>
+                          <TooltipProvider>
+                            <NewsProvider>
+                              <UsersProvider>
+                                <ContactProvider>
+                                  <CommentsProvider>
+                                      <AppContent />
+                                  </CommentsProvider>
+                                </ContactProvider>
+                              </UsersProvider>
+                            </NewsProvider>
+                          </TooltipProvider>
+                        </NotificationsProvider>
+                        </SupabaseAIConfigProvider>
+                      </LegalContentProvider>
+                    </SupabaseFavoriteSitesProvider>
                   </SupabaseCommentsProvider>
               </SupabaseContactInfoProvider>
           </SupabaseNewsProvider>

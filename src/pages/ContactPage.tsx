@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -391,7 +390,6 @@ const ContactPage = () => {
       </main>
       
       <Footer />
-      <RadioPlayer />
     </div>
   );
 };

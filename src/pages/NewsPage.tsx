@@ -4,7 +4,6 @@ import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import NewsGrid from '@/components/NewsGrid';
 import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { useSearchParams } from 'react-router-dom';
 import { getCategoryColors } from '@/utils/categoryColors';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -117,7 +116,6 @@ const NewsPage = () => {
         </main>
         
         <Footer />
-        <RadioPlayer />
       </div>
     );
   }
@@ -307,7 +305,6 @@ const NewsPage = () => {
       </main>
       
       <Footer />
-      <RadioPlayer />
     </div>
   );
 };

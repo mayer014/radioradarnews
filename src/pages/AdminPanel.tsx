@@ -25,7 +25,6 @@ import {
   Home,
   Star,
   StarOff,
-  Radio,
   Image,
   Contact,
   Wand2,
@@ -36,15 +35,39 @@ import {
   Bell,
   User,
   Shield,
-  HardDrive
+  HardDrive,
+  AlertTriangle,
+  Users, 
+  Brain,
+  Newspaper,
+  UserCheck,
+  Trash,
+  ImageIcon,
+  Briefcase,
+  Bot,
+  Sliders,
+  TestTube,
+  ExternalLink,
+  CalendarDays,
+  Layers,
+  BookOpen,
+  Play,
+  Mic,
+  Check,
+  Clock,
+  Globe,
+  Building,
+  PhoneCall,
+  PenTool,
+  Hash,
+  Palette,
+  RotateCcw
 } from 'lucide-react';
 import NewsEditor from '@/components/NewsEditor';
-import ProgrammingEditor from '@/components/ProgrammingEditor';
 import SuperAdminUsersManager from '@/components/SuperAdminUsersManager';
 import ColumnistArticlesManager from '@/components/ColumnistArticlesManager';
 import ContactInfoManager from '@/components/ContactInfoManager';
 
-import RadioPlayer from '@/components/RadioPlayer';
 import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor';
 import CommentsManager from '@/components/CommentsManager';
 import NotificationsManager from '@/components/NotificationsManager';
@@ -52,7 +75,6 @@ import BannerManager from '@/components/BannerManager';
 import LegalContentManager from '@/components/LegalContentManager';
 import SystemSettingsManager from '@/components/SystemSettingsManager';
 import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
-
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -63,33 +85,12 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'programming' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
+  const [showColumnistManager, setShowColumnistManager] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
-
-  const handleCleanGhostData = () => {
-    try {
-      // Limpar todos os dados armazenados que possam conter Ana Santos
-      localStorage.removeItem('news_articles');
-      
-      // Recarregar a página para forçar recriação dos dados limpos
-      window.location.reload();
-      
-      toast({
-        title: "Dados limpos",
-        description: "Ana Santos foi removida completamente do sistema.",
-      });
-    } catch (error) {
-      console.error('Error cleaning ghost data:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao limpar dados fantasma.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  
   // Verificar integridade dos dados
   const handleDataIntegrityCheck = () => {
     try {
@@ -898,9 +899,6 @@ const AdminPanel = () => {
           onClose={() => setShowProfileEditor(false)}
         />
       )}
-      
-      {/* RadioPlayer - aparece em todas as páginas do admin */}
-      <RadioPlayer />
     </div>
   );
 };

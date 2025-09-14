@@ -6,11 +6,9 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseProgramming } from '@/contexts/SupabaseProgrammingContext';
 import { useSupabaseAIConfig } from '@/contexts/SupabaseAIConfigContext';
 import { 
   Settings, 
-  Radio, 
   Brain, 
   Eye, 
   EyeOff, 
@@ -21,17 +19,10 @@ import {
   TestTube
 } from 'lucide-react';
 import { ENV } from '@/config/environment';
-import { useMaybeRadioPlayer } from '@/contexts/RadioPlayerContext';
 
 const SystemSettingsManager = () => {
   const { toast } = useToast();
-  const { radioStreamUrl, setRadioStreamUrl } = useSupabaseProgramming();
   const { configurations, addConfiguration, deleteConfiguration } = useSupabaseAIConfig();
-  const maybePlayer = useMaybeRadioPlayer();
-  
-  // Estados para configuração da rádio
-  const [radioUrl, setRadioUrl] = useState('');
-  const [savingRadio, setSavingRadio] = useState(false);
   
   // Estados para configuração de IA
   const [aiApiKey, setAiApiKey] = useState('');
@@ -43,39 +34,6 @@ const SystemSettingsManager = () => {
     setRadioUrl(radioStreamUrl);
   }, [radioStreamUrl]);
 
-  const handleSaveRadioUrl = async () => {
-    const trimmed = radioUrl.trim().replace(/^['"]|['"]$/g, ''); // Remove quotes
-    if (!trimmed) {
-      toast({
-        title: "URL obrigatória",
-        description: "Digite uma URL válida para o stream da rádio.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSavingRadio(true);
-    try {
-      let cleaned = trimmed;
-      if (cleaned.startsWith('ttps://') || cleaned.startsWith('ttp://')) cleaned = 'h' + cleaned;
-      const { error } = await setRadioStreamUrl(cleaned);
-      if (error) {
-        throw new Error(error);
-      }
-      // Iniciar reprodução logo após salvar (gesto do usuário)
-      setTimeout(() => {
-        maybePlayer?.unmuteAndPlay?.();
-      }, 200);
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao salvar URL da rádio",
-        variant: "destructive"
-      });
-    } finally {
-      setSavingRadio(false);
-    }
-  };
 
   const handleTestAndSaveAI = async () => {
     if (!aiApiKey.trim()) {
@@ -211,82 +169,14 @@ const SystemSettingsManager = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="radio" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="radio" className="flex items-center gap-2">
-            <Radio className="h-4 w-4" />
-            Rádio
-          </TabsTrigger>
+      <Tabs defaultValue="ai" className="w-full">
+        <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             IA / Extração
           </TabsTrigger>
         </TabsList>
 
-        {/* Radio Configuration */}
-        <TabsContent value="radio" className="space-y-4">
-          <Card className="bg-gradient-card border-primary/30 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Radio className="h-5 w-5 text-primary" />
-                <h4 className="text-md font-semibold">Stream da Rádio</h4>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="radio-url">URL do Stream</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="radio-url"
-                    type="url"
-                    value={radioUrl}
-                    onChange={(e) => setRadioUrl(e.target.value)}
-                    placeholder="https://seu-stream.com/radio"
-                    className="flex-1 border-primary/30 focus:border-primary"
-                  />
-                  <Button
-                    onClick={handleSaveRadioUrl}
-                    disabled={savingRadio || !radioUrl.trim()}
-                    className="bg-gradient-hero hover:shadow-glow-primary"
-                  >
-                    {savingRadio ? (
-                      <>
-                        <Save className="h-4 w-4 mr-2 animate-pulse" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Salvar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              {radioStreamUrl && (
-                <Alert className="border-green-500/50 bg-green-50/10">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <AlertDescription>
-                    <strong>Stream configurado:</strong> {radioStreamUrl}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Alert className="border-primary/30 bg-primary/5">
-                <Radio className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  <strong>URL Válida:</strong> Use a URL direta do provedor de stream. Exemplo: https://cc6.streammaximum.com:20010/;
-                  <br />
-                  <strong>Formato Shoutcast/Icecast:</strong> Adicione "/;" no final da URL (exemplo acima). O player tentará automaticamente.
-                  <br />
-                  <strong>Proxy Automático:</strong> Em produção HTTPS, o player usa "/radio" como fallback via proxy nginx.
-                  <br />
-                  <strong>Não funciona?</strong> Remova e digite a URL novamente, ou verifique se precisa de "/;" no final.
-                </AlertDescription>
-              </Alert>
-            </div>
-          </Card>
-        </TabsContent>
 
         {/* AI Configuration */}
         <TabsContent value="ai" className="space-y-4">

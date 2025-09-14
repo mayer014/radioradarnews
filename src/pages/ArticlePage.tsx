@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import CommentsSection from '@/components/CommentsSection';
 import { ShareMenu } from '@/components/share/ShareMenu';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
@@ -129,7 +128,6 @@ const ArticlePage = () => {
           <ArticleSkeleton />
         </main>
         <Footer />
-        <RadioPlayer />
       </div>
     );
   }
@@ -156,7 +154,6 @@ const ArticlePage = () => {
           </div>
         </main>
         <Footer />
-        <RadioPlayer />
       </div>
     );
   }
@@ -426,7 +423,6 @@ const ArticlePage = () => {
       </main>
 
       <Footer />
-      <RadioPlayer />
     </div>
   );
 };

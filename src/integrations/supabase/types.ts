@@ -995,45 +995,6 @@ export type Database = {
         }
         Relationships: []
       }
-      radio_programs: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_time: string
-          host: string
-          id: string
-          is_active: boolean
-          start_time: string
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          end_time: string
-          host: string
-          id?: string
-          is_active?: boolean
-          start_time: string
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          end_time?: string
-          host?: string
-          id?: string
-          is_active?: boolean
-          start_time?: string
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       settings: {
         Row: {
           category: string

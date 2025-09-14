@@ -4,9 +4,7 @@ import HeroSection from '@/components/HeroSection';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
-import LiveSection from '@/components/LiveSection';
 import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { WebsiteStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
@@ -45,16 +43,10 @@ const Index = () => {
       {/* Seção de Notícias */}
       <NewsGrid />
       
-      {/* Seção Ao Vivo */}
-      <LiveSection />
-      
       </main>
       
       {/* Footer */}
       <Footer />
-      
-      {/* Player de Rádio Fixo */}
-      <RadioPlayer />
     </div>
   );
 };

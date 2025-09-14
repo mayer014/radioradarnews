@@ -23,7 +23,6 @@ const Navigation = () => {
 
   const navItems = [
     { name: 'Início', icon: Home, href: '/' },
-    { name: 'Rádio', icon: Radio, href: '/radio' },
     { name: 'Contato', icon: Users, href: '/contato' },
   ];
 
