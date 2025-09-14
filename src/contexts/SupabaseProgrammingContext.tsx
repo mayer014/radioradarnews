@@ -92,10 +92,13 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
         .maybeSingle();
 
       let value = '';
-      if (!error) {
-        value = (data?.value && typeof data.value === 'object' && 'url' in (data.value as any))
-          ? (data.value as { url: string }).url
-          : '';
+      if (!error && data?.value !== undefined && data?.value !== null) {
+        const v: any = data.value;
+        if (typeof v === 'string') {
+          value = v;
+        } else if (typeof v === 'object' && 'url' in v && typeof v.url === 'string') {
+          value = v.url as string;
+        }
       }
 
       // If DB not configured, try public edge config
