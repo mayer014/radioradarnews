@@ -13,7 +13,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ContentExtractorStep from './ContentExtractorStep';
 import ContentRewriterStep from './ContentRewriterStep';
-import AIConfigPanel from './AIConfigPanel';
+import { useSupabaseAIConfig } from '@/contexts/SupabaseAIConfigContext';
 import type { ExtractedContent } from '@/services/ContentExtractor';
 import type { RewrittenContent } from '@/services/AIContentRewriter';
 
@@ -29,8 +29,10 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
   const [currentStep, setCurrentStep] = useState<'extract' | 'rewrite' | 'complete'>('extract');
   const [extractedContent, setExtractedContent] = useState<ExtractedContent | null>(null);
   const [rewrittenContent, setRewrittenContent] = useState<RewrittenContent | null>(null);
-  const [showAIConfig, setShowAIConfig] = useState(false);
-  const [isAIConfigured, setIsAIConfigured] = useState(false);
+  const { configurations } = useSupabaseAIConfig();
+  
+  // Check if we have any AI configuration
+  const isAIConfigured = configurations.length > 0;
 
   const handleContentExtracted = (content: ExtractedContent) => {
     setExtractedContent(content);
@@ -119,22 +121,18 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
         <Alert className="border-orange-500/50 bg-orange-50/10">
           <AlertCircle className="h-4 w-4 text-orange-500" />
           <AlertDescription>
-            <strong>Configuração de IA recomendada:</strong> Para reescrita inteligente de conteúdo, 
-            configure uma API de IA externa para melhores resultados.
+            <strong>IA não configurada:</strong> Para reescrita inteligente de conteúdo, 
+            configure uma API de IA nas configurações do sistema.
             <Button
               variant="link"
               className="p-0 h-auto ml-2 text-orange-600 hover:text-orange-700"
-              onClick={() => setShowAIConfig(!showAIConfig)}
+              onClick={() => window.location.hash = '#/admin'}
             >
-              {showAIConfig ? 'Ocultar' : 'Configurar agora'}
+              <Settings className="h-3 w-3 mr-1" />
+              Ir para Configurações → IA/Extração
             </Button>
           </AlertDescription>
         </Alert>
-      )}
-
-      {/* AI Configuration Panel */}
-      {showAIConfig && (
-        <AIConfigPanel onConfigChange={setIsAIConfigured} />
       )}
 
       {/* Progress Indicator */}

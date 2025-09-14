@@ -33,7 +33,7 @@ const SystemSettingsManager = () => {
   
   // Estados para configuração de IA
   const [aiApiKey, setAiApiKey] = useState('');
-  const [aiProvider, setAiProvider] = useState('openai');
+  const [aiProvider, setAiProvider] = useState('groq');
   const [showAiKey, setShowAiKey] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
 
@@ -85,7 +85,18 @@ const SystemSettingsManager = () => {
       let testHeaders: Record<string, string> = {};
       let testBody: any = {};
 
-      if (aiProvider === 'openai') {
+      if (aiProvider === 'groq') {
+        testEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
+        testHeaders = {
+          'Authorization': `Bearer ${aiApiKey}`,
+          'Content-Type': 'application/json'
+        };
+        testBody = {
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: 'Test' }],
+          max_tokens: 5
+        };
+      } else if (aiProvider === 'openai') {
         testEndpoint = 'https://api.openai.com/v1/chat/completions';
         testHeaders = {
           'Authorization': `Bearer ${aiApiKey}`,
@@ -125,7 +136,8 @@ const SystemSettingsManager = () => {
         provider_name: aiProvider,
         api_key_encrypted: aiApiKey, // In production, this should be encrypted
         config_json: {
-          model: aiProvider === 'openai' ? 'gpt-3.5-turbo' : 'claude-3-sonnet-20240229',
+          model: aiProvider === 'groq' ? 'llama-3.1-8b-instant' : 
+                aiProvider === 'openai' ? 'gpt-3.5-turbo' : 'claude-3-sonnet-20240229',
           tested_at: new Date().toISOString()
         }
       });
@@ -309,6 +321,7 @@ const SystemSettingsManager = () => {
                     onChange={(e) => setAiProvider(e.target.value)}
                     className="w-full p-2 border border-primary/30 rounded-md bg-background"
                   >
+                    <option value="groq">Groq (Llama, Mixtral - Recomendado)</option>
                     <option value="openai">OpenAI (GPT-3.5, GPT-4)</option>
                     <option value="anthropic">Anthropic (Claude)</option>
                   </select>
@@ -324,7 +337,7 @@ const SystemSettingsManager = () => {
                         type={showAiKey ? 'text' : 'password'}
                         value={aiApiKey}
                         onChange={(e) => setAiApiKey(e.target.value)}
-                        placeholder={aiProvider === 'openai' ? 'sk-...' : 'sk-ant-...'}
+                        placeholder={aiProvider === 'groq' ? 'gsk_...' : aiProvider === 'openai' ? 'sk-...' : 'sk-ant-...'}
                         className="pl-10 border-primary/30 focus:border-primary"
                       />
                     </div>
