@@ -266,35 +266,50 @@ const SystemSettingsManager = () => {
                 <h4 className="text-md font-semibold">APIs de Inteligência Artificial</h4>
               </div>
 
-              {/* Configured AIs */}
-              {configurations.length > 0 && (
-                <div className="space-y-3">
-                  <h5 className="text-sm font-medium">APIs Configuradas</h5>
-                  <div className="space-y-2">
-                    {configurations.map((config) => (
-                      <div key={config.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border">
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <div>
-                            <p className="text-sm font-medium capitalize">{config.provider_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Modelo: {config.config_json?.model || 'Padrão'}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteAIConfig(config.id, config.provider_name)}
-                          className="border-red-500/50 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+               {/* Configured AIs */}
+               <div className="space-y-3">
+                 <h5 className="text-sm font-medium">APIs Configuradas</h5>
+                 <div className="space-y-2">
+                   {/* Show Groq from Supabase Secrets */}
+                   <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border">
+                     <div className="flex items-center space-x-3">
+                       <CheckCircle className="h-4 w-4 text-green-500" />
+                       <div>
+                         <p className="text-sm font-medium">Groq (Sistema)</p>
+                         <p className="text-xs text-muted-foreground">
+                           Configurado via Supabase Secrets - Llama 3.1 70B
+                         </p>
+                       </div>
+                     </div>
+                     <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                       Ativo
+                     </div>
+                   </div>
+                   
+                   {/* Show other configured providers */}
+                   {configurations.map((config) => (
+                     <div key={config.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border">
+                       <div className="flex items-center space-x-3">
+                         <CheckCircle className="h-4 w-4 text-green-500" />
+                         <div>
+                           <p className="text-sm font-medium capitalize">{config.provider_name}</p>
+                           <p className="text-xs text-muted-foreground">
+                             Modelo: {config.config_json?.model || 'Padrão'}
+                           </p>
+                         </div>
+                       </div>
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => handleDeleteAIConfig(config.id, config.provider_name)}
+                         className="border-red-500/50 hover:bg-red-500/10"
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </Button>
+                     </div>
+                   ))}
+                 </div>
+               </div>
 
               {/* Add New AI */}
               <div className="space-y-3">
@@ -360,8 +375,9 @@ const SystemSettingsManager = () => {
               <Alert className="border-primary/30 bg-primary/5">
                 <Key className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  <strong>Segurança:</strong> As chaves API são armazenadas no banco de dados do sistema
-                  e utilizadas apenas para extração e reescrita de conteúdo.
+                  <strong>IA Principal (Groq):</strong> Configurada automaticamente via Supabase Secrets para máxima segurança.
+                  <br />
+                  <strong>APIs Adicionais:</strong> Podem ser configuradas aqui como fallback secundário.
                 </AlertDescription>
               </Alert>
             </div>

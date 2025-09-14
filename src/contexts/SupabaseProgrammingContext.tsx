@@ -75,6 +75,9 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
       if (error) {
         console.error('Error fetching radio stream URL:', error);
+        // Fallback to environment variable
+        const { ENV } = await import('@/config/environment');
+        setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
         return;
       }
 
@@ -83,9 +86,18 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
           ? (data.value as { url: string }).url
           : '';
 
-      setRadioStreamUrlState(value || '');
+      // If no value from database, use environment fallback
+      if (!value) {
+        const { ENV } = await import('@/config/environment');
+        setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
+      } else {
+        setRadioStreamUrlState(value);
+      }
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
+      // Final fallback to environment variable
+      const { ENV } = await import('@/config/environment');
+      setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
     }
   };
 

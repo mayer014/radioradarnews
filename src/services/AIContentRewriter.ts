@@ -46,7 +46,14 @@ Saída:
 `;
 
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
-    const userPrompt = `
+    try {
+      // First try: Use Supabase Edge Function (Groq from secrets)
+      return await this.callSupabaseAIRewriter(extractedContent);
+    } catch (error) {
+      console.error('Supabase AI rewriter failed:', error);
+      
+      // Fallback: Try localStorage configured providers
+      const userPrompt = `
 TAREFA: Reescreva o conteúdo abaixo em formato jornalístico, retornando APENAS o JSON conforme instruções do sistema.
 
 CONTEÚDO ORIGINAL:
@@ -55,12 +62,12 @@ Fonte: ${extractedContent.url}
 Conteúdo: ${this.cleanTextContent(extractedContent.content)}
 `;
 
-    try {
-      // Try different AI providers in order of preference
-      return await this.tryAIProviders(userPrompt);
-    } catch (error) {
-      console.error('Error rewriting content:', error);
-      throw new Error(`Falha na reescrita por IA: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      try {
+        return await this.tryAIProviders(userPrompt);
+      } catch (fallbackError) {
+        console.error('All AI providers failed:', fallbackError);
+        throw new Error(`Falha na reescrita por IA: ${fallbackError instanceof Error ? fallbackError.message : 'Erro desconhecido'}`);
+      }
     }
   }
 
@@ -458,6 +465,37 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     const content = data[0]?.generated_text || data.generated_text;
     
     return this.parseAIResponse(content);
+  }
+
+  private static async callSupabaseAIRewriter(extractedContent: ExtractedContent): Promise<RewrittenContent> {
+    console.log('Calling Supabase AI rewriter service...');
+    
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase.functions.invoke('ai-rewriter-service', {
+      body: {
+        title: extractedContent.title,
+        content: extractedContent.content,
+        url: extractedContent.url
+      }
+    });
+
+    if (error) {
+      console.error('Supabase AI rewriter error:', error);
+      throw new Error(`Supabase AI service error: ${error.message}`);
+    }
+
+    if (data?.error) {
+      console.error('AI rewriter service returned error:', data.error);
+      throw new Error(`AI service error: ${data.error}`);
+    }
+
+    if (!data) {
+      throw new Error('No response from AI rewriter service');
+    }
+
+    console.log('Successfully got response from Supabase AI rewriter');
+    return data as RewrittenContent;
   }
 
   private static async callGenericLLM(userPrompt: string): Promise<RewrittenContent> {

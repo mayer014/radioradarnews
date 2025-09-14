@@ -165,6 +165,8 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       {/* Audio element global */}
       <audio 
         ref={audioRef}
+        playsInline
+        preload="none"
         onEnded={() => {
           console.log('Stream ended, tentando reconectar...');
           setIsPlaying(false);
@@ -178,12 +180,26 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
         onError={(e) => {
           setIsPlaying(false);
           console.error('Erro no stream de áudio:', e);
+          // Try to reconnect after error
+          setTimeout(() => {
+            if (radioStreamUrl && audioRef.current && isPlaying) {
+              console.log('Tentando reconectar após erro...');
+              audioRef.current.load();
+              audioRef.current.play().catch(err => console.log('Reconnect failed:', err));
+            }
+          }, 2000);
         }}
         onLoadStart={() => {
           console.log('Carregando stream...');
         }}
         onCanPlay={() => {
           console.log('Stream pronto para reproduzir');
+        }}
+        onWaiting={() => {
+          console.log('Stream buffering...');
+        }}
+        onPlaying={() => {
+          console.log('Stream playing successfully');
         }}
       />
     </RadioPlayerContext.Provider>

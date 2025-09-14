@@ -35,60 +35,68 @@ Retorne SEMPRE um JSON válido conforme solicitado.
 
   async generateArticle(request: ArticleGenerationRequest): Promise<GeneratedArticle> {
     try {
-      const prompt = this.buildPrompt(request);
-
-      // 1) Tentar provedores configurados (prioriza Groq)
-      const providers = this.getConfiguredProviders();
-      if (providers.length > 0) {
-        const ordered = [...providers].sort((a, b) => (a.id === 'groq' ? -1 : 1));
-        for (const provider of ordered) {
-          try {
-            if (provider.id === 'groq') {
-              const content = await this.callGroq(prompt, provider.model);
-              if (content) return this.parseGeneratedContent(content, request);
+      // First try: Use Supabase Edge Function (Groq from secrets)
+      return await this.callSupabaseAIArticleGenerator(request);
+    } catch (error) {
+      console.error('Supabase AI article generator failed:', error);
+      
+      try {
+        // Fallback: Try localStorage configured providers
+        const prompt = this.buildPrompt(request);
+        
+        // 1) Tentar provedores configurados (prioriza Groq)
+        const providers = this.getConfiguredProviders();
+        if (providers.length > 0) {
+          const ordered = [...providers].sort((a, b) => (a.id === 'groq' ? -1 : 1));
+          for (const provider of ordered) {
+            try {
+              if (provider.id === 'groq') {
+                const content = await this.callGroq(prompt, provider.model);
+                if (content) return this.parseGeneratedContent(content, request);
+              }
+              // Outros provedores podem ser adicionados aqui quando necessário
+            } catch (e) {
+              console.warn(`Provider ${provider.id} falhou`, e);
+              continue;
             }
-            // Outros provedores podem ser adicionados aqui quando necessário
-          } catch (e) {
-            console.warn(`Provider ${provider.id} falhou`, e);
-            continue;
           }
         }
-      }
 
-      // 2) Fallback: OpenAI se a chave foi informada neste serviço
-      if (this.apiKey) {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4',
-            messages: [
-              { role: 'system', content: AIArticleGenerator.JOURNALISM_SYSTEM_PROMPT },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.4,
-            max_tokens: 2200,
-          }),
-        });
+        // 2) Fallback: OpenAI se a chave foi informada neste serviço
+        if (this.apiKey) {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4',
+              messages: [
+                { role: 'system', content: AIArticleGenerator.JOURNALISM_SYSTEM_PROMPT },
+                { role: 'user', content: prompt }
+              ],
+              temperature: 0.4,
+              max_tokens: 2200,
+            }),
+          });
 
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+          }
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content;
+          if (!content) throw new Error('Nenhum conteúdo foi gerado pela IA');
+          return this.parseGeneratedContent(content, request);
         }
-        const data = await response.json();
-        const content = data.choices[0]?.message?.content;
-        if (!content) throw new Error('Nenhum conteúdo foi gerado pela IA');
-        return this.parseGeneratedContent(content, request);
-      }
 
-      // 3) Fallback final: mock específico
-      return this.generateMockArticle(request);
-    } catch (error) {
-      console.error('Erro ao gerar artigo com IA:', error);
-      // Mock como último recurso
-      return this.generateMockArticle(request);
+        // 3) Fallback final: mock específico
+        return this.generateMockArticle(request);
+      } catch (fallbackError) {
+        console.error('All AI providers failed:', fallbackError);
+        // Mock como último recurso
+        return this.generateMockArticle(request);
+      }
     }
   }
 
@@ -277,6 +285,33 @@ OBJETIVO: Criar título e conteúdo TÉCNICO, ESPECÍFICO e ÚTIL, completamente
     }
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '';
+  }
+
+  private async callSupabaseAIArticleGenerator(request: ArticleGenerationRequest): Promise<GeneratedArticle> {
+    console.log('Calling Supabase AI article generator service...');
+    
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    const { data, error } = await supabase.functions.invoke('ai-article-generator-service', {
+      body: request
+    });
+
+    if (error) {
+      console.error('Supabase AI article generator error:', error);
+      throw new Error(`Supabase AI service error: ${error.message}`);
+    }
+
+    if (data?.error) {
+      console.error('AI article generator service returned error:', data.error);
+      throw new Error(`AI service error: ${data.error}`);
+    }
+
+    if (!data) {
+      throw new Error('No response from AI article generator service');
+    }
+
+    console.log('Successfully got response from Supabase AI article generator');
+    return data as GeneratedArticle;
   }
 
   private rewriteTitleFromIdea(idea: string): string {

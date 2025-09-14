@@ -42,6 +42,12 @@ verify_jwt = false
 [functions.ai-image-generation-service]
 verify_jwt = false
 
+[functions.ai-rewriter-service]
+verify_jwt = false
+
+[functions.ai-article-generator-service]
+verify_jwt = false
+
 [functions.bootstrap-admin]
 verify_jwt = false
 
