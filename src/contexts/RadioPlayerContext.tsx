@@ -56,7 +56,7 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       setIsMuted(false);
       console.log('[RADIO DEBUG] ✓ Autoplay com áudio funcionou!');
     } catch (error) {
-      console.warn('[RADIO DEBUG] Autoplay com áudio bloqueado:', error.message);
+      console.warn('[RADIO DEBUG] Autoplay com áudio bloqueado:', (error as any)?.message || error);
       
       try {
         // Se falhar, tenta autoplay mutado
@@ -65,8 +65,8 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
         setIsPlaying(true);
         setIsMuted(true);
         console.log('[RADIO DEBUG] ✓ Autoplay mutado funcionou! Usuário precisa ativar o áudio.');
-      } catch (mutedError) {
-        console.error('[RADIO DEBUG] ✗ Autoplay completamente bloqueado:', mutedError.message);
+      } catch (mutedError: any) {
+        console.error('[RADIO DEBUG] ✗ Autoplay completamente bloqueado:', mutedError?.message || mutedError);
         setIsPlaying(false);
         setIsMuted(false);
       }
@@ -130,36 +130,43 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       audioRef.current.play().then(() => {
         setIsPlaying(true);
         console.log('[RADIO DEBUG] ✓ Rádio reproduzindo com sucesso (stream ao vivo)');
-      }).catch((error) => {
-        console.error('[RADIO DEBUG] ✗ Erro ao reproduzir:', {
-          error: error.message,
-          name: error.name,
-          code: error.code || 'N/A',
-          src: audioRef.current?.src,
-          networkState: audioRef.current?.networkState,
-          readyState: audioRef.current?.readyState
+        }).catch((error: any) => {
+          console.error('[RADIO DEBUG] ✗ Erro ao reproduzir:', {
+            error: (error?.message) || error,
+            name: error?.name,
+            code: (error as any)?.code || 'N/A',
+            src: audioRef.current?.src,
+            networkState: audioRef.current?.networkState,
+            readyState: audioRef.current?.readyState
+          });
+          setIsPlaying(false);
+          alert(`Erro ao conectar com o stream da rádio: ${(error?.message) || error}. Verifique a configuração no painel admin.`);
         });
-        setIsPlaying(false);
-        alert(`Erro ao conectar com o stream da rádio: ${error.message}. Verifique a configuração no painel admin.`);
-      });
     }
   };
 
   useEffect(() => {
     if (audioRef.current && radioStreamUrl) {
-      // Verificar se a URL é relativa (proxy) ou absoluta
-      const finalUrl = radioStreamUrl.startsWith('/') 
-        ? `${window.location.origin}${radioStreamUrl}`
-        : radioStreamUrl;
+      const isProxy = radioStreamUrl.startsWith('/');
+      // Prefer proxy in production to avoid CORS/mixed content
+      let finalUrl = !isProxy && window.location.protocol === 'https:'
+        ? `${window.location.origin}/radio`
+        : (isProxy ? `${window.location.origin}${radioStreamUrl}` : radioStreamUrl);
+
+      // Normalize scheme typos (e.g., 'ttps://' or 'ttp://')
+      let normalized = finalUrl.trim();
+      if (normalized.startsWith('ttps://') || normalized.startsWith('ttp://')) {
+        normalized = 'h' + normalized;
+      }
       
       console.log('[RADIO DEBUG] Configurando stream:', {
         originalUrl: radioStreamUrl,
-        finalUrl: finalUrl,
-        isProxy: radioStreamUrl.startsWith('/'),
+        finalUrl: normalized,
+        isProxy: normalized.startsWith(`${window.location.origin}/radio`) || radioStreamUrl.startsWith('/'),
         origin: window.location.origin
       });
       
-      audioRef.current.src = finalUrl;
+      audioRef.current.src = normalized;
       audioRef.current.volume = volume;
       audioRef.current.preload = 'none';
       audioRef.current.crossOrigin = 'anonymous'; // Para CORS

@@ -53,7 +53,9 @@ const SystemSettingsManager = () => {
 
     setSavingRadio(true);
     try {
-      const { error } = await setRadioStreamUrl(radioUrl);
+      let cleaned = radioUrl.trim();
+      if (cleaned.startsWith('ttps://') || cleaned.startsWith('ttp://')) cleaned = 'h' + cleaned;
+      const { error } = await setRadioStreamUrl(cleaned);
       if (error) {
         throw new Error(error);
       }

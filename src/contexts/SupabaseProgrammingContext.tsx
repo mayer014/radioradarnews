@@ -36,6 +36,13 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const sanitizeRadioUrl = (url: string) => {
+    if (!url) return '';
+    let out = url.trim();
+    if (out.startsWith('ttps://') || out.startsWith('ttp://')) out = 'h' + out;
+    return out;
+  };
+
   // Função para carregar programas
   const fetchPrograms = async () => {
     try {
@@ -99,11 +106,13 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
         value = ENV.RADIO_STREAM_URL || '';
       }
 
-      setRadioStreamUrlState(value);
+      const cleaned = sanitizeRadioUrl(value);
+      setRadioStreamUrlState(cleaned);
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
       const { ENV } = await import('@/config/environment');
-      setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
+      const cleaned = sanitizeRadioUrl(ENV.RADIO_STREAM_URL || '');
+      setRadioStreamUrlState(cleaned);
     }
   };
 
@@ -138,10 +147,11 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
   const setRadioStreamUrl = async (url: string): Promise<{ error: string | null }> => {
     try {
+      const cleaned = sanitizeRadioUrl(url);
       // Primeiro tenta atualizar qualquer registro existente (inclusive duplicados)
       const { data: updated, error: updateError } = await supabase
         .from('settings')
-        .update({ value: { url } })
+        .update({ value: { url: cleaned } })
         .eq('category', 'radio')
         .eq('key', 'stream_url')
         .select('id');
@@ -158,7 +168,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
           .insert({
             category: 'radio',
             key: 'stream_url',
-            value: { url }
+            value: { url: cleaned }
           });
 
         if (insertError) {
@@ -167,7 +177,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
         }
       }
 
-      setRadioStreamUrlState(url);
+      setRadioStreamUrlState(cleaned);
       
       toast({
         title: "URL da rádio atualizada",
