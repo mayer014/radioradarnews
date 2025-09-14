@@ -1,3 +1,5 @@
+import { ENV } from '@/config/environment';
+
 interface ArticleGenerationRequest {
   idea: string;
   category: string;
@@ -248,6 +250,13 @@ OBJETIVO: Criar título e conteúdo TÉCNICO, ESPECÍFICO e ÚTIL, completamente
   }
 
   private getEnvVar(name: string): string | undefined {
+    // 1) Runtime env.js (Easypanel)
+    try {
+      const runtime = (ENV as any).RUNTIME_CONFIG as Record<string, string>;
+      if (runtime && runtime[name]) return runtime[name];
+    } catch {}
+
+    // 2) Fallback: user-configured localStorage
     const mapping: Record<string, string> = {
       OPENAI_API_KEY: 'ai_key_openai',
       ANTHROPIC_API_KEY: 'ai_key_anthropic',

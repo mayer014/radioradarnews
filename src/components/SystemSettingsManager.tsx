@@ -20,6 +20,7 @@ import {
   Trash2,
   TestTube
 } from 'lucide-react';
+import { ENV } from '@/config/environment';
 
 const SystemSettingsManager = () => {
   const { toast } = useToast();
@@ -383,7 +384,6 @@ const GroqStatus: React.FC = () => {
 
   useEffect(() => {
     // Check runtime environment
-    const { ENV } = require('@/config/environment');
     setRuntimeEnv(ENV.RUNTIME_CONFIG);
 
     (async () => {

@@ -1,4 +1,5 @@
 import type { ExtractedContent } from './ContentExtractor';
+import { ENV } from '@/config/environment';
 
 export interface RewrittenContent {
   title: string;
@@ -581,7 +582,13 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
   }
 
   private static getEnvVar(name: string): string | undefined {
-    // Check localStorage for API keys configured by user
+    // 1) Runtime env.js (Easypanel)
+    try {
+      const runtime = ENV.RUNTIME_CONFIG as Record<string, string>;
+      if (runtime && runtime[name]) return runtime[name];
+    } catch {}
+
+    // 2) User-configured localStorage (fallback)
     const providerMappings: Record<string, string> = {
       'OPENAI_API_KEY': 'ai_key_openai',
       'ANTHROPIC_API_KEY': 'ai_key_anthropic',
