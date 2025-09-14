@@ -9,18 +9,18 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.ico",
+      "src": "/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png",
       "sizes": "16x16 32x32 48x48",
-      "type": "image/x-icon"
+      "type": "image/png"
     },
     {
-      "src": "/icon-192.png",
+      "src": "/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "/icon-512.png", 
+      "src": "/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png", 
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
