@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.user-service]
 verify_jwt = true
+
+[functions.public-config]
+verify_jwt = false

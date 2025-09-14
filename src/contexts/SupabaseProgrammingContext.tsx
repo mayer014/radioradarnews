@@ -73,29 +73,35 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
         .limit(1)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching radio stream URL:', error);
-        // Fallback to environment variable
-        const { ENV } = await import('@/config/environment');
-        setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
-        return;
-      }
-
-      const value =
-        data?.value && typeof data.value === 'object' && 'url' in (data.value as any)
+      let value = '';
+      if (!error) {
+        value = (data?.value && typeof data.value === 'object' && 'url' in (data.value as any))
           ? (data.value as { url: string }).url
           : '';
+      }
 
-      // If no value from database, use environment fallback
+      // If DB not configured, try public edge config
+      if (!value) {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data: cfg } = await supabase.functions.invoke('public-config');
+          if (cfg?.radioStreamUrl) {
+            value = cfg.radioStreamUrl;
+          }
+        } catch (e) {
+          console.warn('public-config fallback failed', e);
+        }
+      }
+
+      // Final fallback to runtime/build env
       if (!value) {
         const { ENV } = await import('@/config/environment');
-        setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
-      } else {
-        setRadioStreamUrlState(value);
+        value = ENV.RADIO_STREAM_URL || '';
       }
+
+      setRadioStreamUrlState(value);
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
-      // Final fallback to environment variable
       const { ENV } = await import('@/config/environment');
       setRadioStreamUrlState(ENV.RADIO_STREAM_URL || '');
     }

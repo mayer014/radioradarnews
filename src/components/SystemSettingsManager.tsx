@@ -180,7 +180,7 @@ const SystemSettingsManager = () => {
         <div>
           <h3 className="text-lg font-semibold">Configurações do Sistema</h3>
           <p className="text-sm text-muted-foreground">
-            Gerencie as configurações principais do site
+            Gerencie as configurações principais do site. Variáveis agora usam ambiente do servidor (runtime) com fallback seguro.
           </p>
         </div>
       </div>
@@ -260,32 +260,17 @@ const SystemSettingsManager = () => {
         {/* AI Configuration */}
         <TabsContent value="ai" className="space-y-4">
           <Card className="bg-gradient-card border-primary/30 p-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-primary" />
-                <h4 className="text-md font-semibold">APIs de Inteligência Artificial</h4>
-              </div>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Brain className="h-5 w-5 text-primary" />
+                  <h4 className="text-md font-semibold">APIs de Inteligência Artificial</h4>
+                </div>
 
                {/* Configured AIs */}
+               <GroqStatus />
                <div className="space-y-3">
                  <h5 className="text-sm font-medium">APIs Configuradas</h5>
                  <div className="space-y-2">
-                   {/* Show Groq from Supabase Secrets */}
-                   <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border">
-                     <div className="flex items-center space-x-3">
-                       <CheckCircle className="h-4 w-4 text-green-500" />
-                       <div>
-                         <p className="text-sm font-medium">Groq (Sistema)</p>
-                         <p className="text-xs text-muted-foreground">
-                           Configurado via Supabase Secrets - Llama 3.1 70B
-                         </p>
-                       </div>
-                     </div>
-                     <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                       Ativo
-                     </div>
-                   </div>
-                   
                    {/* Show other configured providers */}
                    {configurations.map((config) => (
                      <div key={config.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border">
@@ -384,6 +369,62 @@ const SystemSettingsManager = () => {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+};
+
+// Helper component to show secure Groq status from Edge Function
+const GroqStatus: React.FC = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState<boolean | null>(null);
+  const [radioEnv, setRadioEnv] = useState<string>('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase.functions.invoke('public-config');
+        if (error) throw error;
+        setActive(Boolean(data?.groqConfigured));
+        setRadioEnv(data?.radioStreamUrl || '');
+      } catch (e: any) {
+        setActive(null);
+        toast({ title: 'Aviso', description: 'Não foi possível verificar o status da IA Groq.', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <h5 className="text-sm font-medium">Status da IA Principal (Groq)</h5>
+      <div className="p-3 bg-muted/20 rounded-lg border flex items-center justify-between">
+        <div>
+          <p className="text-sm">
+            {loading ? 'Verificando...' : active ? 'Groq configurado via servidor (Supabase Secrets)' : 'Groq não configurado no servidor'}
+          </p>
+          {radioEnv && (
+            <p className="text-xs text-muted-foreground">Rádio (runtime): {radioEnv}</p>
+          )}
+        </div>
+        {!loading && (
+          active ? (
+            <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">Ativo</div>
+          ) : (
+            <div className="text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded">Pendente</div>
+          )
+        )}
+      </div>
+      {!loading && active === false && (
+        <Alert className="border-yellow-500/50 bg-yellow-50/10">
+          <Key className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-xs">
+            Defina a variável segura GROQ_API_KEY em Supabase Secrets para habilitar a IA. Por segurança, a chave não é salva no navegador.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };

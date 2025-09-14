@@ -28,6 +28,8 @@
 
   <body>
     <div id="root"></div>
+    <!-- Runtime env overrides injected before app -->
+    <script src="/env.js"></script>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Service Worker Registration (prod only); unregister in dev to avoid stale caches -->
