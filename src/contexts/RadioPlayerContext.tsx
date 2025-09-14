@@ -95,9 +95,16 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const togglePlayPause = () => {
     if (!radioStreamUrl) {
-      console.error('[RADIO DEBUG] ✗ Stream da rádio não configurado');
-      alert('Stream da rádio não configurado. Configure no painel admin.');
-      return;
+      // Tenta fallbacks locais para permitir play manual sem precisar editar/salvar
+      const localFallback =
+        (typeof window !== 'undefined' &&
+          (localStorage.getItem('rrn_last_working_url') || localStorage.getItem('rrn_radio_url'))) ||
+        '';
+      if (!localFallback) {
+        console.error('[RADIO DEBUG] ✗ Stream da rádio não configurado e sem fallback local');
+        alert('Stream da rádio não configurado. Configure no painel admin.');
+        return;
+      }
     }
 
     if (!audioRef.current) {
@@ -112,18 +119,24 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       radioStreamUrl 
     });
 
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-      console.log('[RADIO DEBUG] ✓ Rádio pausada');
-    } else {
-      console.log('[RADIO DEBUG] Tentando reproduzir stream (manual):', radioStreamUrl);
-      
-      // Forçar src e recarregar para garantir conexão imediata
-      audioRef.current.src = radioStreamUrl;
-      audioRef.current.preload = 'auto';
-      audioRef.current.crossOrigin = 'anonymous';
-      audioRef.current.load();
+     if (isPlaying) {
+       audioRef.current.pause();
+       setIsPlaying(false);
+       console.log('[RADIO DEBUG] ✓ Rádio pausada');
+     } else {
+       console.log('[RADIO DEBUG] Tentando reproduzir stream (manual)...');
+       
+       // Seleciona URL manual com fallback local para garantir conexão
+       const manualUrl =
+         radioStreamUrl ||
+         ((typeof window !== 'undefined') && (localStorage.getItem('rrn_last_working_url') || localStorage.getItem('rrn_radio_url'))) ||
+         '';
+       
+       // Forçar src e recarregar para garantir conexão imediata
+       audioRef.current.src = manualUrl;
+       audioRef.current.preload = 'auto';
+       audioRef.current.crossOrigin = 'anonymous';
+       audioRef.current.load();
       
       // Se estava mutado, desmuta ao dar play manual
       if (isMuted) {

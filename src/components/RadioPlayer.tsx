@@ -8,6 +8,10 @@ const RadioPlayer = () => {
   const player = useMaybeRadioPlayer();
   const { radioStreamUrl } = useSupabaseProgramming();
   const [isMinimized, setIsMinimized] = useState(false);
+  const hasAnyStream = Boolean(
+    radioStreamUrl ||
+    (typeof window !== 'undefined' && (localStorage.getItem('rrn_last_working_url') || localStorage.getItem('rrn_radio_url')))
+  );
 
   if (!player) {
     return null; // Evita erro quando o provider ainda não está montado
@@ -36,7 +40,7 @@ const RadioPlayer = () => {
           <div className="relative">
             <Button
               onClick={togglePlayPause}
-              disabled={!radioStreamUrl}
+              disabled={!hasAnyStream}
               className="w-10 h-10 rounded-full bg-primary hover:bg-primary-glow shadow-glow-primary transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -85,7 +89,7 @@ const RadioPlayer = () => {
             <div className="flex items-center space-x-2">
               <Button
                 onClick={togglePlayPause}
-                disabled={!radioStreamUrl}
+                disabled={!hasAnyStream}
                 className="w-12 h-12 rounded-full bg-primary hover:bg-primary-glow shadow-glow-primary transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
