@@ -21,11 +21,13 @@ import {
   TestTube
 } from 'lucide-react';
 import { ENV } from '@/config/environment';
+import { useMaybeRadioPlayer } from '@/contexts/RadioPlayerContext';
 
 const SystemSettingsManager = () => {
   const { toast } = useToast();
   const { radioStreamUrl, setRadioStreamUrl } = useSupabaseProgramming();
   const { configurations, addConfiguration, deleteConfiguration } = useSupabaseAIConfig();
+  const maybePlayer = useMaybeRadioPlayer();
   
   // Estados para configuração da rádio
   const [radioUrl, setRadioUrl] = useState('');
@@ -42,7 +44,7 @@ const SystemSettingsManager = () => {
   }, [radioStreamUrl]);
 
   const handleSaveRadioUrl = async () => {
-    const trimmed = radioUrl.trim().replace(/^["']|["']$/g, ''); // Remove quotes
+    const trimmed = radioUrl.trim().replace(/^['"]|['"]$/g, ''); // Remove quotes
     if (!trimmed) {
       toast({
         title: "URL obrigatória",
@@ -60,6 +62,10 @@ const SystemSettingsManager = () => {
       if (error) {
         throw new Error(error);
       }
+      // Iniciar reprodução logo após salvar (gesto do usuário)
+      setTimeout(() => {
+        maybePlayer?.unmuteAndPlay?.();
+      }, 200);
     } catch (error: any) {
       toast({
         title: "Erro",
