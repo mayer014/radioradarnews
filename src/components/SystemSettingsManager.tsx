@@ -268,8 +268,11 @@ const SystemSettingsManager = () => {
               <Alert className="border-primary/30 bg-primary/5">
                 <Radio className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  <strong>Formato:</strong> Insira a URL completa do stream de rádio. 
-                  Exemplo: https://streaming.provedor.com:8000/radio
+                  <strong>Formato:</strong> Insira a URL completa do stream de rádio. Em produção (site https), o player tenta usar o proxy "/radio" automaticamente.
+                  <br />
+                  <strong>Dica:</strong> Muitos provedores Shoutcast/Icecast exigem "/;" no final. Exemplo: https://cc6.streammaximum.com:20010/;
+                  <br />
+                  Você também pode salvar apenas "/radio" para forçar o proxy em produção; no preview/local use a URL direta do provedor.
                 </AlertDescription>
               </Alert>
             </div>

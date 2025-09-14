@@ -146,41 +146,120 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   useEffect(() => {
-    if (audioRef.current && radioStreamUrl) {
-      const isProxy = radioStreamUrl.startsWith('/');
-      // Prefer proxy in production to avoid CORS/mixed content
-      let finalUrl = !isProxy && window.location.protocol === 'https:'
-        ? `${window.location.origin}/radio`
-        : (isProxy ? `${window.location.origin}${radioStreamUrl}` : radioStreamUrl);
-
-      // Normalize scheme typos (e.g., 'ttps://' or 'ttp://')
-      let normalized = finalUrl.trim();
-      if (normalized.startsWith('ttps://') || normalized.startsWith('ttp://')) {
-        normalized = 'h' + normalized;
-      }
-      
-      console.log('[RADIO DEBUG] Configurando stream:', {
-        originalUrl: radioStreamUrl,
-        finalUrl: normalized,
-        isProxy: normalized.startsWith(`${window.location.origin}/radio`) || radioStreamUrl.startsWith('/'),
-        origin: window.location.origin
-      });
-      
-      audioRef.current.src = normalized;
-      audioRef.current.volume = volume;
-      audioRef.current.preload = 'none';
-      audioRef.current.crossOrigin = 'anonymous'; // Para CORS
-      
-      // Tenta autoplay após configurar o stream
-      setTimeout(() => {
-        attemptAutoplay();
-      }, 500); // Pequeno delay para garantir que o elemento está pronto
-    } else {
+    const audio = audioRef.current;
+    if (!audio || !radioStreamUrl) {
       console.warn('[RADIO DEBUG] Stream não configurado:', {
         hasAudioRef: !!audioRef.current,
         radioStreamUrl
       });
+      return;
     }
+
+    // Helpers de normalização e geração de candidatos
+    const normalize = (u: string) => {
+      if (!u) return '';
+      let out = u.trim();
+      if (out.startsWith('ttps://') || out.startsWith('ttp://')) out = 'h' + out;
+      return out;
+    };
+
+    const withSemicolonPath = (path: string) => {
+      const clean = path.replace(/\/+$/, '');
+      return clean.endsWith(';') ? clean : `${clean};`;
+    };
+
+    const appendSemicolonToUrl = (u: string) => {
+      try {
+        const urlObj = new URL(u);
+        const p = urlObj.pathname;
+        if (p.endsWith('/;')) return u;
+        urlObj.pathname = p.endsWith('/') ? `${p};` : `${p}/;`;
+        return urlObj.toString();
+      } catch {
+        // Caso seja caminho relativo ou URL inválida, tenta aproximação
+        if (u.startsWith('/')) return withSemicolonPath(u);
+        if (u.endsWith('/;') || u.endsWith(';')) return u;
+        return u.endsWith('/') ? `${u};` : `${u}/;`;
+      }
+    };
+
+    const base = normalize(radioStreamUrl);
+    const origin = window.location.origin;
+    const isHttps = window.location.protocol === 'https:';
+
+    const candidates: string[] = (() => {
+      const list: string[] = [];
+      if (base.startsWith('/')) {
+        // Caminho relativo: tenta com e sem ';'
+        list.push(`${origin}${withSemicolonPath(base)}`);
+        list.push(`${origin}${base}`);
+      } else {
+        // URL absoluta: tenta versão com '/;' (Shoutcast/Icecast), depois a URL crua
+        list.push(appendSemicolonToUrl(base));
+        list.push(base);
+        // Em produção (https), também tenta o proxy caso exista no servidor
+        if (isHttps) {
+          list.push(`${origin}/radio;`);
+          list.push(`${origin}/radio`);
+        }
+      }
+      // Remover duplicatas preservando ordem
+      return Array.from(new Set(list));
+    })();
+
+    console.log('[RADIO DEBUG] Candidatos de stream:', candidates);
+
+    let stopped = false;
+    let idx = 0;
+
+    const tryNext = (reason: string) => {
+      if (stopped) return;
+      console.warn('[RADIO DEBUG] Falha no candidato', { reason, url: candidates[idx] });
+      idx++;
+      if (idx >= candidates.length) {
+        console.error('[RADIO DEBUG] Todos os candidatos falharam');
+        setIsPlaying(false);
+        return;
+      }
+      playIdx();
+    };
+
+    const playIdx = () => {
+      const url = candidates[idx];
+      console.log(`[RADIO DEBUG] Tentando [${idx + 1}/${candidates.length}]`, url);
+      audio.src = url;
+      audio.preload = 'none';
+      audio.crossOrigin = 'anonymous';
+      audio.volume = volume;
+
+      // Reset para permitir tentativa de autoplay (com fallback mutado)
+      setAutoplayAttempted(false);
+
+      const timeoutId = window.setTimeout(() => tryNext('timeout'), 7000);
+
+      const onPlaying = () => {
+        clearTimeout(timeoutId);
+        setIsPlaying(true);
+        console.log('[RADIO DEBUG] ✓ Reproduzindo', url);
+      };
+
+      const onError = () => {
+        clearTimeout(timeoutId);
+        tryNext('error');
+      };
+
+      audio.addEventListener('playing', onPlaying, { once: true });
+      audio.addEventListener('error', onError, { once: true });
+
+      // Dispara tentativa de autoplay com fallback mutado
+      attemptAutoplay();
+    };
+
+    playIdx();
+
+    return () => {
+      stopped = true;
+    };
   }, [radioStreamUrl]);
 
   // Update volume when it changes - separado para não interferir no stream
