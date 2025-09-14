@@ -98,7 +98,9 @@ export const ProgrammingProvider: React.FC<{ children: ReactNode }> = ({ childre
   });
   
   const [radioStreamUrl, setRadioStreamUrl] = useState<string>(() => {
-    return localStorage.getItem('radio_stream_url') || '';
+    const rrn = localStorage.getItem('rrn_radio_url');
+    const legacy = localStorage.getItem('radio_stream_url');
+    return rrn || legacy || '';
   });
 
   // Persist programs to localStorage whenever they change
@@ -110,9 +112,26 @@ export const ProgrammingProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [programs]);
 
+  // Migrate and remove legacy radio_stream_url key to avoid conflicts
+  React.useEffect(() => {
+    try {
+      const legacy = localStorage.getItem('radio_stream_url');
+      if (legacy) {
+        if (!localStorage.getItem('rrn_radio_url')) {
+          localStorage.setItem('rrn_radio_url', legacy);
+        }
+        localStorage.removeItem('radio_stream_url');
+        console.log('[RADIO MIGRATION] Removed legacy key radio_stream_url');
+      }
+    } catch (e) {
+      console.warn('[RADIO MIGRATION] localStorage unavailable', e);
+    }
+  }, []);
+
   const handleSetRadioStreamUrl = (url: string) => {
     setRadioStreamUrl(url);
-    localStorage.setItem('radio_stream_url', url);
+    localStorage.setItem('rrn_radio_url', url);
+    localStorage.removeItem('radio_stream_url');
   };
 
   const addProgram = (programData: Omit<Program, 'id'>) => {

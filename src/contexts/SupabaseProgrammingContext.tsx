@@ -47,13 +47,37 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     return out;
   };
 
-  // Bootstrap from localStorage immediately
+  // Bootstrap from localStorage immediately + migrate legacy key
   useEffect(() => {
-    const stored = localStorage.getItem('rrn_radio_url');
-    if (stored && !radioStreamUrl) {
-      console.log('[RADIO BOOTSTRAP] Loading from localStorage:', stored);
-      setRadioStreamUrlState(sanitizeRadioUrl(stored));
-      setStreamConfigVersion((v) => v + 1);
+    try {
+      const rrn = localStorage.getItem('rrn_radio_url');
+      const legacy = localStorage.getItem('radio_stream_url');
+
+      // Migrate legacy -> rrn if needed
+      if (!rrn && legacy) {
+        const migrated = sanitizeRadioUrl(legacy);
+        localStorage.setItem('rrn_radio_url', migrated);
+        localStorage.removeItem('radio_stream_url');
+        console.log('[RADIO BOOTSTRAP] Migrated legacy radio_stream_url -> rrn_radio_url');
+        if (!radioStreamUrl) {
+          setRadioStreamUrlState(migrated);
+          setStreamConfigVersion((v) => v + 1);
+        }
+        return;
+      }
+
+      // Always remove legacy key to avoid conflicts
+      if (legacy) {
+        localStorage.removeItem('radio_stream_url');
+      }
+
+      if (rrn && !radioStreamUrl) {
+        console.log('[RADIO BOOTSTRAP] Loading from localStorage:', rrn);
+        setRadioStreamUrlState(sanitizeRadioUrl(rrn));
+        setStreamConfigVersion((v) => v + 1);
+      }
+    } catch (e) {
+      console.warn('[RADIO BOOTSTRAP] localStorage unavailable', e);
     }
   }, []);
 
@@ -87,21 +111,42 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('value, updated_at')
+        .select('id, value, updated_at, created_at')
         .eq('category', 'radio')
         .eq('key', 'stream_url')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching radio stream URL:', error);
+      }
 
       let value = '';
-      if (!error && data?.value !== undefined && data?.value !== null) {
-        const v: any = data.value;
+      const rows = data || [];
+
+      if (rows.length > 1) {
+        console.warn('[RADIO CONFIG] Duplicated stream_url rows detected:', rows.length);
+      }
+
+      // Prefer first non-empty url
+      for (const row of rows as any[]) {
+        const v: any = row.value;
+        let url = '';
         if (typeof v === 'string') {
-          value = v;
-        } else if (typeof v === 'object' && 'url' in v && typeof v.url === 'string') {
-          value = v.url as string;
+          url = v;
+        } else if (v && typeof v === 'object' && typeof v.url === 'string') {
+          url = v.url;
         }
+        if (url && url.trim() !== '') {
+          value = url;
+          break;
+        }
+      }
+
+      // Fallback to first row even if empty
+      if (!value && rows[0]) {
+        const v: any = (rows[0] as any).value;
+        if (typeof v === 'string') value = v;
+        else if (v && typeof v.url === 'string') value = v.url;
       }
 
       // If DB not configured, try public edge config
@@ -126,6 +171,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       const cleaned = sanitizeRadioUrl(value);
       setRadioStreamUrlState(cleaned);
       localStorage.setItem('rrn_radio_url', cleaned);
+      localStorage.removeItem('radio_stream_url');
       setStreamConfigVersion((v) => v + 1);
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
@@ -136,92 +182,36 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Carregar dados iniciais
-  useEffect(() => {
-    fetchPrograms();
-    fetchRadioStreamUrl();
-  }, []);
-
-  // Configurar real-time updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('radio-programs-and-settings-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'radio_programs'
-        },
-        (payload) => {
-          console.log('Program change:', payload);
-          fetchPrograms(); // Recarregar programas quando houver mudanças
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'settings',
-          filter: 'category=eq.radio'
-        },
-        (payload) => {
-          console.log('[RADIO REALTIME] Settings change:', payload);
-          fetchRadioStreamUrl(); // Atualizar URL quando houver mudanças
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const setRadioStreamUrl = async (url: string): Promise<{ error: string | null }> => {
     try {
       const cleaned = sanitizeRadioUrl(url);
-      // Primeiro tenta atualizar qualquer registro existente (inclusive duplicados)
       const { data: updated, error: updateError } = await supabase
         .from('settings')
         .update({ value: { url: cleaned } })
         .eq('category', 'radio')
         .eq('key', 'stream_url')
         .select('id');
-
       if (updateError) {
         console.error('Error updating radio stream URL:', updateError);
         return { error: 'Erro ao salvar URL da rádio' };
       }
-
-      // Se nenhum registro foi atualizado, insere um novo
       if (!updated || updated.length === 0) {
         const { error: insertError } = await supabase
           .from('settings')
-          .insert({
-            category: 'radio',
-            key: 'stream_url',
-            value: { url: cleaned }
-          });
-
+          .insert({ category: 'radio', key: 'stream_url', value: { url: cleaned } });
         if (insertError) {
           console.error('Error inserting radio stream URL:', insertError);
           return { error: 'Erro ao salvar URL da rádio' };
         }
       }
-
       setRadioStreamUrlState(cleaned);
       localStorage.setItem('rrn_radio_url', cleaned);
+      localStorage.removeItem('radio_stream_url');
       setStreamConfigVersion((v) => v + 1);
-      
-      toast({
-        title: "URL da rádio atualizada",
-        description: "A URL do stream da rádio foi salva com sucesso.",
-      });
-
+      toast({ title: 'URL da rádio atualizada', description: 'A URL do stream da rádio foi salva com sucesso.' });
       return { error: null };
-    } catch (error) {
-      console.error('Error updating radio stream URL:', error);
+    } catch (e) {
+      console.error('Error updating radio stream URL:', e);
       return { error: 'Erro ao salvar URL da rádio' };
     }
   };
