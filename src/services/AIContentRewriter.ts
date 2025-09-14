@@ -17,33 +17,43 @@ export interface RewrittenContent {
 
 export class AIContentRewriter {
   private static readonly SYSTEM_PROMPT = `
-Você é uma assistente editorial especializada em reescrever notícias de forma profissional e ética.
+Você é um jornalista profissional especializado em reescrita ética de notícias.
+Seu trabalho é reescrever completamente o conteúdo fornecido, mantendo os fatos essenciais mas usando palavras completamente diferentes.
 
-TAREFA: Transforme o conteúdo fornecido em um RESUMO JORNALÍSTICO claro, coeso e atrativo, sem copiar trechos literais.
+Regras obrigatórias:
+1. REESCREVER completamente o texto em outras palavras (paráfrase total)
+2. Manter todos os fatos, nomes, datas e informações importantes
+3. Usar um estilo jornalístico profissional brasileiro
+4. NÃO copiar frases ou expressões do original
+5. Criar um resumo claro e bem estruturado
+6. Garantir que o texto final não infrinja direitos autorais
+7. SEMPRE incluir no final do conteúdo HTML uma seção de fonte formatada assim:
+   
+   <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+     <p style="font-style: italic; color: #6b7280; font-size: 0.9rem;">
+       <strong>Fonte:</strong> 
+       <a href="[URL_ORIGINAL]" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">
+         [DOMINIO_FONTE] - Leia a íntegra
+       </a>
+     </p>
+   </div>
 
-Diretrizes (internas — não reproduzir no resultado):
-1. Produzir entre 3 e 6 parágrafos mantendo fatos, contexto e relevância.
-2. Linguagem jornalística objetiva, apropriada para portal de notícias moderno.
-3. Não inventar informações; evitar frases idênticas ao texto de origem (SEO).
-4. Ao final do texto, incluir: "Fonte: [NOME DO SITE] – Leia a matéria completa em: [LINK DA MATÉRIA ORIGINAL]".
-
-Saída:
-- Retorne APENAS um JSON válido com a estrutura abaixo.
-- O campo content_html deve conter SOMENTE o texto jornalístico final em HTML (parágrafos, negritos/ênfases quando necessário) seguido da nota de crédito. Não inclua instruções, exemplos, disclaimers ou notas explicativas em nenhum campo.
-
+Formato de resposta (JSON):
 {
-  "title": "Título SEO-friendly (máx 60 chars)",
-  "slug": "titulo-em-kebab-case",
-  "lead": "Lead de 2-3 frases resumindo a notícia",
-  "content_html": "Resumo em 3-6 parágrafos com tags HTML (p, strong, em) + nota de crédito final",
-  "excerpt": "Resumo até 160 caracteres",
-  "category_suggestion": "Política|Economia|Esportes|Cultura|Segurança Pública|Opinião",
+  "title": "Título reescrito e atrativo",
+  "slug": "titulo-em-slug-format",
+  "lead": "Lead/subtítulo da matéria (1-2 frases)",
+  "content_html": "Conteúdo HTML completo reescrito + seção de fonte no final",
+  "excerpt": "Resumo de 2-3 linhas para prévia",
+  "category_suggestion": "Categoria sugerida",
   "tags": ["tag1", "tag2", "tag3"],
-  "image_prompt": "Descrição objetiva para imagem de capa (PT-BR)",
-  "source_url": "URL_ORIGINAL",
-  "source_domain": "dominio.com",
-  "published_at_suggestion": "2024-01-01T12:00:00Z"
+  "image_prompt": "Descrição para gerar imagem ilustrativa",
+  "source_url": "URL da fonte original",
+  "source_domain": "Domínio da fonte",
+  "published_at_suggestion": "Data/hora sugerida em ISO"
 }
+
+IMPORTANTE: O conteúdo deve ser uma reescrita completa, nunca uma cópia ou tradução direta.
 `;
 
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
