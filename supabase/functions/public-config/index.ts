@@ -36,7 +36,7 @@ serve(async (req) => {
 
     // Fallback to function env (non-secret) if provided via Supabase secrets (optional)
     if (!radioStreamUrl) {
-      radioStreamUrl = Deno.env.get('VITE_RADIO_STREAM_URL') || '';
+      radioStreamUrl = Deno.env.get('VITE_RADIO_STREAM_URL') || Deno.env.get('RADIO_STREAM_URL') || '';
     }
 
     // Whether GROQ secret is configured (without exposing it)

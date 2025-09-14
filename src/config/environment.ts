@@ -1,16 +1,50 @@
-// Centralized environment configuration with fallbacks
+// Centralized environment configuration with runtime env.js injection and build-time fallbacks
+const getRuntimeEnv = () => {
+  if (typeof window === 'undefined') return {};
+  return (window as any).ENV || {};
+};
+
 export const ENV = {
-  // Application - use environment variables with fallbacks
-  APP_NAME: import.meta.env.VITE_APP_NAME || 'Portal de Notícias',
-  APP_DESCRIPTION: import.meta.env.VITE_APP_DESCRIPTION || 'Portal de notícias moderno e responsivo',
-  APP_URL: import.meta.env.VITE_APP_URL || window.location.origin,
+  // Get runtime configuration
+  get RUNTIME_CONFIG() {
+    return getRuntimeEnv();
+  },
   
-  // Supabase - use environment variables with fallbacks
-  SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || 'https://bwxbhircezyhwekdngdk.supabase.co',
-  SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3eGJoaXJjZXp5aHdla2RuZ2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjU4NDAsImV4cCI6MjA3MzIwMTg0MH0.cRpeDixAWnMRaKsdiQJeJ4KPx7-PJAP6M5m7ljhzEls',
+  // Application - prefer runtime (env.js), then Vite build-time, then defaults
+  get APP_NAME() {
+    const runtime = getRuntimeEnv();
+    return runtime.APP_NAME || import.meta.env.VITE_APP_NAME || 'Portal de Notícias';
+  },
+  get APP_DESCRIPTION() {
+    const runtime = getRuntimeEnv();
+    return runtime.APP_DESCRIPTION || import.meta.env.VITE_APP_DESCRIPTION || 'Portal de notícias moderno e responsivo';
+  },
+  get APP_URL() {
+    const runtime = getRuntimeEnv();
+    return runtime.VITE_APP_URL || runtime.APP_URL || import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  },
   
-  // Radio - use environment variable with fallback
-  RADIO_STREAM_URL: import.meta.env.VITE_RADIO_STREAM_URL || 'https://servidor25.brlogic.com:8166/live',
+  // Supabase - prefer runtime (env.js), then build-time, then fallbacks
+  get SUPABASE_URL() {
+    const runtime = getRuntimeEnv();
+    return runtime.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || 'https://bwxbhircezyhwekdngdk.supabase.co';
+  },
+  get SUPABASE_ANON_KEY() {
+    const runtime = getRuntimeEnv();
+    return runtime.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3eGJoaXJjZXp5aHdla2RuZ2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjU4NDAsImV4cCI6MjA3MzIwMTg0MH0.cRpeDixAWnMRaKsdiQJeJ4KPx7-PJAP6M5m7ljhzEls';
+  },
+  
+  // Radio - prefer runtime (env.js), then build-time, then default
+  get RADIO_STREAM_URL() {
+    const runtime = getRuntimeEnv();
+    return runtime.RADIO_STREAM_URL || import.meta.env.VITE_RADIO_STREAM_URL || 'https://servidor25.brlogic.com:8166/live';
+  },
+  
+  // Groq API Key - from runtime env.js (Easypanel will inject it)
+  get GROQ_API_KEY() {
+    const runtime = getRuntimeEnv();
+    return runtime.GROQ_API_KEY || '';
+  },
   
   // Security
   FORCE_HTTPS: import.meta.env.PROD,
@@ -21,7 +55,7 @@ export const ENV = {
   // Development
   IS_DEVELOPMENT: import.meta.env.DEV,
   IS_PRODUCTION: import.meta.env.PROD,
-} as const;
+};
 
 // Runtime environment validation
 export const validateEnvironment = () => {

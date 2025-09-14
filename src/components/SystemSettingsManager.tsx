@@ -379,8 +379,13 @@ const GroqStatus: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<boolean | null>(null);
   const [radioEnv, setRadioEnv] = useState<string>('');
+  const [runtimeEnv, setRuntimeEnv] = useState<any>({});
 
   useEffect(() => {
+    // Check runtime environment
+    const { ENV } = require('@/config/environment');
+    setRuntimeEnv(ENV.RUNTIME_CONFIG);
+
     (async () => {
       try {
         const { supabase } = await import('@/integrations/supabase/client');
@@ -399,29 +404,51 @@ const GroqStatus: React.FC = () => {
 
   return (
     <div className="space-y-2">
-      <h5 className="text-sm font-medium">Status da IA Principal (Groq)</h5>
-      <div className="p-3 bg-muted/20 rounded-lg border flex items-center justify-between">
-        <div>
-          <p className="text-sm">
-            {loading ? 'Verificando...' : active ? 'Groq configurado via servidor (Supabase Secrets)' : 'Groq não configurado no servidor'}
-          </p>
-          {radioEnv && (
-            <p className="text-xs text-muted-foreground">Rádio (runtime): {radioEnv}</p>
+      <h5 className="text-sm font-medium">Status da IA e Variáveis Runtime</h5>
+      <div className="p-3 bg-muted/20 rounded-lg border">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-sm">
+              {loading ? 'Verificando...' : active ? 'Groq configurado via Supabase Secrets' : 'Groq não configurado no servidor'}
+            </p>
+            {radioEnv && (
+              <p className="text-xs text-muted-foreground">Rádio (servidor): {radioEnv}</p>
+            )}
+          </div>
+          {!loading && (
+            active ? (
+              <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">Ativo</div>
+            ) : (
+              <div className="text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded">Pendente</div>
+            )
           )}
         </div>
-        {!loading && (
-          active ? (
-            <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">Ativo</div>
-          ) : (
-            <div className="text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded">Pendente</div>
-          )
-        )}
+        
+        {/* Runtime Environment Status */}
+        <div className="mt-3 pt-2 border-t border-muted">
+          <p className="text-xs font-medium text-muted-foreground mb-1">Variáveis Runtime (env.js):</p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {Object.entries({
+              'Rádio': runtimeEnv.RADIO_STREAM_URL,
+              'Groq': runtimeEnv.GROQ_API_KEY,
+              'Supabase URL': runtimeEnv.VITE_SUPABASE_URL,
+              'App URL': runtimeEnv.VITE_APP_URL
+            }).map(([key, value]) => (
+              <div key={key} className="flex justify-between">
+                <span>{key}:</span>
+                <span className={value ? 'text-green-600' : 'text-muted-foreground'}>
+                  {value ? '✓' : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       {!loading && active === false && (
         <Alert className="border-yellow-500/50 bg-yellow-50/10">
           <Key className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-xs">
-            Defina a variável segura GROQ_API_KEY em Supabase Secrets para habilitar a IA. Por segurança, a chave não é salva no navegador.
+            Configure GROQ_API_KEY no Easypanel (Ambiente) para injeção automática no env.js, ou defina em Supabase Secrets.
           </AlertDescription>
         </Alert>
       )}

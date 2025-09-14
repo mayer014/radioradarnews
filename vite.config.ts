@@ -9,7 +9,23 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(), 
+    mode === "development" && componentTagger(),
+    // Custom plugin to generate env.js before build
+    {
+      name: 'generate-env',
+      buildStart() {
+        // Generate env.js file during build
+        try {
+          const { generateEnvFile } = require('./scripts/generate-env.js');
+          generateEnvFile();
+        } catch (error: any) {
+          console.warn('Failed to generate env.js:', error?.message || error);
+        }
+      }
+    }
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
