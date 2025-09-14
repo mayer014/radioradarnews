@@ -17,33 +17,37 @@ export interface RewrittenContent {
 
 export class AIContentRewriter {
   private static readonly SYSTEM_PROMPT = `
-Você é um jornalista profissional especializado em reescrita ética de notícias.
-Seu trabalho é reescrever completamente o conteúdo fornecido, mantendo os fatos essenciais mas usando palavras completamente diferentes.
+Você é um assistente especializado em reescrita jornalística.  
+Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo e atrativo para leitura, seguindo as regras abaixo:
 
-Regras obrigatórias:
-1. REESCREVER completamente o texto em outras palavras (paráfrase total)
-2. Manter todos os fatos, nomes, datas e informações importantes
-3. Usar um estilo jornalístico profissional brasileiro
-4. NÃO copiar frases ou expressões do original
-5. Criar um resumo claro e bem estruturado
-6. Garantir que o texto final não infrinja direitos autorais
-7. SEMPRE incluir no final do conteúdo HTML uma seção de fonte formatada assim:
+1. **Tamanho**: entre 3 e 5 parágrafos no máximo.  
+2. **Clareza**: escreva em linguagem jornalística simples, fluida e sem repetições.  
+3. **Formatação**:  
+   - Separe os parágrafos com **quebra de linha (enter duplo)**, para deixar o texto arejado.  
+   - Não use blocos corridos longos.  
+4. **Resumo**: destaque os pontos principais da matéria sem perder o sentido central.  
+5. **Fonte obrigatória no final**:  
+   - Adicione no último parágrafo a frase formatada como HTML:
    
    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
      <p style="font-style: italic; color: #6b7280; font-size: 0.9rem;">
        <strong>Fonte:</strong> 
        <a href="[URL_ORIGINAL]" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">
-         [DOMINIO_FONTE] - Leia a íntegra
+         [DOMINIO_FONTE] — Leia a matéria completa clicando aqui
        </a>
      </p>
    </div>
 
+6. **Estilo**: objetivo, direto, mas mantendo impacto para prender a atenção do leitor.
+
+⚠️ Importante: não copie trechos literais, sempre reescreva em outras palavras para evitar problemas de direitos autorais.
+
 Formato de resposta (JSON):
 {
   "title": "Título reescrito e atrativo",
-  "slug": "titulo-em-slug-format",
+  "slug": "titulo-em-slug-format", 
   "lead": "Lead/subtítulo da matéria (1-2 frases)",
-  "content_html": "Conteúdo HTML completo reescrito + seção de fonte no final",
+  "content_html": "Conteúdo HTML com 3-5 parágrafos bem estruturados + seção de fonte no final",
   "excerpt": "Resumo de 2-3 linhas para prévia",
   "category_suggestion": "Categoria sugerida",
   "tags": ["tag1", "tag2", "tag3"],
@@ -53,7 +57,7 @@ Formato de resposta (JSON):
   "published_at_suggestion": "Data/hora sugerida em ISO"
 }
 
-IMPORTANTE: O conteúdo deve ser uma reescrita completa, nunca uma cópia ou tradução direta.
+CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrido. Use <p></p> para cada parágrafo com quebras duplas entre eles.
 `;
 
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
@@ -138,6 +142,19 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     const rewrittenTitle = this.rewriteTitleLocally(originalTitle);
     const domain = sourceUrl ? new URL(sourceUrl).hostname : 'fonte-desconhecida';
     
+    // Add formatted source section to content
+    const sourceSection = `
+<div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+  <p style="font-style: italic; color: #6b7280; font-size: 0.9rem;">
+    <strong>Fonte:</strong> 
+    <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">
+      ${domain} — Leia a matéria completa clicando aqui
+    </a>
+  </p>
+</div>`;
+    
+    const contentWithSource = rewrittenContent + '\n\n' + sourceSection;
+    
     // Generate categorization based on keywords
     const category = this.categorizeContent(rewrittenTitle + ' ' + rewrittenContent);
     const tags = this.extractTags(rewrittenTitle + ' ' + rewrittenContent, domain);
@@ -151,7 +168,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
         .replace(/--+/g, '-')
         .substring(0, 60),
       lead: this.generateLeadLocally(rewrittenContent),
-      content_html: rewrittenContent,
+      content_html: contentWithSource,
       excerpt: rewrittenContent.replace(/<[^>]*>/g, '').substring(0, 150) + '...',
       category_suggestion: category,
       tags,
@@ -179,25 +196,40 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     // Clean the content first
     const cleanContent = this.processContentLocally(content);
     
-    // Split into paragraphs
-    const paragraphs = cleanContent.split('\n').filter(p => p.trim().length > 0);
+    // Split into sentences and group into 3-5 paragraphs
+    const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
     
-    // Rewrite each paragraph with slight variations
-    const rewrittenParagraphs = paragraphs.map(paragraph => {
-      return this.paraphraseText(paragraph);
-    });
+    if (sentences.length === 0) return '<p>Conteúdo não disponível para processamento.</p>';
     
-    // Structure as proper HTML with headings
-    let structuredContent = `<h2>${this.paraphraseText(title)}</h2>\n\n`;
+    // Group sentences into 3-5 paragraphs
+    const paragraphCount = Math.min(5, Math.max(3, Math.ceil(sentences.length / 3)));
+    const sentencesPerParagraph = Math.ceil(sentences.length / paragraphCount);
     
-    rewrittenParagraphs.forEach((paragraph, index) => {
+    const paragraphs: string[] = [];
+    for (let i = 0; i < paragraphCount; i++) {
+      const start = i * sentencesPerParagraph;
+      const end = Math.min(start + sentencesPerParagraph, sentences.length);
+      const paragraphSentences = sentences.slice(start, end);
+      
+      if (paragraphSentences.length > 0) {
+        const paragraph = paragraphSentences
+          .map(s => this.paraphraseText(s.trim()))
+          .join('. ')
+          .replace(/\.\./g, '.')
+          + '.';
+        paragraphs.push(paragraph);
+      }
+    }
+    
+    // Structure as properly formatted HTML with double line breaks
+    let structuredContent = '';
+    
+    paragraphs.forEach((paragraph, index) => {
       if (index === 0) {
+        // First paragraph with emphasis
         structuredContent += `<p><strong>${paragraph}</strong></p>\n\n`;
-      } else if (index % 3 === 0 && paragraph.length > 100) {
-        // Add some H3 headings for structure
-        const heading = this.generateSubheading(paragraph);
-        structuredContent += `<h3>${heading}</h3>\n\n<p>${paragraph}</p>\n\n`;
       } else {
+        // Regular paragraphs
         structuredContent += `<p>${paragraph}</p>\n\n`;
       }
     });
