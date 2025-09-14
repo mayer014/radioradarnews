@@ -15,7 +15,7 @@ interface RadioPlayerContextType {
 export const RadioPlayerContext = createContext<RadioPlayerContextType | undefined>(undefined);
 
 export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { radioStreamUrl } = useSupabaseProgramming();
+  const { radioStreamUrl, streamConfigVersion } = useSupabaseProgramming();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.75);
   const [currentShow, setCurrentShow] = useState("RRN");
@@ -117,9 +117,12 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       setIsPlaying(false);
       console.log('[RADIO DEBUG] ✓ Rádio pausada');
     } else {
-      console.log('[RADIO DEBUG] Tentando reproduzir stream:', radioStreamUrl);
+      console.log('[RADIO DEBUG] Tentando reproduzir stream (manual):', radioStreamUrl);
       
-      // Para streams ao vivo, sempre recarregar a fonte para garantir áudio atual
+      // Forçar src e recarregar para garantir conexão imediata
+      audioRef.current.src = radioStreamUrl;
+      audioRef.current.preload = 'auto';
+      audioRef.current.crossOrigin = 'anonymous';
       audioRef.current.load();
       
       // Se estava mutado, desmuta ao dar play manual
@@ -131,18 +134,18 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       audioRef.current.play().then(() => {
         setIsPlaying(true);
         console.log('[RADIO DEBUG] ✓ Rádio reproduzindo com sucesso (stream ao vivo)');
-        }).catch((error: any) => {
-          console.error('[RADIO DEBUG] ✗ Erro ao reproduzir:', {
-            error: (error?.message) || error,
-            name: error?.name,
-            code: (error as any)?.code || 'N/A',
-            src: audioRef.current?.src,
-            networkState: audioRef.current?.networkState,
-            readyState: audioRef.current?.readyState
-          });
-          setIsPlaying(false);
-          alert(`Erro ao conectar com o stream da rádio: ${(error?.message) || error}. Verifique a configuração no painel admin.`);
+      }).catch((error: any) => {
+        console.error('[RADIO DEBUG] ✗ Erro ao reproduzir:', {
+          error: (error?.message) || error,
+          name: error?.name,
+          code: (error as any)?.code || 'N/A',
+          src: audioRef.current?.src,
+          networkState: audioRef.current?.networkState,
+          readyState: audioRef.current?.readyState
         });
+        setIsPlaying(false);
+        alert(`Erro ao conectar com o stream da rádio: ${(error?.message) || error}. Verifique a configuração no painel admin.`);
+      });
     }
   };
 
@@ -291,7 +294,7 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
     };
-  }, [radioStreamUrl]);
+  }, [radioStreamUrl, streamConfigVersion]);
 
   // Update volume when it changes - separado para não interferir no stream
   useEffect(() => {

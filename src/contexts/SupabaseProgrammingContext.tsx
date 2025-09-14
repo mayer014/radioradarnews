@@ -18,6 +18,7 @@ export interface Program {
 interface SupabaseProgrammingContextType {
   programs: Program[];
   radioStreamUrl: string;
+  streamConfigVersion: number;
   loading: boolean;
   setRadioStreamUrl: (url: string) => Promise<{ error: string | null }>;
   addProgram: (program: Omit<Program, 'id' | 'created_at' | 'updated_at'>) => Promise<{ error: string | null }>;
@@ -33,6 +34,7 @@ const SupabaseProgrammingContext = createContext<SupabaseProgrammingContextType 
 export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [radioStreamUrl, setRadioStreamUrlState] = useState<string>('');
+  const [streamConfigVersion, setStreamConfigVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -51,6 +53,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     if (stored && !radioStreamUrl) {
       console.log('[RADIO BOOTSTRAP] Loading from localStorage:', stored);
       setRadioStreamUrlState(sanitizeRadioUrl(stored));
+      setStreamConfigVersion((v) => v + 1);
     }
   }, []);
 
@@ -123,11 +126,13 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       const cleaned = sanitizeRadioUrl(value);
       setRadioStreamUrlState(cleaned);
       localStorage.setItem('rrn_radio_url', cleaned);
+      setStreamConfigVersion((v) => v + 1);
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
       const { ENV } = await import('@/config/environment');
       const cleaned = sanitizeRadioUrl(ENV.RADIO_STREAM_URL || '');
       setRadioStreamUrlState(cleaned);
+      setStreamConfigVersion((v) => v + 1);
     }
   };
 
@@ -207,6 +212,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
       setRadioStreamUrlState(cleaned);
       localStorage.setItem('rrn_radio_url', cleaned);
+      setStreamConfigVersion((v) => v + 1);
       
       toast({
         title: "URL da rádio atualizada",
@@ -331,6 +337,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         programs,
         radioStreamUrl,
+        streamConfigVersion,
         loading,
         setRadioStreamUrl,
         addProgram,
