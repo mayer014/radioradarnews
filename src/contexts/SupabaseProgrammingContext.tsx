@@ -182,19 +182,65 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  // Carregar dados iniciais
+  useEffect(() => {
+    fetchPrograms();
+    fetchRadioStreamUrl();
+  }, []);
+
+  // Configurar real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('radio-programs-and-settings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'radio_programs'
+        },
+        (payload) => {
+          console.log('Program change:', payload);
+          fetchPrograms(); // Recarregar programas quando houver mudanças
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'settings',
+          filter: 'category=eq.radio'
+        },
+        (payload) => {
+          console.log('[RADIO REALTIME] Settings change:', payload);
+          fetchRadioStreamUrl(); // Atualizar URL quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const setRadioStreamUrl = async (url: string): Promise<{ error: string | null }> => {
     try {
       const cleaned = sanitizeRadioUrl(url);
+      // Atualiza qualquer registro existente (inclusive duplicados antigos)
       const { data: updated, error: updateError } = await supabase
         .from('settings')
         .update({ value: { url: cleaned } })
         .eq('category', 'radio')
         .eq('key', 'stream_url')
         .select('id');
+
       if (updateError) {
         console.error('Error updating radio stream URL:', updateError);
         return { error: 'Erro ao salvar URL da rádio' };
       }
+
+      // Se não atualizou nada, cria o registro
       if (!updated || updated.length === 0) {
         const { error: insertError } = await supabase
           .from('settings')
@@ -204,11 +250,17 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
           return { error: 'Erro ao salvar URL da rádio' };
         }
       }
+
       setRadioStreamUrlState(cleaned);
       localStorage.setItem('rrn_radio_url', cleaned);
       localStorage.removeItem('radio_stream_url');
       setStreamConfigVersion((v) => v + 1);
-      toast({ title: 'URL da rádio atualizada', description: 'A URL do stream da rádio foi salva com sucesso.' });
+
+      toast({
+        title: 'URL da rádio atualizada',
+        description: 'A URL do stream da rádio foi salva com sucesso.',
+      });
+
       return { error: null };
     } catch (e) {
       console.error('Error updating radio stream URL:', e);
