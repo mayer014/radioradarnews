@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useComments } from '@/contexts/CommentsContext';
+import { useSupabaseComments } from '@/contexts/SupabaseCommentsContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +30,7 @@ const CommentsManager = () => {
     getPendingComments,
     updateSettings,
     getCommentStats 
-  } = useComments();
+  } = useSupabaseComments();
   
   const { toast } = useToast();
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -230,7 +230,7 @@ const CommentsManager = () => {
                         <p className="font-medium">{comment.name}</p>
                         <p className="text-sm text-muted-foreground">{comment.email}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(comment.createdAt).toLocaleString('pt-BR')}
+                          {new Date(comment.created_at).toLocaleString('pt-BR')}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
