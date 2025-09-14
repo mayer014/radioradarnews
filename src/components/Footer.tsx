@@ -1,5 +1,4 @@
-import React from 'react';
-import { Radio, Mail, Phone, MapPin, Facebook, Instagram, Clock, Users } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Instagram, Clock, Users, Newspaper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
@@ -21,7 +20,6 @@ const Footer = () => {
   const navigationItems = [
     { name: 'Início', href: '/' },
     { name: 'Notícias', href: '/noticias' },
-    { name: 'Rádio', href: '/radio' },
     { name: 'Contato', href: '/contato' }
   ];
 
@@ -145,7 +143,7 @@ const Footer = () => {
           <div className="space-y-4 animate-slide-up">
             <div className="flex items-center space-x-2">
               <div className="w-12 h-12 bg-gradient-hero rounded-2xl flex items-center justify-center">
-                <Radio className="w-6 h-6 text-white" />
+                <Newspaper className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent">
                 Portal News

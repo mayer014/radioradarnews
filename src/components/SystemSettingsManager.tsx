@@ -296,7 +296,6 @@ const GroqStatus: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<boolean | null>(null);
-  const [radioEnv, setRadioEnv] = useState<string>('');
   const [runtimeEnv, setRuntimeEnv] = useState<any>({});
 
   useEffect(() => {
@@ -309,7 +308,7 @@ const GroqStatus: React.FC = () => {
         const { data, error } = await supabase.functions.invoke('public-config');
         if (error) throw error;
         setActive(Boolean(data?.groqConfigured));
-        setRadioEnv(data?.radioStreamUrl || '');
+        
       } catch (e: any) {
         setActive(null);
         toast({ title: 'Aviso', description: 'Não foi possível verificar o status da IA Groq.', variant: 'destructive' });
@@ -328,9 +327,6 @@ const GroqStatus: React.FC = () => {
             <p className="text-sm">
               {loading ? 'Verificando...' : active ? 'Groq configurado via Supabase Secrets' : 'Groq não configurado no servidor'}
             </p>
-            {radioEnv && (
-              <p className="text-xs text-muted-foreground">Rádio (servidor): {radioEnv}</p>
-            )}
           </div>
           {!loading && (
             active ? (
@@ -346,7 +342,6 @@ const GroqStatus: React.FC = () => {
           <p className="text-xs font-medium text-muted-foreground mb-1">Variáveis Runtime (env.js):</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             {Object.entries({
-              'Rádio': runtimeEnv.RADIO_STREAM_URL,
               'Groq': runtimeEnv.GROQ_API_KEY,
               'Supabase URL': runtimeEnv.VITE_SUPABASE_URL,
               'App URL': runtimeEnv.VITE_APP_URL
