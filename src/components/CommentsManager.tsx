@@ -44,29 +44,53 @@ const CommentsManager = () => {
     ? comments 
     : comments.filter(comment => comment.status === selectedStatus);
 
-  const handleApprove = (id: string) => {
-    updateCommentStatus(id, 'approved');
-    toast({
-      title: "Comentário aprovado",
-      description: "O comentário foi aprovado e está visível no site.",
-    });
-  };
-
-  const handleReject = (id: string) => {
-    updateCommentStatus(id, 'rejected');
-    toast({
-      title: "Comentário rejeitado",
-      description: "O comentário foi rejeitado e não aparece no site.",
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este comentário permanentemente?')) {
-      deleteComment(id);
+  const handleApprove = async (id: string) => {
+    const result = await updateCommentStatus(id, 'approved');
+    if (!result.error) {
       toast({
-        title: "Comentário excluído",
-        description: "O comentário foi removido permanentemente.",
+        title: "Comentário aprovado",
+        description: "O comentário foi aprovado e está visível no site.",
       });
+    } else {
+      toast({
+        title: "Erro ao aprovar",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    const result = await updateCommentStatus(id, 'rejected');
+    if (!result.error) {
+      toast({
+        title: "Comentário rejeitado",
+        description: "O comentário foi rejeitado e não aparece no site.",
+      });
+    } else {
+      toast({
+        title: "Erro ao rejeitar",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este comentário permanentemente?')) {
+      const result = await deleteComment(id);
+      if (!result.error) {
+        toast({
+          title: "Comentário excluído",
+          description: "O comentário foi removido permanentemente.",
+        });
+      } else {
+        toast({
+          title: "Erro ao excluir",
+          description: result.error,
+          variant: "destructive"
+        });
+      }
     }
   };
 

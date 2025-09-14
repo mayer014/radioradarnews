@@ -223,6 +223,13 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
         return { error: 'Erro ao atualizar status do comentário' };
       }
 
+      // Atualizar o estado local imediatamente
+      setComments(prev => 
+        prev.map(comment => 
+          comment.id === id ? { ...comment, status } : comment
+        )
+      );
+
       return { error: null };
     } catch (error) {
       console.error('Error updating comment status:', error);
@@ -242,10 +249,8 @@ export const SupabaseCommentsProvider: React.FC<{ children: React.ReactNode }> =
         return { error: 'Erro ao deletar comentário' };
       }
 
-      toast({
-        title: "Comentário deletado",
-        description: "O comentário foi removido com sucesso.",
-      });
+      // Atualizar o estado local imediatamente
+      setComments(prev => prev.filter(comment => comment.id !== id));
 
       return { error: null };
     } catch (error) {
