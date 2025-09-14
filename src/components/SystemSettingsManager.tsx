@@ -131,25 +131,29 @@ const SystemSettingsManager = () => {
         throw new Error(`API Test Failed: ${response.status} ${response.statusText}`);
       }
 
-      // If test passes, save to Supabase
-      const { error } = await addConfiguration({
-        provider_name: aiProvider,
-        api_key_encrypted: aiApiKey, // In production, this should be encrypted
-        config_json: {
-          model: aiProvider === 'groq' ? 'llama-3.1-8b-instant' : 
-                aiProvider === 'openai' ? 'gpt-3.5-turbo' : 'claude-3-sonnet-20240229',
-          tested_at: new Date().toISOString()
-        }
-      });
-
-      if (error) {
-        throw new Error(error);
+      // Se o teste passou
+      if (aiProvider === 'groq') {
+        // Não persistimos a chave da Groq no banco: deve ir para Supabase Secrets / Easypanel
+        toast({
+          title: 'Teste concluído',
+          description: 'Groq respondeu OK. Para persistir, defina GROQ_API_KEY no Supabase Secrets ou no Ambiente do Easypanel. Não salvamos a chave no banco.',
+        });
+      } else {
+        // Persistimos apenas provedores adicionais (OpenAI/Anthropic) vinculados ao usuário
+        const { error } = await addConfiguration({
+          provider_name: aiProvider,
+          api_key_encrypted: aiApiKey, // Em produção, criptografar
+          config_json: {
+            model: aiProvider === 'openai' ? 'gpt-3.5-turbo' : 'claude-3-sonnet-20240229',
+            tested_at: new Date().toISOString()
+          }
+        });
+        if (error) throw new Error(error);
+        toast({
+          title: 'Configuração salva',
+          description: `API ${aiProvider} testada e configurada com sucesso.`,
+        });
       }
-
-      toast({
-        title: "Configuração salva",
-        description: `API ${aiProvider} testada e configurada com sucesso.`,
-      });
 
       // Clear form
       setAiApiKey('');

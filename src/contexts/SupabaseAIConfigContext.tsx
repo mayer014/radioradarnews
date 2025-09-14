@@ -6,6 +6,7 @@ interface AIConfiguration {
   provider_name: string;
   api_key_encrypted: string | null;
   config_json: Record<string, any>;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -68,9 +69,14 @@ export const SupabaseAIConfigProvider: React.FC<{ children: React.ReactNode }> =
 
   const addConfiguration = async (config: Omit<AIConfiguration, 'id' | 'created_at' | 'updated_at'>) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const payload = { ...config, user_id: user.id } as any;
+
       const { error } = await supabase
         .from('ai_configurations')
-        .insert([config]);
+        .insert([payload]);
 
       if (error) throw error;
       return { error: null };
