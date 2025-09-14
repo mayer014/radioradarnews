@@ -182,8 +182,25 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais e limpar localStorage obsoleto
   useEffect(() => {
+    // Limpar URLs antigas do localStorage para forçar uso das variáveis de ambiente
+    const cleanOldRadioStorage = () => {
+      const oldKeys = [
+        'radio_stream_url',
+        'rrn_radio_url_backup',
+        'radio_url_legacy'
+      ];
+      
+      oldKeys.forEach(key => {
+        if (localStorage.getItem(key)) {
+          console.log(`[RADIO CLEANUP] Removing old localStorage key: ${key}`);
+          localStorage.removeItem(key);
+        }
+      });
+    };
+
+    cleanOldRadioStorage();
     fetchPrograms();
     fetchRadioStreamUrl();
   }, []);
