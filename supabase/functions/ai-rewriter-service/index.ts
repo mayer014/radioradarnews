@@ -32,9 +32,13 @@ Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo 
 
 1. **Tamanho**: entre 3 e 5 parágrafos no máximo.  
 2. **Clareza**: escreva em linguagem jornalística simples, fluida e sem repetições.  
-3. **Formatação**:  
-   - Separe os parágrafos com **quebra de linha (enter duplo)**, para deixar o texto arejado.  
-   - Não use blocos corridos longos.  
+3. **Formatação HTML OBRIGATÓRIA**:  
+   - Cada parágrafo deve estar em uma tag <p> com espaçamento: <p style="margin-bottom: 1.5rem;">
+   - NUNCA use texto corrido sem tags <p>
+   - Exemplo correto:
+     <p style="margin-bottom: 1.5rem;">Primeiro parágrafo aqui.</p>
+     <p style="margin-bottom: 1.5rem;">Segundo parágrafo aqui.</p>
+     <p style="margin-bottom: 1.5rem;">Terceiro parágrafo aqui.</p>
 4. **Resumo**: destaque os pontos principais da matéria sem perder o sentido central.  
 5. **Fonte obrigatória no final**:  
    - Adicione no último parágrafo a frase formatada como HTML:
@@ -57,7 +61,7 @@ Formato de resposta (JSON válido):
   "title": "Título reescrito e atrativo",
   "slug": "titulo-em-slug-format", 
   "lead": "Lead/subtítulo da matéria (1-2 frases)",
-  "content_html": "Conteúdo HTML com 3-5 parágrafos bem estruturados + seção de fonte no final",
+  "content_html": "Conteúdo HTML com parágrafos <p style='margin-bottom: 1.5rem;'> bem espaçados + seção de fonte no final",
   "excerpt": "Resumo de 2-3 linhas para prévia",
   "category_suggestion": "Categoria sugerida",
   "tags": ["tag1", "tag2", "tag3"],
@@ -67,7 +71,7 @@ Formato de resposta (JSON válido):
   "published_at_suggestion": "Data/hora sugerida em ISO"
 }
 
-CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados em HTML (<p></p>), nunca texto corrido. Retorne APENAS o JSON válido.
+CRÍTICO: TODOS os parágrafos devem ter <p style="margin-bottom: 1.5rem;"> para espaçamento adequado. Retorne APENAS o JSON válido.
 `;
 
 serve(async (req) => {
@@ -112,7 +116,7 @@ Conteúdo: ${cleanTextContent(content)}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
