@@ -21,6 +21,7 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [currentShow, setCurrentShow] = useState("RRN");
   const [isMuted, setIsMuted] = useState(false);
   const [autoplayAttempted, setAutoplayAttempted] = useState(false);
+  const [lastWorkingUrl, setLastWorkingUrl] = useState('');
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleVolumeChange = (newVolume: number) => {
@@ -189,6 +190,13 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     const candidates: string[] = (() => {
       const list: string[] = [];
+      
+      // Prioriza URL que funcionou anteriormente
+      const storedWorking = localStorage.getItem('rrn_last_working_url');
+      if (storedWorking && storedWorking !== base) {
+        list.push(storedWorking);
+      }
+      
       if (base.startsWith('/')) {
         // Caminho relativo: tenta com e sem ';'
         list.push(`${origin}${withSemicolonPath(base)}`);
@@ -240,6 +248,8 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       const onPlaying = () => {
         clearTimeout(timeoutId);
         setIsPlaying(true);
+        setLastWorkingUrl(url);
+        localStorage.setItem('rrn_last_working_url', url);
         console.log('[RADIO DEBUG] ✓ Reproduzindo', url);
       };
 
@@ -257,8 +267,29 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     playIdx();
 
+    // Add visibility change listener for resilient retry
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPlaying && audioRef.current?.paused) {
+        console.log('[RADIO DEBUG] Resumindo após visibilidade...');
+        audioRef.current.play().catch(console.warn);
+      }
+    };
+
+    const handleOnline = () => {
+      if (isPlaying && audioRef.current?.paused) {
+        console.log('[RADIO DEBUG] Reconectando após online...');
+        audioRef.current.load();
+        audioRef.current.play().catch(console.warn);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+
     return () => {
       stopped = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
     };
   }, [radioStreamUrl]);
 
@@ -301,12 +332,16 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
         onError={(e) => {
           setIsPlaying(false);
           console.error('Erro no stream de áudio:', e);
-          // Try to reconnect after error
+          // Try to reconnect after error using the last working URL
           setTimeout(() => {
-            if (radioStreamUrl && audioRef.current && isPlaying) {
-              console.log('Tentando reconectar após erro...');
-              audioRef.current.load();
-              audioRef.current.play().catch(err => console.log('Reconnect failed:', err));
+            if (audioRef.current) {
+              const retryUrl = lastWorkingUrl || radioStreamUrl;
+              if (retryUrl) {
+                console.log('Tentando reconectar com:', retryUrl);
+                audioRef.current.src = retryUrl;
+                audioRef.current.load();
+                audioRef.current.play().catch(err => console.log('Reconnect failed:', err));
+              }
             }
           }, 2000);
         }}

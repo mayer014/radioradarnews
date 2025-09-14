@@ -39,9 +39,20 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
   const sanitizeRadioUrl = (url: string) => {
     if (!url) return '';
     let out = url.trim();
+    // Remove quotes and extra whitespace
+    out = out.replace(/^["']|["']$/g, '');
     if (out.startsWith('ttps://') || out.startsWith('ttp://')) out = 'h' + out;
     return out;
   };
+
+  // Bootstrap from localStorage immediately
+  useEffect(() => {
+    const stored = localStorage.getItem('rrn_radio_url');
+    if (stored && !radioStreamUrl) {
+      console.log('[RADIO BOOTSTRAP] Loading from localStorage:', stored);
+      setRadioStreamUrlState(sanitizeRadioUrl(stored));
+    }
+  }, []);
 
   // Função para carregar programas
   const fetchPrograms = async () => {
@@ -108,6 +119,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
 
       const cleaned = sanitizeRadioUrl(value);
       setRadioStreamUrlState(cleaned);
+      localStorage.setItem('rrn_radio_url', cleaned);
     } catch (error) {
       console.error('Error fetching radio stream URL:', error);
       const { ENV } = await import('@/config/environment');
@@ -125,7 +137,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
   // Configurar real-time updates
   useEffect(() => {
     const channel = supabase
-      .channel('radio-programs-changes')
+      .channel('radio-programs-and-settings-changes')
       .on(
         'postgres_changes',
         {
@@ -136,6 +148,19 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
         (payload) => {
           console.log('Program change:', payload);
           fetchPrograms(); // Recarregar programas quando houver mudanças
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'settings',
+          filter: 'category=eq.radio'
+        },
+        (payload) => {
+          console.log('[RADIO REALTIME] Settings change:', payload);
+          fetchRadioStreamUrl(); // Atualizar URL quando houver mudanças
         }
       )
       .subscribe();
@@ -178,6 +203,7 @@ export const SupabaseProgrammingProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       setRadioStreamUrlState(cleaned);
+      localStorage.setItem('rrn_radio_url', cleaned);
       
       toast({
         title: "URL da rádio atualizada",

@@ -42,7 +42,8 @@ const SystemSettingsManager = () => {
   }, [radioStreamUrl]);
 
   const handleSaveRadioUrl = async () => {
-    if (!radioUrl.trim()) {
+    const trimmed = radioUrl.trim().replace(/^["']|["']$/g, ''); // Remove quotes
+    if (!trimmed) {
       toast({
         title: "URL obrigatória",
         description: "Digite uma URL válida para o stream da rádio.",
@@ -53,7 +54,7 @@ const SystemSettingsManager = () => {
 
     setSavingRadio(true);
     try {
-      let cleaned = radioUrl.trim();
+      let cleaned = trimmed;
       if (cleaned.startsWith('ttps://') || cleaned.startsWith('ttp://')) cleaned = 'h' + cleaned;
       const { error } = await setRadioStreamUrl(cleaned);
       if (error) {
@@ -268,11 +269,13 @@ const SystemSettingsManager = () => {
               <Alert className="border-primary/30 bg-primary/5">
                 <Radio className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  <strong>Formato:</strong> Insira a URL completa do stream de rádio. Em produção (site https), o player tenta usar o proxy "/radio" automaticamente.
+                  <strong>URL Válida:</strong> Use a URL direta do provedor de stream. Exemplo: https://cc6.streammaximum.com:20010/;
                   <br />
-                  <strong>Dica:</strong> Muitos provedores Shoutcast/Icecast exigem "/;" no final. Exemplo: https://cc6.streammaximum.com:20010/;
+                  <strong>Formato Shoutcast/Icecast:</strong> Adicione "/;" no final da URL (exemplo acima). O player tentará automaticamente.
                   <br />
-                  Você também pode salvar apenas "/radio" para forçar o proxy em produção; no preview/local use a URL direta do provedor.
+                  <strong>Proxy Automático:</strong> Em produção HTTPS, o player usa "/radio" como fallback via proxy nginx.
+                  <br />
+                  <strong>Não funciona?</strong> Remova e digite a URL novamente, ou verifique se precisa de "/;" no final.
                 </AlertDescription>
               </Alert>
             </div>
