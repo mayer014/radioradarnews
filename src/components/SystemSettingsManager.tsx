@@ -30,10 +30,6 @@ const SystemSettingsManager = () => {
   const [showAiKey, setShowAiKey] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
 
-  useEffect(() => {
-    setRadioUrl(radioStreamUrl);
-  }, [radioStreamUrl]);
-
 
   const handleTestAndSaveAI = async () => {
     if (!aiApiKey.trim()) {
