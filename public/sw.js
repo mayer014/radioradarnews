@@ -13,7 +13,6 @@ const STATIC_ASSETS = [
 // Recursos que devem ser atualizados com frequência
 const DYNAMIC_ASSETS = [
   '/noticias',
-  '/radio',
   '/ao-vivo',
   '/contato',
   '/colunistas'
@@ -62,6 +61,12 @@ self.addEventListener('fetch', (event) => {
 
   // Apenas interceptar requisições HTTP/HTTPS
   if (!request.url.startsWith('http')) return;
+
+  // Bypass total de cache para streams de áudio (não armazenar)
+  if (request.destination === 'audio' || url.pathname.startsWith('/radio') || url.hostname.includes('streammaximum.com')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
 
   // Estratégia: Cache First para assets estáticos
   if (request.destination === 'script' || 

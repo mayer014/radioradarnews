@@ -236,14 +236,14 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       const url = candidates[idx];
       console.log(`[RADIO DEBUG] Tentando [${idx + 1}/${candidates.length}]`, url);
       audio.src = url;
-      audio.preload = 'none';
+      audio.preload = 'auto';
       audio.crossOrigin = 'anonymous';
       audio.volume = volume;
 
       // Reset para permitir tentativa de autoplay (com fallback mutado)
       setAutoplayAttempted(false);
 
-      const timeoutId = window.setTimeout(() => tryNext('timeout'), 7000);
+      const timeoutId = window.setTimeout(() => tryNext('timeout'), 4000);
 
       const onPlaying = () => {
         clearTimeout(timeoutId);
@@ -318,7 +318,7 @@ export const RadioPlayerProvider: React.FC<{ children: ReactNode }> = ({ childre
       <audio 
         ref={audioRef}
         playsInline
-        preload="none"
+        preload="auto"
         onEnded={() => {
           console.log('Stream ended, tentando reconectar...');
           setIsPlaying(false);
