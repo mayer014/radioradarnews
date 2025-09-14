@@ -1,14 +1,13 @@
-# Dockerfile otimizado para Easypanel
-FROM node:18-alpine
+# Stage 1: Build da aplicação
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copiar package files (apenas npm)
+# Copiar package files
 COPY package*.json ./
 
-# Instalar dependências incluindo serve
+# Instalar dependências
 RUN npm install
-RUN npm install -g serve
 
 # Copiar código fonte
 COPY . .
@@ -16,8 +15,17 @@ COPY . .
 # Build da aplicação
 RUN npm run build
 
-# Expor porta 3000 (padrão Easypanel)
-EXPOSE 3000
+# Stage 2: Servir com Nginx
+FROM nginx:alpine
 
-# Usar serve para SPA com fallback
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Copiar arquivos do build
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copiar configuração do Nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expor porta 80
+EXPOSE 80
+
+# Comando padrão
+CMD ["nginx", "-g", "daemon off;"]
