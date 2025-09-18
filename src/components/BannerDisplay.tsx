@@ -51,24 +51,19 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
           }}
           onError={(e) => {
             console.error('Error loading banner image:', banner.image_url);
-            // Hide the image on error and show a fallback
+            // Hide the image on error and show a minimal fallback without text
             (e.target as HTMLImageElement).style.display = 'none';
             const parent = (e.target as HTMLImageElement).parentElement;
             if (parent && !parent.querySelector('.banner-fallback')) {
               parent.innerHTML += `
                 <div class="banner-fallback absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 flex items-center justify-center">
-                  <span class="text-muted-foreground text-xs sm:text-sm font-medium px-2 text-center">${banner.title}</span>
+                  <div class="w-full h-full bg-muted/30 rounded"></div>
                 </div>
               `;
             }
           }}
         />
         
-        {banner.is_pilot && (
-          <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-primary/90 text-primary-foreground text-xs px-1 py-0.5 sm:px-2 sm:py-1 rounded-md font-medium backdrop-blur-sm">
-            Piloto
-          </div>
-        )}
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
       </div>

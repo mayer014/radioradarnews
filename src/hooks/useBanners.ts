@@ -63,14 +63,14 @@ export const useBanners = () => {
     }
   }, [toast]);
 
-  // Get active banner for specific area - simplified version
+  // Get active banner for specific area - prioritize specific banners over pilot
   const getActiveBanner = useCallback(async (
     bannerType: 'hero' | 'category' | 'columnist',
     targetCategory?: string,
     targetColumnistId?: string
   ): Promise<ActiveBanner | null> => {
     try {
-      // First try to get specific banner
+      // First try to get specific banner (non-pilot)
       let query = supabase
         .from('banners')
         .select('id, title, image_url, banner_type, is_pilot')
@@ -90,12 +90,12 @@ export const useBanners = () => {
         console.error('Error in specific banner query:', error);
       }
 
-      // If we found a specific banner, return it
+      // If we found a specific banner, return it (priority over pilot)
       if (data && data.length > 0) {
         return data[0];
       }
 
-      // Otherwise, get pilot banner as fallback
+      // Only use pilot banner if no specific banner exists for this area
       const { data: pilotData, error: pilotError } = await supabase
         .from('banners')
         .select('id, title, image_url, banner_type, is_pilot')
