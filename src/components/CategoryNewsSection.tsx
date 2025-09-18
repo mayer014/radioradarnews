@@ -42,11 +42,8 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
   useEffect(() => {
     if (skipBanner) return;
     
-    console.log('🔄 CategoryNewsSection loading banner for category:', category);
-    
     const loadCategoryBanner = async () => {
       const banner = await getActiveBanner('category', category);
-      console.log('📋 CategoryNewsSection received banner:', banner);
       setCategoryBanner(banner);
     };
     

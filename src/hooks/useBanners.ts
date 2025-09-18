@@ -70,8 +70,6 @@ export const useBanners = () => {
     targetColumnistId?: string
   ): Promise<ActiveBanner | null> => {
     try {
-      console.log('🔍 Searching for banner:', { bannerType, targetCategory, targetColumnistId });
-      
       // First try to get specific banner (non-pilot) - CASE INSENSITIVE comparison
       let query = supabase
         .from('banners')
@@ -89,20 +87,16 @@ export const useBanners = () => {
 
       const { data, error } = await query.order('sort_order', { ascending: true }).limit(1);
 
-      console.log('🎯 Specific banner query result:', { data, error, targetCategory });
-
       if (error) {
         console.error('Error in specific banner query:', error);
       }
 
       // If we found a specific banner, return it (priority over pilot)
       if (data && data.length > 0) {
-        console.log('✅ Found specific banner:', data[0]);
         return data[0];
       }
 
       // Only use pilot banner if no specific banner exists for this area
-      console.log('🔄 No specific banner found, searching for pilot banner');
       const { data: pilotData, error: pilotError } = await supabase
         .from('banners')
         .select('id, title, image_url, banner_type, is_pilot')
@@ -116,7 +110,6 @@ export const useBanners = () => {
         return null;
       }
       
-      console.log('🚩 Using pilot banner:', pilotData);
       return pilotData || null;
     } catch (error) {
       console.error('Error getting active banner:', error);
