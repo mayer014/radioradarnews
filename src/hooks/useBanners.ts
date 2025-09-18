@@ -70,21 +70,26 @@ export const useBanners = () => {
     targetColumnistId?: string
   ): Promise<ActiveBanner | null> => {
     try {
-      // First try to get specific banner (non-pilot)
+      console.log('🔍 Searching for banner:', { bannerType, targetCategory, targetColumnistId });
+      
+      // First try to get specific banner (non-pilot) - CASE INSENSITIVE comparison
       let query = supabase
         .from('banners')
-        .select('id, title, image_url, banner_type, is_pilot')
+        .select('id, title, image_url, banner_type, is_pilot, target_category')
         .eq('banner_type', bannerType)
         .eq('status', 'active')
         .eq('is_pilot', false);
 
       if (bannerType === 'category' && targetCategory) {
-        query = query.eq('target_category', targetCategory);
+        // Use ilike for case-insensitive comparison
+        query = query.ilike('target_category', targetCategory);
       } else if (bannerType === 'columnist' && targetColumnistId) {
         query = query.eq('target_columnist_id', targetColumnistId);
       }
 
       const { data, error } = await query.order('sort_order', { ascending: true }).limit(1);
+
+      console.log('🎯 Specific banner query result:', { data, error, targetCategory });
 
       if (error) {
         console.error('Error in specific banner query:', error);
@@ -92,10 +97,12 @@ export const useBanners = () => {
 
       // If we found a specific banner, return it (priority over pilot)
       if (data && data.length > 0) {
+        console.log('✅ Found specific banner:', data[0]);
         return data[0];
       }
 
       // Only use pilot banner if no specific banner exists for this area
+      console.log('🔄 No specific banner found, searching for pilot banner');
       const { data: pilotData, error: pilotError } = await supabase
         .from('banners')
         .select('id, title, image_url, banner_type, is_pilot')
@@ -109,6 +116,7 @@ export const useBanners = () => {
         return null;
       }
       
+      console.log('🚩 Using pilot banner:', pilotData);
       return pilotData || null;
     } catch (error) {
       console.error('Error getting active banner:', error);
