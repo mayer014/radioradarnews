@@ -34,11 +34,11 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
         <img
           src={banner.image_url}
           alt={banner.title}
-          className="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-contain object-center transition-transform duration-300 hover:scale-105"
           loading="lazy"
           style={{ 
             maxWidth: '100%', 
-            objectFit: 'cover',
+            objectFit: 'contain',
             objectPosition: 'center'
           }}
           onError={(e) => {
