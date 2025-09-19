@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
+import { getInternalCategorySlug } from '@/utils/categoryMapper';
 
 // Use proper Supabase types
 type BannerRow = Database['public']['Tables']['banners']['Row'];
@@ -79,8 +80,10 @@ export const useBanners = () => {
         .eq('is_pilot', false);
 
       if (bannerType === 'category' && targetCategory) {
+        // Convert display name to internal slug for database search
+        const internalCategorySlug = getInternalCategorySlug(targetCategory);
         // Use ilike for case-insensitive comparison
-        query = query.ilike('target_category', targetCategory);
+        query = query.ilike('target_category', internalCategorySlug);
       } else if (bannerType === 'columnist' && targetColumnistId) {
         query = query.eq('target_columnist_id', targetColumnistId);
       }
