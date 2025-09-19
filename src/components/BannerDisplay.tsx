@@ -34,7 +34,7 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
         <img
           src={banner.image_url}
           alt={banner.title}
-          className="w-full h-full object-contain object-center transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-contain object-center"
           loading="lazy"
           style={{ 
             maxWidth: '100%', 
@@ -55,7 +55,6 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
             }
           }}
         />
-        
         
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
       </div>
