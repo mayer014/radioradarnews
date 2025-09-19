@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBanners } from '@/hooks/useBanners';
 import ImageUpload from '@/components/ImageUpload';
 import { useUsers } from '@/contexts/UsersContext';
+import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
 
 interface Banner {
   id: string;
@@ -34,7 +35,7 @@ const CATEGORIES = [
   'Entretenimento',
   'Internacional',
   'Esportes',
-  'Tecnologia',
+  'Tecnologia / Economia',
   'Ciência / Saúde'
 ];
 
@@ -80,7 +81,7 @@ const BannerManager: React.FC = () => {
       title: banner.title,
       image_url: banner.image_url,
       banner_type: banner.banner_type,
-      target_category: banner.target_category || '',
+      target_category: banner.target_category ? getDisplayCategoryName(banner.target_category) : '',
       target_columnist_id: banner.target_columnist_id || '',
       start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
       end_date: banner.end_date ? banner.end_date.split('T')[0] : '',
@@ -102,7 +103,7 @@ const BannerManager: React.FC = () => {
         title: formData.title,
         image_url: formData.image_url,
         banner_type: formData.banner_type,
-        target_category: formData.banner_type === 'category' ? formData.target_category : null,
+        target_category: formData.banner_type === 'category' ? getInternalCategorySlug(formData.target_category) : null,
         target_columnist_id: formData.banner_type === 'columnist' ? formData.target_columnist_id : null,
         start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
         end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
@@ -157,7 +158,7 @@ const BannerManager: React.FC = () => {
   const getTargetLabel = (banner: Banner) => {
     if (banner.banner_type === 'hero') return 'Hero';
     if (banner.banner_type === 'pilot') return 'Piloto';
-    if (banner.banner_type === 'category') return banner.target_category || 'Categoria';
+    if (banner.banner_type === 'category') return banner.target_category ? getDisplayCategoryName(banner.target_category) : 'Categoria';
     if (banner.banner_type === 'columnist') {
       const columnist = columnists.find(c => c.id === banner.target_columnist_id);
       return columnist?.columnistProfile?.name || 'Colunista';
