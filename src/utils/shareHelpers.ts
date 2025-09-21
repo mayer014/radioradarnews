@@ -45,9 +45,26 @@ export const generateCaption = ({ title, url, category, author }: CaptionData): 
 ${hashtags.join(' ')} #portalnews #notícias`;
 };
 
+// Função para obter imagem de fallback por categoria
+const getCategoryFallbackImage = (category: string): string => {
+  const fallbackImages: Record<string, string> = {
+    'Política': 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&h=600&fit=crop&q=80',
+    'Policial': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&h=600&fit=crop&q=80',
+    'Esportes': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&h=600&fit=crop&q=80',
+    'Tecnologia': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1200&h=600&fit=crop&q=80',
+    'Economia': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&h=600&fit=crop&q=80',
+    'Saúde': 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1200&h=600&fit=crop&q=80',
+    'Educação': 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&h=600&fit=crop&q=80',
+    'Entretenimento': 'https://images.unsplash.com/photo-1499364615650-ec38552909c6?w=1200&h=600&fit=crop&q=80',
+    'Internacional': 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&h=600&fit=crop&q=80'
+  };
+  
+  return fallbackImages[category] || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&h=600&fit=crop&q=80';
+};
+
 export const generateFeedImage = async ({ title, image, category, summary, columnist, source, sourceUrl }: ArticleData): Promise<Blob> => {
-  // Versão padronizada com fundo hero para todas as matérias - v4.0
-  console.log('🖼️ [v4.0] Iniciando geração padronizada com fundo hero para categoria:', category);
+  // Versão melhorada com fallbacks específicos para colunistas - v5.0
+  console.log('🖼️ [v5.0] Iniciando geração com fallbacks para colunistas:', category);
   console.log('📊 Dados recebidos:', { title, image, category, summary, columnist });
   console.log('🔍 Dados do colunista em detalhes:', {
     hasColumnist: !!columnist,
@@ -75,24 +92,46 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Elementos a serem carregados (logo removida)
+    // Elementos a serem carregados
     const backgroundImage = new Image();
     const articleImage = new Image();
+    const fallbackImage = new Image();
     const columnistAvatarImage = new Image();
     
     backgroundImage.crossOrigin = 'anonymous';
     articleImage.crossOrigin = 'anonymous';
+    fallbackImage.crossOrigin = 'anonymous';
     
     backgroundImage.src = '/lovable-uploads/ff5e1b42-0800-4f2f-af32-28657e649317.png?v=' + Date.now();
 
     let backgroundLoaded = false;
     let articleImageLoaded = false;
+    let articleImageSuccess = false;
+    let fallbackImageLoaded = false;
+    let fallbackImageSuccess = false;
     let columnistAvatarLoaded = false;
 
     const checkIfReady = () => {
       const needsArticleImage = image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'));
       const needsColumnistAvatar = columnist?.avatar && (columnist.avatar.startsWith('http') || columnist.avatar.startsWith('data:') || columnist.avatar.startsWith('/'));
-      const allLoaded = backgroundLoaded && (!needsArticleImage || articleImageLoaded) && (!needsColumnistAvatar || columnistAvatarLoaded);
+      
+      // Para colunistas, sempre garantir que temos uma imagem (original ou fallback)
+      const imageReady = !needsArticleImage || articleImageLoaded || (columnist && fallbackImageLoaded);
+      const avatarReady = !needsColumnistAvatar || columnistAvatarLoaded;
+      const allLoaded = backgroundLoaded && imageReady && avatarReady;
+      
+      console.log('🔍 Status de carregamento:', {
+        backgroundLoaded,
+        needsArticleImage,
+        articleImageLoaded,
+        articleImageSuccess,
+        fallbackImageLoaded,
+        fallbackImageSuccess,
+        needsColumnistAvatar,
+        columnistAvatarLoaded,
+        isColumnist: !!columnist,
+        allLoaded
+      });
       
       if (allLoaded) {
         drawContent();
@@ -100,7 +139,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     };
 
     const drawContent = () => {
-      console.log('🎨 [v4.0] Desenhando conteúdo sem filtros, fiel ao fundo original');
+      console.log('🎨 [v5.0] Desenhando conteúdo com fallbacks para colunistas');
       
       // 1. SEMPRE usar o fundo original sem filtros
       if (backgroundImage.complete && backgroundImage.naturalWidth > 0) {
@@ -140,20 +179,39 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         console.log('✅ Fundo fallback aplicado');
       }
 
-      // 2. Desenhar imagem do artigo BEM MAIS EMBAIXO (para não cobrir a logo RRN)
-      if (articleImageLoaded && articleImage.complete) {
-        const imageHeight = canvas.height * 0.35; // Menor altura
-        const imageY = 220; // Muito mais embaixo para não cobrir a logo
-        
-        const imgAspect = articleImage.naturalWidth / articleImage.naturalHeight;
-        const containerAspect = (canvas.width - 160) / imageHeight; // Margens ainda maiores
+      // 2. Desenhar imagem do artigo com fallback para colunistas
+      const imageHeight = canvas.height * 0.35;
+      const imageY = 220;
+      
+      let imageToUse = null;
+      
+      // Para colunistas, sempre garantir que temos uma imagem
+      if (columnist) {
+        if (articleImageSuccess && articleImage.complete) {
+          imageToUse = articleImage;
+          console.log('✅ Usando imagem original do artigo para colunista');
+        } else if (fallbackImageSuccess && fallbackImage.complete) {
+          imageToUse = fallbackImage;
+          console.log('✅ Usando imagem fallback para colunista');
+        }
+      } else {
+        // Para não-colunistas, comportamento normal
+        if (articleImageLoaded && articleImage.complete && articleImageSuccess) {
+          imageToUse = articleImage;
+          console.log('✅ Usando imagem original do artigo');
+        }
+      }
+      
+      if (imageToUse) {
+        const imgAspect = imageToUse.naturalWidth / imageToUse.naturalHeight;
+        const containerAspect = (canvas.width - 160) / imageHeight;
         
         let drawWidth, drawHeight, drawX, drawY;
         
         if (imgAspect > containerAspect) {
-          drawWidth = canvas.width - 160; // Margens maiores laterais
+          drawWidth = canvas.width - 160;
           drawHeight = drawWidth / imgAspect;
-          drawX = 80; // Centralizado com margens maiores
+          drawX = 80;
           drawY = imageY + (imageHeight - drawHeight) / 2;
         } else {
           drawHeight = imageHeight;
@@ -166,9 +224,11 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         ctx.beginPath();
         ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 20);
         ctx.clip();
-        ctx.drawImage(articleImage, drawX, drawY, drawWidth, drawHeight);
+        ctx.drawImage(imageToUse, drawX, drawY, drawWidth, drawHeight);
         ctx.restore();
-        console.log('✅ Imagem posicionada embaixo da logo RRN');
+        console.log('✅ Imagem posicionada com sucesso');
+      } else if (columnist) {
+        console.warn('⚠️ Nenhuma imagem disponível para colunista - isso não deveria acontecer!');
       }
 
       // 3. LOGO REMOVIDA - já está no fundo
@@ -497,26 +557,107 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
 
     // Carregar imagem do artigo se necessário
     if (image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'))) {
+      console.log('🖼️ Tentando carregar imagem do artigo:', image);
+      
       articleImage.onload = () => {
+        console.log('✅ Imagem do artigo carregada com sucesso');
         articleImageLoaded = true;
+        articleImageSuccess = true;
         checkIfReady();
       };
       
       articleImage.onerror = () => {
+        console.warn('⚠️ Falha ao carregar imagem do artigo:', image);
         articleImageLoaded = true;
-        checkIfReady();
+        articleImageSuccess = false;
+        
+        // Para colunistas, tentar carregar fallback
+        if (columnist) {
+          console.log('🔄 Carregando imagem fallback para colunista da categoria:', category);
+          const fallbackUrl = getCategoryFallbackImage(category);
+          
+          fallbackImage.onload = () => {
+            console.log('✅ Imagem fallback carregada com sucesso para colunista');
+            fallbackImageLoaded = true;
+            fallbackImageSuccess = true;
+            checkIfReady();
+          };
+          
+          fallbackImage.onerror = () => {
+            console.warn('⚠️ Falha ao carregar fallback também');
+            fallbackImageLoaded = true;
+            fallbackImageSuccess = false;
+            checkIfReady();
+          };
+          
+          fallbackImage.src = fallbackUrl;
+        } else {
+          checkIfReady();
+        }
       };
       
       articleImage.src = image;
       
       setTimeout(() => {
         if (!articleImageLoaded) {
+          console.warn('⏰ Timeout no carregamento da imagem do artigo');
           articleImageLoaded = true;
-          checkIfReady();
+          articleImageSuccess = false;
+          
+          // Para colunistas, tentar fallback mesmo com timeout
+          if (columnist) {
+            console.log('🔄 Carregando fallback por timeout para colunista');
+            const fallbackUrl = getCategoryFallbackImage(category);
+            
+            fallbackImage.onload = () => {
+              console.log('✅ Fallback carregado após timeout');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = true;
+              checkIfReady();
+            };
+            
+            fallbackImage.onerror = () => {
+              console.warn('⚠️ Fallback também falhou após timeout');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = false;
+              checkIfReady();
+            };
+            
+            fallbackImage.src = fallbackUrl;
+          } else {
+            checkIfReady();
+          }
         }
       }, 3000);
     } else {
+      console.log('📷 Nenhuma imagem principal fornecida');
       articleImageLoaded = true;
+      articleImageSuccess = false;
+      
+      // Para colunistas sem imagem, sempre carregar fallback
+      if (columnist) {
+        console.log('🔄 Carregando fallback para colunista sem imagem');
+        const fallbackUrl = getCategoryFallbackImage(category);
+        
+        fallbackImage.onload = () => {
+          console.log('✅ Fallback carregado para colunista sem imagem');
+          fallbackImageLoaded = true;
+          fallbackImageSuccess = true;
+          checkIfReady();
+        };
+        
+        fallbackImage.onerror = () => {
+          console.warn('⚠️ Falha no fallback para colunista sem imagem');
+          fallbackImageLoaded = true;
+          fallbackImageSuccess = false;
+          checkIfReady();
+        };
+        
+        fallbackImage.src = fallbackUrl;
+      } else {
+        fallbackImageLoaded = true;
+        fallbackImageSuccess = false;
+      }
     }
 
     // Carregar avatar do colunista se necessário
@@ -540,6 +681,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       
       setTimeout(() => {
         if (!columnistAvatarLoaded) {
+          console.warn('⏰ Timeout no carregamento do avatar do colunista');
           columnistAvatarLoaded = true;
           checkIfReady();
         }
