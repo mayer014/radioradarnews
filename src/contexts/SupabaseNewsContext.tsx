@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from './SupabaseAuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+// Add missing properties to the interface
 export interface NewsArticle {
   id: string;
   title: string;
@@ -28,6 +29,10 @@ export interface NewsArticle {
   columnist_avatar?: string;
   columnist_bio?: string;
   columnist_specialty?: string;
+  
+  // Profile data from JOIN
+  profiles?: any;
+  _profile_updated_at?: string;
   
   created_at: string;
   updated_at: string;
@@ -71,7 +76,17 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       
       let query = supabase
         .from('articles')
-        .select('*')
+        .select(`
+          *,
+          profiles!articles_author_id_fkey(
+            id,
+            name,
+            avatar,
+            bio,
+            specialty,
+            updated_at
+          )
+        `)
         .order('created_at', { ascending: false });
 
       // Se não for admin, mostrar apenas artigos publicados e próprios artigos
@@ -95,7 +110,29 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      setArticles(data || []);
+      // Enrich articles with fresh profile data for columnists
+      const enrichedArticles = (data || []).map(article => {
+        // If this is a columnist article and we have fresh profile data
+        if (article.author_id && article.profiles) {
+          const profile = Array.isArray(article.profiles) ? article.profiles[0] : article.profiles;
+          if (profile) {
+            return {
+              ...article,
+              // Update columnist fields with fresh profile data
+              columnist_id: article.author_id,
+              columnist_name: profile.name,
+              columnist_avatar: profile.avatar,
+              columnist_bio: profile.bio,
+              columnist_specialty: profile.specialty,
+              // Add versioning for cache busting on avatar changes
+              _profile_updated_at: profile.updated_at
+            };
+          }
+        }
+        return article;
+      });
+
+      setArticles(enrichedArticles);
     } catch (error) {
       console.error('Error fetching articles:', error);
     } finally {

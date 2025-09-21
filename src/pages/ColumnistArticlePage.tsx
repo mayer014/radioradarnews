@@ -207,9 +207,13 @@ const ColumnistArticlePage = () => {
               author={article.columnist_name}
               columnist={article.columnist_name ? {
                 name: article.columnist_name,
-                specialty: article.columnist_specialty || '',
-                bio: article.columnist_bio || '',
-                avatar: article.columnist_avatar,
+                specialty: article.columnist_specialty || 'Colunista do Portal RRN',
+                bio: article.columnist_bio || 'Colunista especializado em conteúdo informativo.',
+                avatar: article.columnist_avatar ? 
+                  (article._profile_updated_at ? 
+                    `${article.columnist_avatar}?v=${new Date(article._profile_updated_at).getTime()}` : 
+                    article.columnist_avatar
+                  ) : undefined,
               } : undefined}
             />
           </div>

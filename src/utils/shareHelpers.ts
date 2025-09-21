@@ -63,8 +63,8 @@ const getCategoryFallbackImage = (category: string): string => {
 };
 
 export const generateFeedImage = async ({ title, image, category, summary, columnist, source, sourceUrl }: ArticleData): Promise<Blob> => {
-  // Versão melhorada com fallbacks específicos para colunistas - v5.0
-  console.log('🖼️ [v5.0] Iniciando geração com fallbacks para colunistas:', category);
+  // Versão v6.0 - Auditoria completa para colunistas
+  console.log('🖼️ [v6.0] Iniciando geração com auditoria completa para colunistas:', category);
   console.log('📊 Dados recebidos:', { title, image, category, summary, columnist });
   console.log('🔍 Dados do colunista em detalhes:', {
     hasColumnist: !!columnist,
@@ -73,6 +73,26 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     columnistBio: columnist?.bio,
     columnistSpecialty: columnist?.specialty
   });
+  
+  // AUDITORIA: Validar dados críticos para colunistas
+  if (columnist) {
+    console.log('🔍 [AUDITORIA] Validando dados do colunista...');
+    
+    const issues = [];
+    if (!columnist.name) issues.push('nome ausente');
+    if (!columnist.avatar) issues.push('avatar ausente');
+    if (!columnist.bio) issues.push('biografia ausente');
+    if (!columnist.specialty) issues.push('especialidade ausente');
+    if (!image || (!image.startsWith('http') && !image.startsWith('data:') && !image.startsWith('/'))) {
+      issues.push('imagem do artigo inválida/ausente');
+    }
+    
+    if (issues.length > 0) {
+      console.warn('⚠️ [AUDITORIA] Problemas encontrados para colunista:', issues);
+    } else {
+      console.log('✅ [AUDITORIA] Dados do colunista completos');
+    }
+  }
   
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
@@ -187,20 +207,51 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       
       // Para colunistas, sempre garantir que temos uma imagem
       if (columnist) {
+        console.log('🎨 [COLUNISTA] Processando imagem para colunista:', columnist.name);
+        
         if (articleImageSuccess && articleImage.complete) {
           imageToUse = articleImage;
-          console.log('✅ Usando imagem original do artigo para colunista');
+          console.log('✅ [COLUNISTA] Usando imagem original do artigo');
         } else if (fallbackImageSuccess && fallbackImage.complete) {
           imageToUse = fallbackImage;
-          console.log('✅ Usando imagem fallback para colunista');
+          console.log('✅ [COLUNISTA] Usando imagem fallback de categoria');
+        } else if (!fallbackImageLoaded) {
+          // Último recurso: tentar carregar fallback sincronamente
+          console.log('🔄 [COLUNISTA] Tentativa de último recurso para fallback');
+          const emergencyFallback = new Image();
+          emergencyFallback.crossOrigin = 'anonymous';
+          emergencyFallback.src = getCategoryFallbackImage(category);
+          
+          // Para colunistas, nunca deixar sem imagem
+          if (!imageToUse) {
+            console.warn('⚠️ [COLUNISTA] CRÍTICO: Tentando último fallback genérico');
+            const genericFallback = new Image();
+            genericFallback.crossOrigin = 'anonymous';
+            genericFallback.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&h=600&fit=crop&q=80';
+            imageToUse = genericFallback;
+          }
+        }
+        
+        if (!imageToUse) {
+          console.error('❌ [COLUNISTA] ERRO CRÍTICO: Nenhuma imagem disponível para colunista!');
         }
       } else {
         // Para não-colunistas, comportamento normal
         if (articleImageLoaded && articleImage.complete && articleImageSuccess) {
           imageToUse = articleImage;
-          console.log('✅ Usando imagem original do artigo');
+          console.log('✅ Usando imagem original do artigo para não-colunista');
         }
       }
+      
+      // AUDITORIA: Log do resultado da seleção de imagem
+      console.log('🔍 [AUDITORIA] Resultado da seleção de imagem:', {
+        isColumnist: !!columnist,
+        imageToUse: !!imageToUse,
+        imageSource: imageToUse ? (
+          imageToUse === articleImage ? 'article-original' :
+          imageToUse === fallbackImage ? 'category-fallback' : 'emergency-fallback'
+        ) : 'none'
+      });
       
       if (imageToUse) {
         const imgAspect = imageToUse.naturalWidth / imageToUse.naturalHeight;
@@ -228,7 +279,10 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         ctx.restore();
         console.log('✅ Imagem posicionada com sucesso');
       } else if (columnist) {
-        console.warn('⚠️ Nenhuma imagem disponível para colunista - isso não deveria acontecer!');
+        console.error('❌ [COLUNISTA] CRÍTICO: Nenhuma imagem renderizada para colunista!', {
+          articleId: title.substring(0, 50),
+          columnistName: columnist.name
+        });
       }
 
       // 3. LOGO REMOVIDA - já está no fundo
@@ -421,6 +475,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         const avatarY = columnistY + 15;
         
         if (columnistAvatarLoaded && columnistAvatarImage.complete) {
+          console.log('✅ [COLUNISTA] Renderizando avatar do colunista');
           ctx.save();
           ctx.beginPath();
           ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
@@ -435,6 +490,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
           ctx.stroke();
         } else {
+          console.log('🔄 [COLUNISTA] Usando avatar de fallback para:', columnist.name);
           // Avatar fallback
           ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
           ctx.beginPath();
