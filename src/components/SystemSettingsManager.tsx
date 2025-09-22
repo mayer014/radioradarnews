@@ -19,6 +19,7 @@ import {
   TestTube
 } from 'lucide-react';
 import { ENV } from '@/config/environment';
+import { supabase } from '@/integrations/supabase/client';
 
 const SystemSettingsManager = () => {
   const { toast } = useToast();
@@ -27,8 +28,30 @@ const SystemSettingsManager = () => {
   // Estados para configuração de IA
   const [aiApiKey, setAiApiKey] = useState('');
   const [aiProvider, setAiProvider] = useState('groq');
+  const [aiModel, setAiModel] = useState('llama-3.1-8b-instant');
   const [showAiKey, setShowAiKey] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
+
+  // Load saved model preference for Groq
+  useEffect(() => {
+    if (aiProvider === 'groq') {
+      loadGroqModelPreference();
+    }
+  }, [aiProvider]);
+
+  const loadGroqModelPreference = async () => {
+    try {
+      const { data } = await supabase.functions.invoke('groq-config', {
+        body: { action: 'get' }
+      });
+      
+      if (data?.success && data.model) {
+        setAiModel(data.model);
+      }
+    } catch (error) {
+      console.warn('Could not load Groq model preference:', error);
+    }
+  };
 
 
   const handleTestAndSaveAI = async () => {
@@ -43,86 +66,66 @@ const SystemSettingsManager = () => {
 
     setTestingAi(true);
     try {
-      // Test the API first
-      let testEndpoint = '';
-      let testHeaders: Record<string, string> = {};
-      let testBody: any = {};
-
-      if (aiProvider === 'groq') {
-        testEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
-        testHeaders = {
-          'Authorization': `Bearer ${aiApiKey}`,
-          'Content-Type': 'application/json'
-        };
-        testBody = {
-          model: 'llama-3.1-8b-instant',
-          messages: [{ role: 'user', content: 'Test' }],
-          max_tokens: 5
-        };
-      } else if (aiProvider === 'openai') {
-        testEndpoint = 'https://api.openai.com/v1/chat/completions';
-        testHeaders = {
-          'Authorization': `Bearer ${aiApiKey}`,
-          'Content-Type': 'application/json'
-        };
-        testBody = {
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: 'Test' }],
-          max_tokens: 5
-        };
-      } else if (aiProvider === 'anthropic') {
-        testEndpoint = 'https://api.anthropic.com/v1/messages';
-        testHeaders = {
-          'x-api-key': aiApiKey,
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01'
-        };
-        testBody = {
-          model: 'claude-3-sonnet-20240229',
-          max_tokens: 5,
-          messages: [{ role: 'user', content: 'Test' }]
-        };
-      }
-
-      const response = await fetch(testEndpoint, {
-        method: 'POST',
-        headers: testHeaders,
-        body: JSON.stringify(testBody)
+      // Use nossa edge function para testar a API de forma mais segura
+      const { data, error } = await supabase.functions.invoke('ai-config-tester', {
+        body: {
+          provider: aiProvider,
+          apiKey: aiApiKey,
+          model: aiModel
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`API Test Failed: ${response.status} ${response.statusText}`);
+      if (error) {
+        throw new Error(error.message || 'Erro na comunicação com o servidor de teste');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.message || 'Teste da API falhou');
       }
 
       // Se o teste passou
       if (aiProvider === 'groq') {
-        // Não persistimos a chave da Groq no banco: deve ir para Supabase Secrets / Easypanel
+        // Para Groq, salvamos a preferência do modelo usando edge function
+        try {
+          await supabase.functions.invoke('groq-config', {
+            body: { action: 'set', model: aiModel }
+          });
+        } catch (configError) {
+          console.warn('Could not save model preference:', configError);
+        }
+        
         toast({
-          title: 'Teste concluído',
-          description: 'Groq respondeu OK. Para persistir, defina GROQ_API_KEY no Supabase Secrets ou no Ambiente do Easypanel. Não salvamos a chave no banco.',
+          title: 'Teste bem-sucedido! ✅',
+          description: `Groq testado com ${data.modelTested}. Modelo salvo como preferência. Configure GROQ_API_KEY no Supabase Secrets para uso em produção.`,
         });
       } else {
         // Persistimos apenas provedores adicionais (OpenAI/Anthropic) vinculados ao usuário
-        const { error } = await addConfiguration({
+        const { error: saveError } = await addConfiguration({
           provider_name: aiProvider,
           api_key_encrypted: aiApiKey, // Em produção, criptografar
           config_json: {
-            model: aiProvider === 'openai' ? 'gpt-3.5-turbo' : 'claude-3-sonnet-20240229',
-            tested_at: new Date().toISOString()
+            model: aiModel,
+            tested_at: new Date().toISOString(),
+            last_test_success: true,
+            available_models: data.availableModels || []
           }
         });
-        if (error) throw new Error(error);
+        
+        if (saveError) throw new Error(saveError);
+        
         toast({
-          title: 'Configuração salva',
-          description: `API ${aiProvider} testada e configurada com sucesso.`,
+          title: 'Configuração salva! ✅',
+          description: `${aiProvider.toUpperCase()} configurado com sucesso usando ${data.modelTested}`,
         });
       }
 
       // Clear form
       setAiApiKey('');
+      
     } catch (error: any) {
+      console.error('Erro no teste de API:', error);
       toast({
-        title: "Erro na configuração",
+        title: "Erro na configuração ❌",
         description: error.message || "Erro ao testar/salvar configuração de IA",
         variant: "destructive"
       });
@@ -222,13 +225,59 @@ const SystemSettingsManager = () => {
                   <select
                     id="ai-provider"
                     value={aiProvider}
-                    onChange={(e) => setAiProvider(e.target.value)}
+                    onChange={(e) => {
+                      setAiProvider(e.target.value);
+                      // Reset model when provider changes
+                      if (e.target.value === 'groq') setAiModel('llama-3.1-8b-instant');
+                      else if (e.target.value === 'openai') setAiModel('gpt-3.5-turbo');
+                      else if (e.target.value === 'anthropic') setAiModel('claude-3-sonnet-20240229');
+                    }}
                     className="w-full p-2 border border-primary/30 rounded-md bg-background"
                   >
                     <option value="groq">Groq (Llama, Mixtral - Recomendado)</option>
                     <option value="openai">OpenAI (GPT-3.5, GPT-4)</option>
                     <option value="anthropic">Anthropic (Claude)</option>
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ai-model">Modelo</Label>
+                  <select
+                    id="ai-model"
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value)}
+                    className="w-full p-2 border border-primary/30 rounded-md bg-background"
+                  >
+                    {aiProvider === 'groq' && (
+                      <>
+                        <option value="llama-3.1-70b-versatile">Llama 3.1 70B (Mais Inteligente)</option>
+                        <option value="llama-3.1-8b-instant">Llama 3.1 8B (Rápido - Recomendado)</option>
+                        <option value="llama-3.2-1b-preview">Llama 3.2 1B (Muito Rápido)</option>
+                        <option value="llama-3.2-3b-preview">Llama 3.2 3B (Balanceado)</option>
+                        <option value="mixtral-8x7b-32768">Mixtral 8x7B (Contexto Longo)</option>
+                        <option value="gemma2-9b-it">Gemma2 9B (Alternativo)</option>
+                      </>
+                    )}
+                    {aiProvider === 'openai' && (
+                      <>
+                        <option value="gpt-4o-mini">GPT-4o Mini (Rápido e Econômico)</option>
+                        <option value="gpt-4o">GPT-4o (Mais Capaz)</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Clássico)</option>
+                      </>
+                    )}
+                    {aiProvider === 'anthropic' && (
+                      <>
+                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Mais Recente)</option>
+                        <option value="claude-3-sonnet-20240229">Claude 3 Sonnet (Estável)</option>
+                        <option value="claude-3-haiku-20240307">Claude 3 Haiku (Rápido)</option>
+                      </>
+                    )}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {aiProvider === 'groq' && 'Modelos Groq são gratuitos e muito rápidos'}
+                    {aiProvider === 'openai' && 'Modelos OpenAI são pagos por uso'}
+                    {aiProvider === 'anthropic' && 'Modelos Claude são pagos por uso'}
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -342,7 +391,7 @@ const GroqStatus: React.FC = () => {
           <p className="text-xs font-medium text-muted-foreground mb-1">Variáveis Runtime (env.js):</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             {Object.entries({
-              'Groq': runtimeEnv.GROQ_API_KEY,
+              'Groq API': runtimeEnv.GROQ_API_KEY,
               'Supabase URL': runtimeEnv.VITE_SUPABASE_URL,
               'App URL': runtimeEnv.VITE_APP_URL
             }).map(([key, value]) => (
@@ -354,6 +403,16 @@ const GroqStatus: React.FC = () => {
               </div>
             ))}
           </div>
+          
+          {/* Groq Model Status */}
+          {active && (
+            <div className="mt-2 pt-2 border-t border-muted/50">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">Modelo Groq:</span>
+                <GroqModelIndicator />
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {!loading && active === false && (
@@ -365,6 +424,45 @@ const GroqStatus: React.FC = () => {
         </Alert>
       )}
     </div>
+  );
+};
+
+// Componente para mostrar o modelo Groq atual
+const GroqModelIndicator: React.FC = () => {
+  const [currentModel, setCurrentModel] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCurrentModel();
+  }, []);
+
+  const loadCurrentModel = async () => {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data } = await supabase.functions.invoke('groq-config', {
+        body: { action: 'get' }
+      });
+      
+      if (data?.success && data.model) {
+        setCurrentModel(data.model);
+      }
+    } catch (error) {
+      console.warn('Could not load current Groq model:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <span className="text-xs text-muted-foreground">Carregando...</span>;
+  }
+
+  const modelDisplayName = currentModel.replace(/-/g, ' ').replace(/llama/i, 'Llama').replace(/mixtral/i, 'Mixtral');
+
+  return (
+    <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded font-medium">
+      {modelDisplayName || 'Padrão'}
+    </span>
   );
 };
 

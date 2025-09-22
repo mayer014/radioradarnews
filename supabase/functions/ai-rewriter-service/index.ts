@@ -86,6 +86,33 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY not configured in secrets');
     }
 
+    // Get preferred model from configuration
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    let selectedModel = 'llama-3.1-8b-instant'; // Default
+    
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        const { data } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('category', 'ai')
+          .eq('key', 'groq_preferred_model')
+          .maybeSingle();
+          
+        if (data?.value?.model) {
+          selectedModel = data.value.model;
+          console.log(`Using preferred Groq model: ${selectedModel}`);
+        }
+      } catch (configError) {
+        console.warn('Could not load Groq model preference, using default:', configError);
+      }
+    }
+
     const { title, content, url }: RewriteRequest = await req.json();
 
     if (!title || !content || !url) {
@@ -116,7 +143,7 @@ Conteúdo: ${cleanTextContent(content)}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: selectedModel,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
