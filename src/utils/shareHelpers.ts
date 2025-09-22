@@ -611,69 +611,61 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       checkIfReady();
     };
 
-    // Carregar imagem do artigo se necessário
+    // Carregar imagem do artigo se necessário (com proteção CORS)
     if (image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'))) {
-      console.log('🖼️ Tentando carregar imagem do artigo:', image);
-      
-      articleImage.onload = () => {
-        console.log('✅ Imagem do artigo carregada com sucesso');
-        articleImageLoaded = true;
-        articleImageSuccess = true;
-        checkIfReady();
-      };
-      
-      articleImage.onerror = () => {
-        console.warn('⚠️ Falha ao carregar imagem do artigo:', image);
+      const isCorsFriendly = image.startsWith('/')
+        || image.includes(window.location.host)
+        || image.includes('supabase.co')
+        || image.includes('images.unsplash.com');
+
+      if (!isCorsFriendly && columnist) {
+        console.warn('⚠️ Imagem externa potencialmente sem CORS. Usando fallback de categoria para colunista:', image);
         articleImageLoaded = true;
         articleImageSuccess = false;
-        
-        // Para colunistas, tentar carregar fallback
-        if (columnist) {
-          console.log('🔄 Carregando imagem fallback para colunista da categoria:', category);
-          const fallbackUrl = getCategoryFallbackImage(category);
-          
-          fallbackImage.onload = () => {
-            console.log('✅ Imagem fallback carregada com sucesso para colunista');
-            fallbackImageLoaded = true;
-            fallbackImageSuccess = true;
-            checkIfReady();
-          };
-          
-          fallbackImage.onerror = () => {
-            console.warn('⚠️ Falha ao carregar fallback também');
-            fallbackImageLoaded = true;
-            fallbackImageSuccess = false;
-            checkIfReady();
-          };
-          
-          fallbackImage.src = fallbackUrl;
-        } else {
+
+        const fallbackUrl = getCategoryFallbackImage(category);
+        fallbackImage.onload = () => {
+          console.log('✅ Imagem fallback carregada (CORS-safe)');
+          fallbackImageLoaded = true;
+          fallbackImageSuccess = true;
           checkIfReady();
-        }
-      };
-      
-      articleImage.src = image;
-      
-      setTimeout(() => {
-        if (!articleImageLoaded) {
-          console.warn('⏰ Timeout no carregamento da imagem do artigo');
+        };
+        fallbackImage.onerror = () => {
+          console.warn('⚠️ Falha ao carregar fallback (CORS-safe)');
+          fallbackImageLoaded = true;
+          fallbackImageSuccess = false;
+          checkIfReady();
+        };
+        fallbackImage.src = fallbackUrl;
+      } else {
+        console.log('🖼️ Tentando carregar imagem do artigo:', image);
+        
+        articleImage.onload = () => {
+          console.log('✅ Imagem do artigo carregada com sucesso');
+          articleImageLoaded = true;
+          articleImageSuccess = true;
+          checkIfReady();
+        };
+        
+        articleImage.onerror = () => {
+          console.warn('⚠️ Falha ao carregar imagem do artigo:', image);
           articleImageLoaded = true;
           articleImageSuccess = false;
           
-          // Para colunistas, tentar fallback mesmo com timeout
+          // Para colunistas, tentar carregar fallback
           if (columnist) {
-            console.log('🔄 Carregando fallback por timeout para colunista');
+            console.log('🔄 Carregando imagem fallback para colunista da categoria:', category);
             const fallbackUrl = getCategoryFallbackImage(category);
             
             fallbackImage.onload = () => {
-              console.log('✅ Fallback carregado após timeout');
+              console.log('✅ Imagem fallback carregada com sucesso para colunista');
               fallbackImageLoaded = true;
               fallbackImageSuccess = true;
               checkIfReady();
             };
             
             fallbackImage.onerror = () => {
-              console.warn('⚠️ Fallback também falhou após timeout');
+              console.warn('⚠️ Falha ao carregar fallback também');
               fallbackImageLoaded = true;
               fallbackImageSuccess = false;
               checkIfReady();
@@ -683,8 +675,42 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           } else {
             checkIfReady();
           }
-        }
-      }, 3000);
+        };
+        
+        articleImage.src = image;
+        
+        setTimeout(() => {
+          if (!articleImageLoaded) {
+            console.warn('⏰ Timeout no carregamento da imagem do artigo');
+            articleImageLoaded = true;
+            articleImageSuccess = false;
+            
+            // Para colunistas, tentar fallback mesmo com timeout
+            if (columnist) {
+              console.log('🔄 Carregando fallback por timeout para colunista');
+              const fallbackUrl = getCategoryFallbackImage(category);
+              
+              fallbackImage.onload = () => {
+                console.log('✅ Fallback carregado após timeout');
+                fallbackImageLoaded = true;
+                fallbackImageSuccess = true;
+                checkIfReady();
+              };
+              
+              fallbackImage.onerror = () => {
+                console.warn('⚠️ Fallback também falhou após timeout');
+                fallbackImageLoaded = true;
+                fallbackImageSuccess = false;
+                checkIfReady();
+              };
+              
+              fallbackImage.src = fallbackUrl;
+            } else {
+              checkIfReady();
+            }
+          }
+        }, 3000);
+      }
     } else {
       console.log('📷 Nenhuma imagem principal fornecida');
       articleImageLoaded = true;

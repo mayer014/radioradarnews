@@ -68,11 +68,11 @@ export const ShareCardColumnist: React.FC<ShareCardColumnistProps> = ({
                 className="w-16 h-16 rounded-full object-cover border-2 border-primary/20"
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center">
-                <span className="text-xl font-bold text-primary">
-                  {author.name[0]?.toUpperCase() || 'C'}
-                </span>
-              </div>
+              <img
+                src="/placeholder.svg"
+                alt={`Avatar de ${author.name} (fallback)`}
+                className="w-16 h-16 rounded-full object-cover border-2 border-primary/20 bg-primary/10"
+              />
             )}
           </div>
           

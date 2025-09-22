@@ -272,6 +272,14 @@ const ArticlePage = () => {
                 author={article.columnist_name}
                 source={article.source_domain}
                 sourceUrl={article.source_url}
+                columnist={article.columnist_id ? {
+                  name: columnistProfile?.name || article.columnist_name || '',
+                  specialty: columnistProfile?.specialty || article.columnist_specialty || 'Colunista do Portal RRN',
+                  bio: columnistProfile?.bio || article.columnist_bio || 'Colunista do Portal RRN',
+                  avatar: (columnistProfile?.avatar || article.columnist_avatar)
+                    ? `${(columnistProfile?.avatar || article.columnist_avatar)}${article._profile_updated_at ? `?v=${new Date(article._profile_updated_at).getTime()}` : ''}`
+                    : undefined,
+                } : undefined}
               />
             </div>
           </div>

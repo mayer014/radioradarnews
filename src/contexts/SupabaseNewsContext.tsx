@@ -182,11 +182,25 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           } else if (payload.eventType === 'UPDATE') {
             const updatedArticle = payload.new as NewsArticle;
             
-            setArticles(prev => prev.map(article => 
-              article.id === updatedArticle.id ? updatedArticle : article
-            ).sort((a, b) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            ));
+            setArticles(prev => prev
+              .map(article => {
+                if (article.id !== updatedArticle.id) return article;
+                // Mesclar campos mantendo os enriquecimentos de perfil quando o payload não os trouxer
+                const merged: NewsArticle = { ...article, ...updatedArticle } as NewsArticle;
+                if ((updatedArticle as any).profiles === undefined && article.profiles) {
+                  (merged as any).profiles = article.profiles;
+                }
+                if (updatedArticle.columnist_name === undefined && article.columnist_name) merged.columnist_name = article.columnist_name;
+                if (updatedArticle.columnist_avatar === undefined && article.columnist_avatar) merged.columnist_avatar = article.columnist_avatar;
+                if (updatedArticle.columnist_bio === undefined && article.columnist_bio) merged.columnist_bio = article.columnist_bio;
+                if (updatedArticle.columnist_specialty === undefined && article.columnist_specialty) merged.columnist_specialty = article.columnist_specialty;
+                if (updatedArticle._profile_updated_at === undefined && article._profile_updated_at) merged._profile_updated_at = article._profile_updated_at;
+                return merged;
+              })
+              .sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              )
+            );
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old?.id;
             if (deletedId) {
@@ -201,6 +215,14 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       supabase.removeChannel(channel);
     };
   }, [profile?.role, profile?.id]);
+
+  // Refresh periódica para refletir mudanças de avatar/bio dos colunistas em até 1 minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchArticles();
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchArticles]);
 
   const addArticle = async (articleData: Omit<NewsArticle, 'id' | 'created_at' | 'updated_at' | 'views' | 'comments_count'>) => {
     if (!profile) {
