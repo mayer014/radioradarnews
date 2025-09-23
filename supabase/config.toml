@@ -56,3 +56,18 @@ verify_jwt = true
 
 [functions.public-config]
 verify_jwt = false
+
+[functions.image-proxy]
+verify_jwt = false
+
+[functions.ai-config-tester]
+verify_jwt = true
+
+[functions.groq-config]
+verify_jwt = true
+
+[functions.user-profiles-service]
+verify_jwt = true
+
+[functions.enhanced-user-service]
+verify_jwt = true

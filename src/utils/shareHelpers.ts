@@ -620,25 +620,71 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         || image.includes('supabase.co')
         || image.includes('images.unsplash.com');
 
-      if (!isCorsFriendly && columnist) {
-        console.warn('⚠️ Imagem externa potencialmente sem CORS. Usando fallback de categoria para colunista:', image);
-        articleImageLoaded = true;
-        articleImageSuccess = false;
-
-        const fallbackUrl = getCategoryFallbackImage(category);
-        fallbackImage.onload = () => {
-          console.log('✅ Imagem fallback carregada (CORS-safe)');
-          fallbackImageLoaded = true;
-          fallbackImageSuccess = true;
-          checkIfReady();
+      if (!isCorsFriendly) {
+        console.warn('⚠️ Imagem externa potencialmente sem CORS. Tentando proxy seguro:', image);
+        const tryProxyFetch = async () => {
+          try {
+            const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
+            const resp = await fetch(proxyUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: image })
+            });
+            if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
+            const data = await resp.json();
+            if (data?.success && data?.base64 && data?.mime_type?.startsWith('image/')) {
+              const dataUrl = `data:${data.mime_type};base64,${data.base64}`;
+              articleImage.onload = () => {
+                console.log('✅ Imagem do artigo (proxy) carregada com sucesso');
+                articleImageLoaded = true;
+                articleImageSuccess = true;
+                checkIfReady();
+              };
+              articleImage.onerror = () => {
+                console.warn('⚠️ Falha ao carregar imagem via proxy, aplicando fallback');
+                articleImageLoaded = true;
+                articleImageSuccess = false;
+                // Tentar fallback por categoria em qualquer modo
+                const fallbackUrl = getCategoryFallbackImage(category);
+                fallbackImage.onload = () => {
+                  console.log('✅ Imagem fallback carregada (após falha no proxy)');
+                  fallbackImageLoaded = true;
+                  fallbackImageSuccess = true;
+                  checkIfReady();
+                };
+                fallbackImage.onerror = () => {
+                  console.warn('⚠️ Falha ao carregar fallback (após falha no proxy)');
+                  fallbackImageLoaded = true;
+                  fallbackImageSuccess = false;
+                  checkIfReady();
+                };
+                fallbackImage.src = fallbackUrl;
+              };
+              articleImage.src = dataUrl;
+              return;
+            }
+            throw new Error('Proxy retornou payload inválido');
+          } catch (e) {
+            console.warn('⚠️ Proxy indisponível/erro, aplicando fallback direto', e);
+            articleImageLoaded = true;
+            articleImageSuccess = false;
+            const fallbackUrl = getCategoryFallbackImage(category);
+            fallbackImage.onload = () => {
+              console.log('✅ Imagem fallback carregada (proxy indisponível)');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = true;
+              checkIfReady();
+            };
+            fallbackImage.onerror = () => {
+              console.warn('⚠️ Falha ao carregar fallback (proxy indisponível)');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = false;
+              checkIfReady();
+            };
+            fallbackImage.src = fallbackUrl;
+          }
         };
-        fallbackImage.onerror = () => {
-          console.warn('⚠️ Falha ao carregar fallback (CORS-safe)');
-          fallbackImageLoaded = true;
-          fallbackImageSuccess = false;
-          checkIfReady();
-        };
-        fallbackImage.src = fallbackUrl;
+        tryProxyFetch();
       } else {
         console.log('🖼️ Tentando carregar imagem do artigo:', image);
         

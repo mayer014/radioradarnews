@@ -78,13 +78,12 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .from('articles')
         .select(`
           *,
-          profiles!articles_author_id_fkey(
+          profiles_public!articles_author_id_fkey(
             id,
             name,
             avatar,
             bio,
-            specialty,
-            updated_at
+            specialty
           )
         `)
         .order('created_at', { ascending: false });
@@ -112,20 +111,20 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Enrich articles with fresh profile data for columnists
       const enrichedArticles = (data || []).map(article => {
-        // If this is a columnist article and we have fresh profile data
-        if (article.author_id && article.profiles) {
-          const profile = Array.isArray(article.profiles) ? article.profiles[0] : article.profiles;
+        // If this is a columnist article and we have profile data from profiles_public
+        if (article.author_id && article.profiles_public) {
+          const profile = Array.isArray(article.profiles_public) ? article.profiles_public[0] : article.profiles_public;
           if (profile) {
             return {
               ...article,
-              // Update columnist fields with fresh profile data
+              // Update columnist fields with profile data
               columnist_id: article.author_id,
               columnist_name: profile.name,
               columnist_avatar: profile.avatar,
               columnist_bio: profile.bio,
               columnist_specialty: profile.specialty,
-              // Add versioning for cache busting on avatar changes
-              _profile_updated_at: profile.updated_at
+              // Add timestamp for cache busting on avatar changes
+              _profile_updated_at: new Date().toISOString()
             };
           }
         }
@@ -185,16 +184,16 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             setArticles(prev => prev
               .map(article => {
                 if (article.id !== updatedArticle.id) return article;
-                // Mesclar campos mantendo os enriquecimentos de perfil quando o payload não os trouxer
-                const merged: NewsArticle = { ...article, ...updatedArticle } as NewsArticle;
-                if ((updatedArticle as any).profiles === undefined && article.profiles) {
-                  (merged as any).profiles = article.profiles;
-                }
-                if (updatedArticle.columnist_name === undefined && article.columnist_name) merged.columnist_name = article.columnist_name;
-                if (updatedArticle.columnist_avatar === undefined && article.columnist_avatar) merged.columnist_avatar = article.columnist_avatar;
-                if (updatedArticle.columnist_bio === undefined && article.columnist_bio) merged.columnist_bio = article.columnist_bio;
-                if (updatedArticle.columnist_specialty === undefined && article.columnist_specialty) merged.columnist_specialty = article.columnist_specialty;
-                if (updatedArticle._profile_updated_at === undefined && article._profile_updated_at) merged._profile_updated_at = article._profile_updated_at;
+              // Mesclar campos mantendo os enriquecimentos de perfil quando o payload não os trouxer
+              const merged: NewsArticle = { ...article, ...updatedArticle } as NewsArticle;
+              if ((updatedArticle as any).profiles_public === undefined && (article as any).profiles_public) {
+                (merged as any).profiles_public = (article as any).profiles_public;
+              }
+              if (updatedArticle.columnist_name === undefined && article.columnist_name) merged.columnist_name = article.columnist_name;
+              if (updatedArticle.columnist_avatar === undefined && article.columnist_avatar) merged.columnist_avatar = article.columnist_avatar;
+              if (updatedArticle.columnist_bio === undefined && article.columnist_bio) merged.columnist_bio = article.columnist_bio;
+              if (updatedArticle.columnist_specialty === undefined && article.columnist_specialty) merged.columnist_specialty = article.columnist_specialty;
+              if (updatedArticle._profile_updated_at === undefined && article._profile_updated_at) merged._profile_updated_at = article._profile_updated_at;
                 return merged;
               })
               .sort((a, b) => 
