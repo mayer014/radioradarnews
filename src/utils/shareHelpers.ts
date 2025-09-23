@@ -288,8 +288,9 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       // 3. LOGO REMOVIDA - já está no fundo
 
       // 4. Área de texto NA PARTE ESCURA (bem embaixo)
-      const textY = canvas.height * 0.72; // Mais embaixo, na parte escura
-      const textHeight = canvas.height * 0.28;
+      // 4. Área de texto na zona inferior, logo abaixo da imagem principal
+      const textY = imageY + imageHeight + 20; // Logo abaixo da imagem principal
+      const textHeight = canvas.height - textY;
       
       // Overlay MUITO sutil apenas na área do texto
       const textOverlayGradient = ctx.createLinearGradient(0, textY, 0, textY + textHeight);
@@ -522,12 +523,13 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         ctx.fillText(columnist.specialty, infoX, infoY + 22);
         
         // Bio (limitada)
-        if (columnist.bio) {
+        {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.font = '12px Arial, sans-serif';
-          
-          // Limitar bio a 60 caracteres
-          const limitedBio = columnist.bio.length > 60 ? columnist.bio.substring(0, 57) + '...' : columnist.bio;
+          const bioText = columnist.bio && columnist.bio.trim().length > 0 
+            ? columnist.bio 
+            : 'Colunista do Portal RRN';
+          const limitedBio = bioText.length > 60 ? bioText.substring(0, 57) + '...' : bioText;
           ctx.fillText(limitedBio, infoX, infoY + 40);
         }
         
@@ -673,7 +675,25 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
             
             fallbackImage.src = fallbackUrl;
           } else {
-            checkIfReady();
+            // Para não-colunistas, também tentar fallback
+            console.log('🔄 Carregando imagem fallback para artigo (não-colunista) da categoria:', category);
+            const fallbackUrl = getCategoryFallbackImage(category);
+
+            fallbackImage.onload = () => {
+              console.log('✅ Imagem fallback carregada com sucesso (não-colunista)');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = true;
+              checkIfReady();
+            };
+
+            fallbackImage.onerror = () => {
+              console.warn('⚠️ Falha ao carregar fallback (não-colunista)');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = false;
+              checkIfReady();
+            };
+
+            fallbackImage.src = fallbackUrl;
           }
         };
         
@@ -737,8 +757,25 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         
         fallbackImage.src = fallbackUrl;
       } else {
-        fallbackImageLoaded = true;
-        fallbackImageSuccess = false;
+        // Para não-colunistas sem imagem, carregar fallback padrão da categoria
+        console.log('🔄 Carregando fallback padrão para artigo sem imagem (não-colunista)');
+        const fallbackUrl = getCategoryFallbackImage(category);
+        
+        fallbackImage.onload = () => {
+          console.log('✅ Fallback carregado para artigo sem imagem (não-colunista)');
+          fallbackImageLoaded = true;
+          fallbackImageSuccess = true;
+          checkIfReady();
+        };
+        
+        fallbackImage.onerror = () => {
+          console.warn('⚠️ Falha no fallback para artigo sem imagem (não-colunista)');
+          fallbackImageLoaded = true;
+          fallbackImageSuccess = false;
+          checkIfReady();
+        };
+        
+        fallbackImage.src = fallbackUrl;
       }
     }
 
