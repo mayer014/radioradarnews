@@ -69,13 +69,20 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         data = result.data;
         error = result.error;
       } else {
-        // Public users only get safe columnist data via the secure view
-        const result = await supabase
-          .from('profiles_public')
-          .select('*')
-          .order('name', { ascending: true });
-        data = result.data;
-        error = result.error;
+        // Public users: use Edge Function to fetch active columnists reliably (bypasses RLS safely)
+        const ef = await supabase.functions.invoke('columnists-public', { body: {} });
+        if (!ef.error && ef.data?.success && Array.isArray(ef.data.columnists)) {
+          data = ef.data.columnists;
+          error = null as any;
+        } else {
+          // Fallback to public view if edge function is unavailable
+          const result = await supabase
+            .from('profiles_public')
+            .select('*')
+            .order('name', { ascending: true });
+          data = result.data;
+          error = result.error as any;
+        }
       }
 
       if (error) throw error;

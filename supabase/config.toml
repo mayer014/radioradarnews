@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.enhanced-user-service]
 verify_jwt = true
+
+[functions.columnists-public]
+verify_jwt = false
