@@ -288,8 +288,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       // 3. LOGO REMOVIDA - já está no fundo
 
       // 4. Área de texto NA PARTE ESCURA (bem embaixo)
-      // 4. Área de texto na zona inferior, logo abaixo da imagem principal
-      const textY = imageY + imageHeight + 20; // Logo abaixo da imagem principal
+      // 4. Área de texto na zona inferior - posicionamento diferente para colunistas vs matérias normais
+      const textY = columnist ? (imageY + imageHeight + 20) : (imageY + imageHeight + 60); // Mais espaço para matérias normais
       const textHeight = canvas.height - textY;
       
       // Overlay MUITO sutil apenas na área do texto
@@ -323,7 +323,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       const badgeWidth = Math.max(textMetrics.width + 40, 120); // Mínimo 120px, padding 40px
       const badgeHeight = 40;
       const badgeX = (canvas.width - badgeWidth) / 2;
-      const badgeY = textY + 20; // Bem próximo ao início da área escura
+      const badgeY = columnist ? (textY + 20) : (textY + 40); // Mais espaço para matérias normais
       
       // Badge glassmorphism
       ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
@@ -379,8 +379,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         displayLines[2] = displayLines[2] + '...';
       }
       
-      // Desenhar linhas do título NA PARTE ESCURA
-      const titleStartY = badgeY + badgeHeight + 20; // Mais próximo da categoria
+      // Desenhar linhas do título - posicionamento diferente para colunistas vs matérias normais
+      const titleStartY = columnist ? (badgeY + badgeHeight + 20) : (badgeY + badgeHeight + 30); // Mais espaço para matérias normais
       displayLines.forEach((line, index) => {
         ctx.fillText(line, canvas.width / 2, titleStartY + (index * lineHeight));
       });
@@ -390,7 +390,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       if (source && !columnist) {
         console.log('🏷️ Adicionando fonte da matéria reescrita:', source);
         
-        const sourceY = titleStartY + (displayLines.length * lineHeight) + 15;
+        const sourceY = titleStartY + (displayLines.length * lineHeight) + (columnist ? 15 : 25); // Mais espaço para matérias normais
         
         // Fundo sutil para a fonte
         const sourceBoxHeight = 35;
@@ -448,7 +448,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           summaryDisplayLines[1] = summaryDisplayLines[1] + '...';
         }
         
-        const summaryStartY = titleStartY + (displayLines.length * lineHeight) + sourceHeight + 10;
+        const summaryStartY = titleStartY + (displayLines.length * lineHeight) + sourceHeight + (columnist ? 10 : 20); // Mais espaço para matérias normais
         summaryDisplayLines.forEach((line, index) => {
           ctx.fillText(line, canvas.width / 2, summaryStartY + (index * summaryLineHeight));
         });
@@ -578,8 +578,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           summaryDisplayLines[1] = summaryDisplayLines[1] + '...';
         }
         
-        // Desenhar linhas do resumo NA PARTE ESCURA (considerando o espaço do colunista)
-        const summaryStartY = titleStartY + (displayLines.length * lineHeight) + columnistSectionHeight + 15;
+        // Desenhar linhas do resumo - posicionamento diferente para colunistas vs matérias normais
+        const summaryStartY = titleStartY + (displayLines.length * lineHeight) + columnistSectionHeight + (columnist ? 15 : 25);
         summaryDisplayLines.forEach((line, index) => {
           ctx.fillText(line, canvas.width / 2, summaryStartY + (index * summaryLineHeight));
         });
