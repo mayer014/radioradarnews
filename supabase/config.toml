@@ -74,3 +74,9 @@ verify_jwt = true
 
 [functions.columnists-public]
 verify_jwt = false
+
+[functions.vps-image-service]
+verify_jwt = true
+
+[functions.vps-image-migration]
+verify_jwt = true

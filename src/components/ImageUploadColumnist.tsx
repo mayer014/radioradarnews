@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Upload, X, Camera, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { VPSImageService } from '@/services/VPSImageService';
 
 interface ImageUploadColumnistProps {
   currentImage?: string;
@@ -28,55 +28,22 @@ const ImageUploadColumnist: React.FC<ImageUploadColumnistProps> = ({
       return;
     }
 
-    // Validar tipo de arquivo
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Arquivo inválido',
-        description: 'Por favor, selecione uma imagem (JPG, PNG, etc.)',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Validar tamanho do arquivo (máx 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'Arquivo muito grande',
-        description: 'A imagem deve ter no máximo 5MB',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setIsUploading(true);
 
     try {
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (error) {
-        throw error;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      setPreviewImage(publicUrl);
-      onImageChange(publicUrl);
+      const result = await VPSImageService.uploadImage(file, 'avatar');
       
-      toast({
-        title: 'Upload concluído',
-        description: 'Foto carregada com sucesso!',
-      });
+      if (result.success) {
+        setPreviewImage(result.url);
+        onImageChange(result.url);
+        
+        toast({
+          title: 'Upload concluído',
+          description: 'Foto carregada com sucesso!',
+        });
+      } else {
+        throw new Error(result.error || 'Erro no upload da imagem');
+      }
     } catch (error: any) {
       console.error('Erro ao processar imagem:', error);
       toast({

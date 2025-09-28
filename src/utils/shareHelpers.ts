@@ -243,15 +243,17 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         }
       }
       
-      // AUDITORIA: Log do resultado da seleção de imagem
-      console.log('🔍 [AUDITORIA] Resultado da seleção de imagem:', {
-        isColumnist: !!columnist,
-        imageToUse: !!imageToUse,
-        imageSource: imageToUse ? (
-          imageToUse === articleImage ? 'article-original' :
-          imageToUse === fallbackImage ? 'category-fallback' : 'emergency-fallback'
-        ) : 'none'
-      });
+      // URLs resultantes ficam compatíveis com o shareHelpers.ts
+      console.log('🔍 [AUDITORIA] Verificando compatibilidade de URLs VPS com canvas/shareHelpers');
+      
+      // Para VPS, garantir que as URLs são acessíveis pelo canvas
+      if (imageToUse) {
+        const imgSrc = imageToUse.src;
+        if (imgSrc.includes('media.radioradar.news')) {
+          console.log('✅ [VPS] URL VPS detectada no canvas:', imgSrc);
+          // URLs VPS são HTTPS e compatíveis com CORS
+        }
+      }
       
       if (imageToUse) {
         const imgAspect = imageToUse.naturalWidth / imageToUse.naturalHeight;

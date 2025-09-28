@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { VPSImageService } from '@/services/VPSImageService';
 
 interface ImageUploadProps {
   value: string;
@@ -29,56 +29,22 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Verificar se é uma imagem
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Arquivo inválido",
-        description: "Por favor, selecione apenas arquivos de imagem.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Verificar tamanho (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O arquivo deve ter no máximo 5MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsUploading(true);
 
     try {
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('article-images')
-        .upload(filePath, file);
-
-      if (error) {
-        throw error;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('article-images')
-        .getPublicUrl(filePath);
-
-      setImageUrl(publicUrl);
-      onChange(publicUrl);
-      setIsUploading(false);
+      const result = await VPSImageService.uploadImage(file, 'article');
       
-      toast({
-        title: "Upload concluído",
-        description: "Imagem carregada com sucesso!",
-      });
+      if (result.success) {
+        setImageUrl(result.url);
+        onChange(result.url);
+        
+        toast({
+          title: "Upload concluído",
+          description: "Imagem carregada com sucesso!",
+        });
+      } else {
+        throw new Error(result.error || 'Erro no upload da imagem');
+      }
     } catch (error: any) {
       console.error('Erro no upload:', error);
       toast({
@@ -86,6 +52,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         description: error.message || "Ocorreu um erro ao carregar a imagem. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
       setIsUploading(false);
     }
   };
