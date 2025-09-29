@@ -240,7 +240,7 @@ async function migrateImage(supabaseUrl: string, type: 'article' | 'avatar' | 'b
     }
 
     const result = await uploadResponse.json()
-    const newUrl = `${VPS_HOST}/images/${type}/${fileName}`
+    const newUrl = `${VPS_HOST}/uploads/${fileName}`
     
     console.log(`✅ Imagem migrada: ${supabaseUrl} → ${newUrl}`)
     return newUrl

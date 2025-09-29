@@ -96,7 +96,7 @@ export class VPSImageService {
    * Get optimized image URL
    */
   static getImageUrl(filename: string, type: 'article' | 'avatar' | 'banner'): string {
-    return `https://media.radioradar.news/images/${type}/${filename}`
+    return `https://media.radioradar.news/uploads/${filename}`
   }
 
   /**

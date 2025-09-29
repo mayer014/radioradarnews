@@ -64,7 +64,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          url: `${VPS_HOST}/images/${type}/${newFileName}`,
+          url: `${VPS_HOST}/uploads/${newFileName}`,
           file_name: newFileName,
           type: type
         }),
