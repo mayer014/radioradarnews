@@ -112,10 +112,12 @@ serve(async (req) => {
         }, {});
 
         // Database health check
-        const { data: tableStats, error: statsError } = await supabase
-          .rpc('get_table_stats') // Custom function needed
-          .then(() => null) // Fallback if function doesn't exist
-          .catch(() => null);
+        let tableStats = null;
+        try {
+          await supabase.rpc('get_table_stats');
+        } catch (e) {
+          // Function may not exist, ignore
+        }
 
         result = {
           success: true,
@@ -144,7 +146,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

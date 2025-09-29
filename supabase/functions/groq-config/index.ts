@@ -137,10 +137,10 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         availableModels: AVAILABLE_GROQ_MODELS,
-        message: error.message || 'Internal server error'
+        message: error instanceof Error ? error.message : 'Internal server error'
       } as GroqConfigResponse),
       { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

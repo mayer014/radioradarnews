@@ -47,14 +47,14 @@ serve(async (req) => {
     console.error('Error in AI image generation:', error);
     
     // Fallback to category-based stock image
-    const fallbackImage = getFallbackImage(error.prompt || '');
+    const fallbackImage = getFallbackImage('');
     
     return new Response(JSON.stringify({
       success: true,
       data: {
         url: fallbackImage,
         provider: 'fallback',
-        prompt: error.prompt || ''
+        prompt: ''
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

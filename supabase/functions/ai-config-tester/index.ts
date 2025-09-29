@@ -60,7 +60,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: error.message || 'Erro interno no teste da API' 
+        message: error instanceof Error ? error.message : 'Erro interno no teste da API' 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -149,7 +149,7 @@ async function testGroqAPI(apiKey: string, selectedModel?: string): Promise<Test
     console.error('Erro na chamada para Groq API:', error);
     return {
       success: false,
-      message: `Erro de conexão: ${error.message}`,
+      message: `Erro de conexão: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
       availableModels
     };
   }
@@ -188,7 +188,7 @@ async function testOpenAI(apiKey: string, selectedModel?: string): Promise<TestR
   } catch (error) {
     return {
       success: false,
-      message: `Erro de conexão OpenAI: ${error.message}`
+      message: `Erro de conexão OpenAI: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
     };
   }
 }
@@ -227,7 +227,7 @@ async function testAnthropic(apiKey: string, selectedModel?: string): Promise<Te
   } catch (error) {
     return {
       success: false,
-      message: `Erro de conexão Anthropic: ${error.message}`
+      message: `Erro de conexão Anthropic: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
     };
   }
 }

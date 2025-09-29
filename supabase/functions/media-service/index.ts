@@ -88,17 +88,9 @@ serve(async (req) => {
         let width, height;
         if (mime_type.startsWith('image/')) {
           try {
-            // This is a simplified approach - in production you might want a more robust solution
-            const img = new Image();
-            img.src = `data:${mime_type};base64,${file_data}`;
-            await new Promise((resolve, reject) => {
-              img.onload = () => {
-                width = img.width;
-                height = img.height;
-                resolve(void 0);
-              };
-              img.onerror = reject;
-            });
+            // Skip Image() in Deno edge functions - not available in Deno runtime
+            width = 0;
+            height = 0;
           } catch (e) {
             console.warn('Could not determine image dimensions:', e);
           }
@@ -230,7 +222,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

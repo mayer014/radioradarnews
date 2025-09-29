@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: false,
         error: 'Failed to extract content',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -84,7 +84,7 @@ async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
     return extractContentFromHTML(html, url);
   } catch (error) {
     console.error('Direct fetch failed:', error);
-    throw new Error(`Failed to extract content: ${error.message}`);
+    throw new Error(`Failed to extract content: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -278,14 +278,14 @@ function extractContentFromHTML(html: string, originalUrl: string): ExtractedCon
       ];
       
       for (const selector of unwantedSelectors) {
-        const elements = contentElement.querySelectorAll(selector);
+        const elements = (contentElement as any).querySelectorAll(selector);
         for (const element of elements) {
           element.remove();
         }
       }
       
       // Extract paragraphs and headings
-      const contentElements = contentElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li');
+      const contentElements = (contentElement as any).querySelectorAll('p, h1, h2, h3, h4, h5, h6, li');
       const contentParts = [];
       
       for (const element of contentElements) {

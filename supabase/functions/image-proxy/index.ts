@@ -94,7 +94,7 @@ serve(async (req) => {
     const uint8Array = new Uint8Array(arrayBuffer);
 
     // Robust base64 encoding without call stack overflow (use Deno std)
-    const base64 = base64Encode(uint8Array);
+    const base64 = base64Encode(arrayBuffer);
 
     console.log(`Image Proxy: Success - ${contentType}, ${arrayBuffer.byteLength} bytes`);
 
@@ -114,7 +114,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error?.message ?? 'unknown_error',
+        error: error instanceof Error ? error.message : 'unknown_error',
         code: 'PROXY_ERROR',
       }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

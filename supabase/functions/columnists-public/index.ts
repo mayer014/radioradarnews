@@ -62,7 +62,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("columnists-public error:", e);
     return new Response(
-      JSON.stringify({ success: false, error: "internal_error", details: e.message }),
+      JSON.stringify({ success: false, error: "internal_error", details: e instanceof Error ? e.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

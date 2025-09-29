@@ -180,7 +180,7 @@ Conteúdo: ${cleanTextContent(content)}
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
+        error: error instanceof Error ? error.message : 'Internal server error',
         details: 'Failed to rewrite content using AI service'
       }), 
       {

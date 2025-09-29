@@ -117,7 +117,7 @@ async function createUser(supabaseClient: any, params: any) {
   } catch (error) {
     console.error('Error creating user:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -152,7 +152,7 @@ async function updatePassword(supabaseClient: any, params: any) {
   } catch (error) {
     console.error('Error updating password:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -177,7 +177,7 @@ async function deleteUser(supabaseClient: any, params: any) {
   } catch (error) {
     console.error('Error deleting user:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
