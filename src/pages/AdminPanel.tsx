@@ -75,6 +75,7 @@ import BannerManager from '@/components/BannerManager';
 import LegalContentManager from '@/components/LegalContentManager';
 import SystemSettingsManager from '@/components/SystemSettingsManager';
 import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
+import VPSMigrationPanel from '@/components/VPSMigrationPanel';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -874,7 +875,10 @@ const AdminPanel = () => {
 
         {/* Otimização de Armazenamento - apenas para admin */}
         {activeTab === 'storage' && isAdmin && (
-          <StorageOptimizationPanel />
+          <div className="space-y-6">
+            <VPSMigrationPanel />
+            <StorageOptimizationPanel />
+          </div>
         )}
       </div>
       
