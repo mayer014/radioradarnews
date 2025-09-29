@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { serviceLayer } from '@/services/SupabaseServiceLayer';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { VPSImageService } from '@/services/VPSImageService';
 import { FileText, Save, Eye, Upload } from 'lucide-react';
 
 interface ArticleFormData {
@@ -205,30 +206,21 @@ const RobustArticleEditor: React.FC<RobustArticleEditorProps> = ({
     if (!file) return;
 
     try {
-      // Upload directly to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `articles/${fileName}`;
+      // Upload to VPS via VPSImageService
+      const result = await VPSImageService.uploadImage(file, 'article');
 
-      const { data, error } = await supabase.storage
-        .from('article-images')
-        .upload(filePath, file);
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('article-images')
-        .getPublicUrl(filePath);
+      if (!result.success) {
+        throw new Error(result.error || 'Erro no upload da imagem');
+      }
 
       setFormData(prev => ({ 
         ...prev, 
-        cover_image_url: publicUrl 
+        cover_image_url: result.url 
       }));
       
       toast({
         title: "Imagem carregada",
-        description: "Imagem de capa carregada com sucesso",
+        description: "Imagem de capa carregada com sucesso na VPS",
       });
 
     } catch (error: any) {
