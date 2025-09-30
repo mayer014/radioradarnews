@@ -16,6 +16,7 @@ import ContentRewriterStep from './ContentRewriterStep';
 import { useSupabaseAIConfig } from '@/contexts/SupabaseAIConfigContext';
 import type { ExtractedContent } from '@/services/ContentExtractor';
 import type { RewrittenContent } from '@/services/AIContentRewriter';
+import { VPSImageService } from '@/services/VPSImageService';
 
 interface ModularURLImporterProps {
   onImportComplete: (data: {
@@ -86,12 +87,27 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
     setCurrentStep('complete');
   };
 
-  const handleUseContent = () => {
+  const handleUseContent = async () => {
     if (rewrittenContent) {
-      // Use the main image from extracted content if available
-      const generatedImage = extractedContent?.mainImage ? 
-        { url: extractedContent.mainImage } : 
-        undefined;
+      // Try to download external image and upload to VPS
+      let vpsImageUrl: string | undefined;
+      try {
+        if (extractedContent?.mainImage) {
+          const response = await fetch(extractedContent.mainImage);
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], `imported-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+            const vpsResult = await VPSImageService.uploadImage(file, 'article');
+            if (vpsResult.success) {
+              vpsImageUrl = vpsResult.url;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Falha ao processar imagem externa, continuando sem VPS:', err);
+      }
+
+      const generatedImage = vpsImageUrl ? { url: vpsImageUrl } : undefined;
 
       onImportComplete({
         rewrittenContent,

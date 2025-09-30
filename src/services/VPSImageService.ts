@@ -24,7 +24,7 @@ export class VPSImageService {
       }
 
       // Compress image (except GIFs to preserve animation)
-      const processedFile = file.type === 'image/gif' ? file : await this.compressImage(file)
+      const processedFile = (file.type === 'image/gif' || file.type === 'image/webp') ? file : await this.compressImage(file)
       
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()
@@ -107,7 +107,7 @@ export class VPSImageService {
   }
 
   /**
-   * Compress image to WebP format
+   * Compress image (JPEG) to reduce size
    */
   private static compressImage(file: File): Promise<File> {
     return new Promise((resolve, reject) => {
@@ -142,13 +142,13 @@ export class VPSImageService {
 
               const compressedFile = new File(
                 [blob],
-                file.name.replace(/\.[^/.]+$/, '.webp'),
-                { type: 'image/webp' }
+                file.name.replace(/\.[^/.]+$/, '.jpg'),
+                { type: 'image/jpeg' }
               )
 
               resolve(compressedFile)
             },
-            'image/webp',
+            'image/jpeg',
             0.85 // 85% quality
           )
         } catch (error) {
