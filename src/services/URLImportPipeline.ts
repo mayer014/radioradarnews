@@ -67,21 +67,39 @@ export class URLImportPipeline {
       this.addLog('rewrite', `Categoria sugerida: ${rewrittenContent.category_suggestion}`);
       this.addLog('rewrite', `Tags sugeridas: ${rewrittenContent.tags.join(', ')}`);
 
-      // Step 4: Generate featured image
-      this.updateProgress('generate_image', 'Gerando imagem de destaque...', 80);
+      // Step 4: Download and upload external image to VPS
+      this.updateProgress('generate_image', 'Processando imagem...', 80);
       const imageStart = Date.now();
       
       let generatedImage: GeneratedImage | undefined;
       
       try {
-        this.addLog('generate_image', `Gerando imagem com prompt: ${rewrittenContent.image_prompt}`);
-        generatedImage = await AIImageGenerator.generateImage(rewrittenContent.image_prompt);
-        this.addLog('generate_image', `Imagem gerada com sucesso via ${generatedImage.provider}`, Date.now() - imageStart);
+        // If we have an external image URL, download and re-upload to VPS
+        if (extractedContent.mainImage) {
+          this.addLog('generate_image', `Baixando imagem externa: ${extractedContent.mainImage}`);
+          
+          const imageBlob = await this.downloadImage(extractedContent.mainImage);
+          const imageFile = new File([imageBlob], `imported-${Date.now()}.jpg`, { type: imageBlob.type });
+          
+          this.addLog('generate_image', 'Enviando imagem para VPS...');
+          const vpsResult = await this.uploadToVPS(imageFile);
+          
+          if (vpsResult.success) {
+            generatedImage = {
+              url: vpsResult.url,
+              provider: 'vps-upload',
+              prompt: rewrittenContent.image_prompt
+            };
+            this.addLog('generate_image', `Imagem salva na VPS: ${vpsResult.url}`, Date.now() - imageStart);
+          } else {
+            throw new Error(vpsResult.error || 'Falha no upload para VPS');
+          }
+        } else {
+          this.addLog('generate_image', 'Nenhuma imagem externa encontrada, continuando sem imagem');
+        }
       } catch (error) {
-        this.addLog('generate_image', `Falha na geração de imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, Date.now() - imageStart, true);
-        
-        // Continue without image - it's not critical
-        this.addLog('generate_image', 'Continuando sem imagem gerada por IA');
+        this.addLog('generate_image', `Falha no processamento da imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, Date.now() - imageStart, true);
+        this.addLog('generate_image', 'Continuando sem imagem');
       }
 
       // Step 5: Complete
@@ -139,5 +157,43 @@ export class URLImportPipeline {
       duration,
       error
     });
+  }
+
+  private async downloadImage(url: string): Promise<Blob> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.statusText}`);
+    }
+    return await response.blob();
+  }
+
+  private async uploadToVPS(file: File): Promise<{ success: boolean; url: string; error?: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch('https://media.radioradar.news/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`VPS upload failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success && data.url) {
+      return {
+        success: true,
+        url: `https://media.radioradar.news${data.url}`
+      };
+    } else {
+      return {
+        success: false,
+        url: '',
+        error: data.error || 'Upload failed'
+      };
+    }
   }
 }
