@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 export interface VPSUploadResult {
@@ -27,30 +26,30 @@ export class VPSImageService {
       // Compress image (except GIFs to preserve animation)
       const processedFile = file.type === 'image/gif' ? file : await this.compressImage(file)
       
-      // Convert to base64
-      const base64 = await this.fileToBase64(processedFile)
+      // Upload directly to VPS using multipart/form-data
+      const formData = new FormData()
+      formData.append('image', processedFile) // Campo deve ser "image"
       
-      // Upload via Edge Function
-      const { data, error } = await supabase.functions.invoke('vps-image-service', {
-        body: {
-          action: 'upload',
-          file_data: base64,
-          file_name: processedFile.name,
-          mime_type: processedFile.type,
-          type: type
-        }
+      const response = await fetch('https://media.radioradar.news/api/upload', {
+        method: 'POST',
+        body: formData
       })
 
-      if (error) {
-        throw new Error(error.message || 'Erro no upload para VPS')
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`)
       }
+
+      const data = await response.json()
 
       if (!data.success) {
         throw new Error(data.error || 'Falha no upload')
       }
 
+      // Construir URL completa
+      const fullUrl = `https://media.radioradar.news${data.url}`
+
       return {
-        url: data.url,
+        url: fullUrl,
         success: true
       }
 
@@ -73,19 +72,15 @@ export class VPSImageService {
         return true // Not a VPS image, consider as deleted
       }
 
-      const { data, error } = await supabase.functions.invoke('vps-image-service', {
-        body: {
-          action: 'delete',
-          image_url: imageUrl
-        }
+      // Extrair nome do arquivo da URL
+      const filename = imageUrl.split('/uploads/').pop()
+      if (!filename) return false
+
+      const response = await fetch(`https://media.radioradar.news/api/upload/${filename}`, {
+        method: 'DELETE'
       })
 
-      if (error) {
-        console.error('VPS Delete Error:', error)
-        return false
-      }
-
-      return data.success
+      return response.ok
     } catch (error) {
       console.error('VPS Delete Error:', error)
       return false
@@ -104,11 +99,8 @@ export class VPSImageService {
    */
   static async checkHealth(): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('vps-image-service', {
-        body: { action: 'health' }
-      })
-
-      return !error && data.success
+      const response = await fetch('https://media.radioradar.news/api/health')
+      return response.ok
     } catch {
       return false
     }
@@ -166,18 +158,6 @@ export class VPSImageService {
 
       img.onerror = () => reject(new Error('Falha ao carregar imagem'))
       img.src = URL.createObjectURL(file)
-    })
-  }
-
-  /**
-   * Convert file to base64
-   */
-  private static fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
     })
   }
 
