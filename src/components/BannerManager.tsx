@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useBanners } from '@/hooks/useBanners';
-import ImageUpload from '@/components/ImageUpload';
+import ImageUploadBanner from '@/components/ImageUploadBanner';
 import { useUsers } from '@/contexts/UsersContext';
 import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
 
@@ -54,7 +54,8 @@ const BannerManager: React.FC = () => {
     start_date: '',
     end_date: '',
     status: 'draft',
-    sort_order: 0
+    sort_order: 0,
+    is_pilot: false
   });
 
   // Get columnists
@@ -70,7 +71,8 @@ const BannerManager: React.FC = () => {
       start_date: '',
       end_date: '',
       status: 'draft',
-      sort_order: 0
+      sort_order: 0,
+      is_pilot: false
     });
     setEditingBanner(null);
   };
@@ -86,7 +88,8 @@ const BannerManager: React.FC = () => {
       start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
       end_date: banner.end_date ? banner.end_date.split('T')[0] : '',
       status: banner.status,
-      sort_order: banner.sort_order
+      sort_order: banner.sort_order,
+      is_pilot: banner.is_pilot
     });
     setDialogOpen(true);
   };
@@ -109,16 +112,11 @@ const BannerManager: React.FC = () => {
         end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
         status: formData.status,
         sort_order: formData.sort_order,
-        is_pilot: false
+        is_pilot: formData.is_pilot
       };
 
       if (editingBanner) {
-        // Manter o status de piloto se estiver editando um banner piloto
-        const finalBannerData = {
-          ...bannerData,
-          is_pilot: editingBanner.is_pilot
-        };
-        await updateBanner(editingBanner.id, finalBannerData);
+        await updateBanner(editingBanner.id, bannerData);
       } else {
         await createBanner(bannerData);
       }
@@ -198,7 +196,7 @@ const BannerManager: React.FC = () => {
 
               <div>
                 <Label>Imagem do Banner</Label>
-                <ImageUpload
+                <ImageUploadBanner
                   value={formData.image_url}
                   onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
                 />
@@ -329,6 +327,22 @@ const BannerManager: React.FC = () => {
                     min="0"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <input
+                  id="is_pilot"
+                  type="checkbox"
+                  checked={formData.is_pilot}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_pilot: e.target.checked }))}
+                  className="h-4 w-4 rounded border-primary/30"
+                />
+                <Label htmlFor="is_pilot" className="cursor-pointer">
+                  <span className="font-semibold">Banner Piloto</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Exibir este banner em todas as áreas que não possuem banner específico configurado
+                  </p>
+                </Label>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
