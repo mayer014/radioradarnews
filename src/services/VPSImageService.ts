@@ -23,8 +23,16 @@ export class VPSImageService {
         throw new Error('Arquivo inválido. Use JPG, PNG, WebP ou GIF até 10MB.')
       }
 
-      // Compress image (except GIFs to preserve animation)
+      // Compress image (except GIFs and WebP to preserve animation/quality)
+      // GIFs are NEVER compressed to preserve animation
       const processedFile = (file.type === 'image/gif' || file.type === 'image/webp') ? file : await this.compressImage(file)
+      
+      console.log('📤 Enviando para VPS:', {
+        originalType: file.type,
+        processedType: processedFile.type,
+        isGif: file.type === 'image/gif',
+        filename: processedFile.name
+      })
       
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()

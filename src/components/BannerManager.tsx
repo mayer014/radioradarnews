@@ -82,7 +82,7 @@ const BannerManager: React.FC = () => {
     setFormData({
       title: banner.title,
       image_url: banner.image_url,
-      banner_type: banner.banner_type,
+      banner_type: banner.is_pilot ? 'pilot' : banner.banner_type,
       target_category: banner.target_category ? getDisplayCategoryName(banner.target_category) : '',
       target_columnist_id: banner.target_columnist_id || '',
       start_date: banner.start_date ? banner.start_date.split('T')[0] : '',
@@ -154,8 +154,8 @@ const BannerManager: React.FC = () => {
   };
 
   const getTargetLabel = (banner: Banner) => {
+    if (banner.is_pilot) return 'Piloto';
     if (banner.banner_type === 'hero') return 'Hero';
-    if (banner.banner_type === 'pilot') return 'Piloto';
     if (banner.banner_type === 'category') return banner.target_category ? getDisplayCategoryName(banner.target_category) : 'Categoria';
     if (banner.banner_type === 'columnist') {
       const columnist = columnists.find(c => c.id === banner.target_columnist_id);
@@ -220,7 +220,8 @@ const BannerManager: React.FC = () => {
                       ...prev, 
                       banner_type: value,
                       target_category: '',
-                      target_columnist_id: ''
+                      target_columnist_id: '',
+                      is_pilot: value === 'pilot'
                     }))
                   }
                 >
@@ -231,8 +232,14 @@ const BannerManager: React.FC = () => {
                     <SelectItem value="hero">Hero</SelectItem>
                     <SelectItem value="category">Categoria</SelectItem>
                     <SelectItem value="columnist">Colunista</SelectItem>
+                    <SelectItem value="pilot">Piloto</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.banner_type === 'pilot' && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Banner piloto será exibido em todas as áreas que não possuem banner específico
+                  </p>
+                )}
               </div>
 
               {formData.banner_type === 'category' && (
@@ -327,22 +334,6 @@ const BannerManager: React.FC = () => {
                     min="0"
                   />
                 </div>
-              </div>
-
-              <div className="flex items-center space-x-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <input
-                  id="is_pilot"
-                  type="checkbox"
-                  checked={formData.is_pilot}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_pilot: e.target.checked }))}
-                  className="h-4 w-4 rounded border-primary/30"
-                />
-                <Label htmlFor="is_pilot" className="cursor-pointer">
-                  <span className="font-semibold">Banner Piloto</span>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Exibir este banner em todas as áreas que não possuem banner específico configurado
-                  </p>
-                </Label>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
