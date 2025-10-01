@@ -8,35 +8,47 @@ export interface VPSUploadResult {
 
 export class VPSImageService {
   private static readonly MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+  private static readonly MAX_GIF_SIZE = 5 * 1024 * 1024 // 5MB para GIFs (animação)
   private static readonly ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 
   /**
-   * Upload image to VPS with automatic compression
+   * Upload image to VPS with automatic compression (WebP for static images, preserve GIF animation)
    */
   static async uploadImage(
     file: File, 
     type: 'article' | 'avatar' | 'banner'
   ): Promise<VPSUploadResult> {
     try {
-      // Validate file
-      if (!this.validateFile(file)) {
-        throw new Error('Arquivo inválido. Use JPG, PNG, WebP ou GIF até 10MB.')
+      // Validate file type
+      if (!this.ALLOWED_TYPES.includes(file.type)) {
+        throw new Error('Formato inválido. Use JPG, PNG, WebP ou GIF.')
       }
 
-      // Compress image (except GIFs and WebP to preserve animation/quality)
-      // GIFs are NEVER compressed to preserve animation
-      const processedFile = (file.type === 'image/gif' || file.type === 'image/webp') ? file : await this.compressImage(file)
+      // Special validation for GIFs
+      if (file.type === 'image/gif' && file.size > this.MAX_GIF_SIZE) {
+        throw new Error(`GIF muito grande. Máximo: ${(this.MAX_GIF_SIZE / 1024 / 1024).toFixed(0)}MB para preservar animação.`)
+      }
+
+      // Validate file size for other formats
+      if (file.type !== 'image/gif' && file.size > this.MAX_FILE_SIZE) {
+        throw new Error(`Arquivo muito grande. Máximo: ${(this.MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB.`)
+      }
+
+      // Compress to WebP (except GIFs to preserve animation)
+      const processedFile = file.type === 'image/gif' ? file : await this.compressImage(file)
       
       console.log('📤 Enviando para VPS:', {
         originalType: file.type,
+        originalSize: (file.size / 1024).toFixed(2) + 'KB',
         processedType: processedFile.type,
+        processedSize: (processedFile.size / 1024).toFixed(2) + 'KB',
         isGif: file.type === 'image/gif',
         filename: processedFile.name
       })
       
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()
-      formData.append('image', processedFile) // Campo deve ser "image"
+      formData.append('image', processedFile)
       
       const response = await fetch('https://media.radioradar.news/api/upload', {
         method: 'POST',
@@ -44,7 +56,8 @@ export class VPSImageService {
       })
 
       if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`)
+        const errorText = await response.text()
+        throw new Error(`Erro no servidor VPS (${response.status}): ${errorText}`)
       }
 
       const data = await response.json()
@@ -56,17 +69,31 @@ export class VPSImageService {
       // Construir URL completa
       const fullUrl = `https://media.radioradar.news${data.url}`
 
+      console.log('✅ Upload VPS concluído:', fullUrl)
+
       return {
         url: fullUrl,
         success: true
       }
 
     } catch (error) {
-      console.error('VPS Upload Error:', error)
+      console.error('❌ VPS Upload Error:', error)
+      
+      // Better error messages for common issues
+      let errorMessage = 'Erro desconhecido no upload'
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Erro de conexão com o servidor de imagens. Verifique sua conexão e tente novamente.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       return {
         url: '',
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido no upload'
+        error: errorMessage
       }
     }
   }
@@ -115,7 +142,7 @@ export class VPSImageService {
   }
 
   /**
-   * Compress image (JPEG) to reduce size
+   * Compress image to WebP (except GIFs which preserve animation)
    */
   private static compressImage(file: File): Promise<File> {
     return new Promise((resolve, reject) => {
@@ -138,7 +165,7 @@ export class VPSImageService {
           canvas.width = width
           canvas.height = height
 
-          // Draw and compress
+          // Draw and compress to WebP
           ctx!.drawImage(img, 0, 0, width, height)
           
           canvas.toBlob(
@@ -150,13 +177,20 @@ export class VPSImageService {
 
               const compressedFile = new File(
                 [blob],
-                file.name.replace(/\.[^/.]+$/, '.jpg'),
-                { type: 'image/jpeg' }
+                file.name.replace(/\.[^/.]+$/, '.webp'),
+                { type: 'image/webp' }
               )
+
+              console.log('✅ Compressão WebP concluída:', {
+                originalName: file.name,
+                compressedName: compressedFile.name,
+                originalSize: (file.size / 1024).toFixed(2) + 'KB',
+                compressedSize: (compressedFile.size / 1024).toFixed(2) + 'KB'
+              })
 
               resolve(compressedFile)
             },
-            'image/jpeg',
+            'image/webp',
             0.85 // 85% quality
           )
         } catch (error) {
@@ -169,13 +203,4 @@ export class VPSImageService {
     })
   }
 
-  /**
-   * Validate file
-   */
-  private static validateFile(file: File): boolean {
-    if (!file) return false
-    if (file.size > this.MAX_FILE_SIZE) return false
-    if (!this.ALLOWED_TYPES.includes(file.type)) return false
-    return true
-  }
 }
