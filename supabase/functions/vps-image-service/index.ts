@@ -44,7 +44,7 @@ serve(async (req) => {
       
       // Upload to VPS
       const formData = new FormData()
-      formData.append('file', new Blob([binaryData], { type: mime_type }), newFileName)
+      formData.append('image', new Blob([binaryData], { type: mime_type }), newFileName)
       formData.append('type', type)
       
       const uploadResponse = await fetch(`${VPS_HOST}/api/upload`, {
@@ -84,7 +84,7 @@ serve(async (req) => {
         throw new Error('Invalid image URL')
       }
 
-      const deleteResponse = await fetch(`${VPS_HOST}/api/delete/${fileName}`, {
+      const deleteResponse = await fetch(`${VPS_HOST}/api/upload/${fileName}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${VPS_API_KEY}`,

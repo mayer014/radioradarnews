@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { ENV } from '@/config/environment'
 
 export interface VPSUploadResult {
   url: string
@@ -50,24 +51,36 @@ export class VPSImageService {
       const formData = new FormData()
       formData.append('image', processedFile)
       
-      const response = await fetch('https://media.radioradar.news/api/upload', {
-        method: 'POST',
-        body: formData
-      })
+      let data: any | null = null
+      try {
+        const response = await fetch('https://media.radioradar.news/api/upload', {
+          method: 'POST',
+          body: formData
+        })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Erro no servidor VPS (${response.status}): ${errorText}`)
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Erro no servidor VPS (${response.status}): ${errorText}`)
+        }
+
+        data = await response.json()
+      } catch (err) {
+        console.warn('Upload direto falhou, tentando via proxy...', err)
+        const proxyResult = await this.uploadViaProxy(processedFile, type)
+        if (proxyResult.success) {
+          return proxyResult
+        }
+        throw err instanceof Error ? err : new Error('Falha no upload')
       }
-
-      const data = await response.json()
 
       if (!data.success) {
         throw new Error(data.error || 'Falha no upload')
       }
 
-      // Construir URL completa
-      const fullUrl = `https://media.radioradar.news${data.url}`
+      // Construir URL completa e normalizar
+      const fullUrl = data.url && typeof data.url === 'string'
+        ? (data.url.startsWith('http') ? data.url : `https://media.radioradar.news${data.url}`)
+        : ''
 
       console.log('✅ Upload VPS concluído:', fullUrl)
 
@@ -111,11 +124,17 @@ export class VPSImageService {
       const filename = imageUrl.split('/uploads/').pop()
       if (!filename) return false
 
-      const response = await fetch(`https://media.radioradar.news/api/upload/${filename}`, {
-        method: 'DELETE'
-      })
+      try {
+        const response = await fetch(`https://media.radioradar.news/api/upload/${filename}`, {
+          method: 'DELETE'
+        })
+        if (response.ok) return true
+      } catch (err) {
+        console.warn('Delete direto falhou, tentando via proxy...', err)
+      }
 
-      return response.ok
+      // Fallback via proxy function
+      return await this.deleteViaProxy(imageUrl)
     } catch (error) {
       console.error('VPS Delete Error:', error)
       return false
@@ -198,9 +217,71 @@ export class VPSImageService {
         }
       }
 
-      img.onerror = () => reject(new Error('Falha ao carregar imagem'))
       img.src = URL.createObjectURL(file)
     })
   }
 
+  // Proxy fallback helpers (circumvent CORS if direct upload/delete fails)
+  private static async fileToDataURL(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error('Falha ao ler arquivo'))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  private static normalizeUrl(url: string): string {
+    if (!url) return ''
+    if (url.startsWith('http')) return url
+    const path = url.startsWith('/uploads/') ? url : `/uploads/${url}`
+    return `https://media.radioradar.news${path}`
+  }
+
+  private static async uploadViaProxy(file: File, type: 'article' | 'avatar' | 'banner'): Promise<VPSUploadResult> {
+    try {
+      const dataUrl = await this.fileToDataURL(file)
+      const res = await fetch(`${ENV.SUPABASE_URL}/functions/v1/vps-image-service`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'upload',
+          file_data: dataUrl,
+          file_name: file.name,
+          mime_type: file.type,
+          type
+        })
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        return { url: '', success: false, error: `Proxy upload error (${res.status}): ${text}` }
+      }
+      const json = await res.json()
+      const url = this.normalizeUrl(json.url)
+      return { url, success: true }
+    } catch (e) {
+      console.error('Proxy upload failed:', e)
+      return { url: '', success: false, error: (e as Error).message }
+    }
+  }
+
+  private static async deleteViaProxy(imageUrl: string): Promise<boolean> {
+    try {
+      const res = await fetch(`${ENV.SUPABASE_URL}/functions/v1/vps-image-service`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'delete', image_url: imageUrl })
+      })
+      if (!res.ok) return false
+      const json = await res.json()
+      return !!json.success
+    } catch (e) {
+      console.error('Proxy delete failed:', e)
+      return false
+    }
+  }
 }
