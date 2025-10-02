@@ -50,6 +50,7 @@ export class VPSImageService {
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()
       formData.append('image', processedFile)
+      formData.append('type', type)
       
       let data: any | null = null
       try {

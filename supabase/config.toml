@@ -76,7 +76,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.vps-image-service]
-verify_jwt = true
+verify_jwt = false
 
 [functions.vps-image-migration]
 verify_jwt = true
