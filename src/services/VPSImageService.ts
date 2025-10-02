@@ -12,11 +12,13 @@ export class VPSImageService {
   private static readonly ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 
   /**
-   * Upload image to VPS with automatic compression (WebP for static images, preserve GIF animation)
+   * Upload image to VPS with automatic compression
+   * @param preserveGif - If true, GIFs are uploaded without conversion (banners only)
    */
   static async uploadImage(
     file: File, 
-    type: 'article' | 'avatar' | 'banner'
+    type: 'article' | 'avatar' | 'banner',
+    preserveGif: boolean = false
   ): Promise<VPSUploadResult> {
     try {
       // Validate file type
@@ -24,26 +26,24 @@ export class VPSImageService {
         throw new Error('Formato inválido. Use JPG, PNG, WebP ou GIF.')
       }
 
-      // Special validation for GIFs
-      if (file.type === 'image/gif' && file.size > this.MAX_GIF_SIZE) {
-        throw new Error(`GIF muito grande. Máximo: ${(this.MAX_GIF_SIZE / 1024 / 1024).toFixed(0)}MB para preservar animação.`)
+      // Validate file size
+      const maxSize = (file.type === 'image/gif' && preserveGif) ? this.MAX_GIF_SIZE : this.MAX_FILE_SIZE
+      if (file.size > maxSize) {
+        throw new Error(`Arquivo muito grande. Máximo: ${(maxSize / 1024 / 1024).toFixed(0)}MB.`)
       }
 
-      // Validate file size for other formats
-      if (file.type !== 'image/gif' && file.size > this.MAX_FILE_SIZE) {
-        throw new Error(`Arquivo muito grande. Máximo: ${(this.MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB.`)
-      }
-
-      // Compress to WebP (except GIFs to preserve animation)
-      const processedFile = file.type === 'image/gif' ? file : await this.compressImage(file)
+      // Compress to WebP (except GIFs when preserveGif is true)
+      const shouldPreserveGif = file.type === 'image/gif' && preserveGif
+      const processedFile = shouldPreserveGif ? file : await this.compressImage(file)
       
       console.log('📤 Enviando para VPS:', {
+        type,
+        preserveGif,
         originalType: file.type,
         originalSize: (file.size / 1024).toFixed(2) + 'KB',
         processedType: processedFile.type,
         processedSize: (processedFile.size / 1024).toFixed(2) + 'KB',
-        isGif: file.type === 'image/gif',
-        filename: processedFile.name
+        wasCompressed: !shouldPreserveGif && file.type !== processedFile.type
       })
       
       // Upload directly to VPS using multipart/form-data

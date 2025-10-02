@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 export interface UseVPSUploadResult {
   isUploading: boolean
-  uploadImage: (file: File, type: 'article' | 'avatar' | 'banner') => Promise<string | null>
+  uploadImage: (file: File, type: 'article' | 'avatar' | 'banner', preserveGif?: boolean) => Promise<string | null>
   deleteImage: (url: string) => Promise<boolean>
   checkHealth: () => Promise<boolean>
 }
@@ -14,12 +14,13 @@ export const useVPSUpload = (): UseVPSUploadResult => {
 
   const uploadImage = async (
     file: File, 
-    type: 'article' | 'avatar' | 'banner'
+    type: 'article' | 'avatar' | 'banner',
+    preserveGif: boolean = false
   ): Promise<string | null> => {
     setIsUploading(true)
     
     try {
-      const result = await VPSImageService.uploadImage(file, type)
+      const result = await VPSImageService.uploadImage(file, type, preserveGif)
       
       if (result.success) {
         toast.success('Upload realizado com sucesso!')

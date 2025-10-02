@@ -32,7 +32,8 @@ const ImageUploadBanner: React.FC<ImageUploadBannerProps> = ({
     setIsUploading(true);
 
     try {
-      const result = await VPSImageService.uploadImage(file, 'banner');
+      // Preserve GIF animation for banners
+      const result = await VPSImageService.uploadImage(file, 'banner', true);
       
       if (result.success) {
         setImageUrl(result.url);
