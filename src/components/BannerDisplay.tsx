@@ -23,32 +23,26 @@ const BannerDisplay: React.FC<BannerDisplayProps> = ({
     return null;
   }
 
-  const getPositionClasses = () => {
-    // Usar as mesmas dimensões do hero para todos os banners
-    return 'w-full h-24 xs:h-28 sm:h-32 md:h-40 lg:h-48 xl:h-56';
-  };
-
   return (
     <div className={`banner-display max-w-full ${className}`}>
-      <div className={`relative overflow-hidden rounded-lg bg-muted/20 ${getPositionClasses()}`}>
+      <div className="relative overflow-hidden rounded-lg bg-muted/20">
         <img
           src={banner.image_url}
           alt={banner.title}
-          className="w-full h-full object-contain object-center"
+          className="w-full h-auto object-cover"
           loading="lazy"
           style={{ 
-            maxWidth: '100%', 
-            objectFit: 'contain',
-            objectPosition: 'center'
+            display: 'block',
+            maxWidth: '100%',
+            height: 'auto'
           }}
           onError={(e) => {
             console.error('Error loading banner image:', banner.image_url);
-            // Hide the image on error and show a minimal fallback without text
             (e.target as HTMLImageElement).style.display = 'none';
             const parent = (e.target as HTMLImageElement).parentElement;
             if (parent && !parent.querySelector('.banner-fallback')) {
               parent.innerHTML += `
-                <div class="banner-fallback absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 flex items-center justify-center">
+                <div class="banner-fallback w-full h-32 bg-gradient-to-r from-primary/10 to-secondary/10 flex items-center justify-center">
                   <div class="w-full h-full bg-muted/30 rounded"></div>
                 </div>
               `;
