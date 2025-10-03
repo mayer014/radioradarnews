@@ -49,7 +49,7 @@ export class VPSImageService {
       
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()
-      formData.append('image', processedFile)
+      formData.append('file', processedFile)
       formData.append('type', type)
       
       let data: any | null = null
@@ -71,7 +71,8 @@ export class VPSImageService {
         if (proxyResult.success) {
           return proxyResult
         }
-        throw err instanceof Error ? err : new Error('Falha no upload')
+        // Propaga o erro real do proxy para melhor diagnóstico
+        throw new Error(proxyResult.error || (err instanceof Error ? err.message : 'Falha no upload via proxy'))
       }
 
       if (!data.success) {
@@ -121,12 +122,12 @@ export class VPSImageService {
         return true // Not a VPS image, consider as deleted
       }
 
-      // Extrair nome do arquivo da URL
-      const filename = imageUrl.split('/uploads/').pop()
+      // Extrair nome do arquivo da URL (último segmento)
+      const filename = imageUrl.split('/').pop()
       if (!filename) return false
 
       try {
-        const response = await fetch(`https://media.radioradar.news/api/upload/${filename}`, {
+        const response = await fetch(`https://media.radioradar.news/api/delete/${filename}`, {
           method: 'DELETE'
         })
         if (response.ok) return true
@@ -146,7 +147,7 @@ export class VPSImageService {
    * Get optimized image URL
    */
   static getImageUrl(filename: string, type: 'article' | 'avatar' | 'banner'): string {
-    return `https://media.radioradar.news/uploads/${filename}`
+    return `https://media.radioradar.news/images/${type}s/${filename}`
   }
 
   /**
@@ -235,8 +236,9 @@ export class VPSImageService {
   private static normalizeUrl(url: string): string {
     if (!url) return ''
     if (url.startsWith('http')) return url
-    const path = url.startsWith('/uploads/') ? url : `/uploads/${url}`
-    return `https://media.radioradar.news${path}`
+    // Aceita tanto /images/ quanto /uploads/
+    const prefix = url.startsWith('/images/') || url.startsWith('/uploads/') ? '' : '/images/'
+    return `https://media.radioradar.news${prefix}${url}`
   }
 
   private static async uploadViaProxy(file: File, type: 'article' | 'avatar' | 'banner'): Promise<VPSUploadResult> {

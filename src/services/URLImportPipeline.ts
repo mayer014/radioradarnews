@@ -204,7 +204,7 @@ export class URLImportPipeline {
 
   private async uploadToVPS(file: File): Promise<{ success: boolean; url: string; error?: string }> {
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('file', file);
     formData.append('type', 'article');
 
     const response = await fetch('https://media.radioradar.news/api/upload', {

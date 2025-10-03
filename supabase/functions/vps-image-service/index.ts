@@ -52,7 +52,7 @@ serve(async (req) => {
       
       // Upload to VPS
       const formData = new FormData()
-      formData.append('image', new Blob([binaryData], { type: mime_type }), newFileName)
+      formData.append('file', new Blob([binaryData], { type: mime_type }), newFileName)
       formData.append('type', type)
       
       const uploadResponse = await fetch(`${VPS_HOST}/api/upload`, {
@@ -76,7 +76,7 @@ serve(async (req) => {
           ? result.url
           : `${VPS_HOST}${result.url.startsWith('/uploads/') ? result.url : `/uploads/${result.url}`}`
       } else {
-        returnedUrl = `${VPS_HOST}/uploads/${newFileName}`
+        returnedUrl = `${VPS_HOST}/images/${type}s/${newFileName}`
       }
       
       return new Response(
@@ -120,7 +120,7 @@ serve(async (req) => {
       const newFileName = `${timestamp}-${randomStr}.${extension}`
 
       const formData = new FormData()
-      formData.append('image', new Blob([arrayBuffer], { type: contentType }), newFileName)
+      formData.append('file', new Blob([arrayBuffer], { type: contentType }), newFileName)
       formData.append('type', type)
 
       const uploadResponse = await fetch(`${VPS_HOST}/api/upload`, {
@@ -138,7 +138,7 @@ serve(async (req) => {
           ? result.url
           : `${VPS_HOST}${result.url.startsWith('/uploads/') ? result.url : `/uploads/${result.url}`}`
       } else {
-        returnedUrl = `${VPS_HOST}/uploads/${newFileName}`
+        returnedUrl = `${VPS_HOST}/images/${type}s/${newFileName}`
       }
 
       return new Response(
@@ -156,7 +156,7 @@ serve(async (req) => {
         throw new Error('Invalid image URL')
       }
 
-      const deleteResponse = await fetch(`${VPS_HOST}/api/upload/${fileName}`, {
+      const deleteResponse = await fetch(`${VPS_HOST}/api/delete/${fileName}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${VPS_API_KEY}`,
