@@ -174,9 +174,38 @@ export class URLImportPipeline {
     return await response.blob();
   }
 
+  private async uploadExternalToVPS(sourceUrl: string): Promise<{ success: boolean; url: string; error?: string }> {
+    try {
+      const response = await fetch(`${ENV.SUPABASE_URL}/functions/v1/vps-image-service`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'upload_from_url',
+          source_url: sourceUrl,
+          type: 'article'
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { success: false, url: '', error: `Proxy failed: ${errorText}` };
+      }
+
+      const data = await response.json();
+      if (data.success && data.url) {
+        return { success: true, url: data.url };
+      } else {
+        return { success: false, url: '', error: data.error || 'Proxy upload failed' };
+      }
+    } catch (error) {
+      return { success: false, url: '', error: (error as Error).message };
+    }
+  }
+
   private async uploadToVPS(file: File): Promise<{ success: boolean; url: string; error?: string }> {
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('type', 'article');
 
     const response = await fetch('https://media.radioradar.news/api/upload', {
       method: 'POST',
@@ -193,7 +222,7 @@ export class URLImportPipeline {
     if (data.success && data.url) {
       return {
         success: true,
-        url: `https://media.radioradar.news${data.url}`
+        url: data.url.startsWith('http') ? data.url : `https://media.radioradar.news${data.url}`
       };
     } else {
       return {
