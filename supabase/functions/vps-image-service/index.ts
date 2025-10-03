@@ -39,7 +39,15 @@ serve(async (req) => {
       // Generate unique filename
       const timestamp = Date.now()
       const randomStr = Math.random().toString(36).substring(2, 8)
-      const extension = mime_type.includes('gif') ? 'gif' : 'webp'
+      // Map proper extension from mime type (no implicit conversion here)
+      const extMap: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/jpg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+      }
+      const extension = extMap[mime_type] ?? 'bin'
       const newFileName = `${timestamp}-${randomStr}.${extension}`
       
       // Upload to VPS
@@ -56,22 +64,86 @@ serve(async (req) => {
       })
 
       if (!uploadResponse.ok) {
-        throw new Error(`VPS upload failed: ${uploadResponse.statusText}`)
+        throw new Error(`VPS upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
       }
 
       const result = await uploadResponse.json()
+
+      // Prefer the URL returned by VPS; normalize to absolute
+      let returnedUrl = ''
+      if (result?.url && typeof result.url === 'string') {
+        returnedUrl = result.url.startsWith('http')
+          ? result.url
+          : `${VPS_HOST}${result.url.startsWith('/uploads/') ? result.url : `/uploads/${result.url}`}`
+      } else {
+        returnedUrl = `${VPS_HOST}/uploads/${newFileName}`
+      }
       
       return new Response(
         JSON.stringify({
           success: true,
-          url: `${VPS_HOST}/uploads/${newFileName}`,
-          file_name: newFileName,
+          url: returnedUrl,
+          file_name: result?.file_name ?? newFileName,
           type: type
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200 
         }
+      )
+    }
+
+    if (action === 'upload_from_url') {
+      const { source_url, type } = payload as { source_url: string; type: 'article' | 'avatar' | 'banner' }
+      if (!source_url) {
+        throw new Error('source_url is required')
+      }
+
+      // Download image server-side to avoid CORS
+      const res = await fetch(source_url)
+      if (!res.ok) {
+        throw new Error(`Failed to fetch source image: ${res.status} ${res.statusText}`)
+      }
+      const arrayBuffer = await res.arrayBuffer()
+      const contentType = res.headers.get('content-type') || 'application/octet-stream'
+
+      const extMap: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/jpg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+      }
+      const extension = extMap[contentType] ?? 'bin'
+      const timestamp = Date.now()
+      const randomStr = Math.random().toString(36).substring(2, 8)
+      const newFileName = `${timestamp}-${randomStr}.${extension}`
+
+      const formData = new FormData()
+      formData.append('image', new Blob([arrayBuffer], { type: contentType }), newFileName)
+      formData.append('type', type)
+
+      const uploadResponse = await fetch(`${VPS_HOST}/api/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${VPS_API_KEY}` },
+        body: formData,
+      })
+      if (!uploadResponse.ok) {
+        throw new Error(`VPS upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
+      }
+      const result = await uploadResponse.json()
+      let returnedUrl = ''
+      if (result?.url && typeof result.url === 'string') {
+        returnedUrl = result.url.startsWith('http')
+          ? result.url
+          : `${VPS_HOST}${result.url.startsWith('/uploads/') ? result.url : `/uploads/${result.url}`}`
+      } else {
+        returnedUrl = `${VPS_HOST}/uploads/${newFileName}`
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, url: returnedUrl, file_name: result?.file_name ?? newFileName, type }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 

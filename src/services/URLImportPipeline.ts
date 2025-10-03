@@ -1,7 +1,7 @@
 import { ContentExtractor, type ExtractedContent } from './ContentExtractor';
 import { AIContentRewriter, type RewrittenContent } from './AIContentRewriter';
 import { AIImageGenerator, type GeneratedImage } from './AIImageGenerator';
-
+import { ENV } from '@/config/environment';
 export interface ImportProgress {
   step: 'collect' | 'extract' | 'rewrite' | 'generate_image' | 'complete';
   stepName: string;
@@ -74,29 +74,36 @@ export class URLImportPipeline {
       let generatedImage: GeneratedImage | undefined;
       
       try {
-        // If we have an external image URL, download and re-upload to VPS
+        // Prefer server-side fetch via Edge Function to bypass CORS
         if (extractedContent.mainImage) {
-          this.addLog('generate_image', `Baixando imagem externa: ${extractedContent.mainImage}`);
-          
-          const imageBlob = await this.downloadImage(extractedContent.mainImage);
-          const imageFile = new File([imageBlob], `imported-${Date.now()}.jpg`, { type: imageBlob.type });
-          
-          this.addLog('generate_image', 'Enviando imagem para VPS...');
-          const vpsResult = await this.uploadToVPS(imageFile);
-          
-          if (vpsResult.success) {
+          this.addLog('generate_image', `Enviando imagem externa via proxy: ${extractedContent.mainImage}`)
+          const proxyResult = await this.uploadExternalToVPS(extractedContent.mainImage)
+
+          if (proxyResult.success) {
             generatedImage = {
-              url: vpsResult.url,
+              url: proxyResult.url,
               provider: 'vps-upload',
               prompt: rewrittenContent.image_prompt
-            };
-            this.addLog('generate_image', `Imagem salva na VPS: ${vpsResult.url}`, Date.now() - imageStart);
+            }
+            this.addLog('generate_image', `Imagem salva na VPS: ${proxyResult.url}`, Date.now() - imageStart)
           } else {
-            throw new Error(vpsResult.error || 'Falha no upload para VPS');
+            // Fallback (may fail due to CORS, but try)
+            this.addLog('generate_image', `Proxy falhou (${proxyResult.error || 'sem erro'}), tentando download direto...`)
+            const imageBlob = await this.downloadImage(extractedContent.mainImage)
+            const imageFile = new File([imageBlob], `imported-${Date.now()}.jpg`, { type: imageBlob.type })
+            this.addLog('generate_image', 'Enviando imagem para VPS (fallback)...')
+            const vpsResult = await this.uploadToVPS(imageFile)
+            if (vpsResult.success) {
+              generatedImage = { url: vpsResult.url, provider: 'vps-upload', prompt: rewrittenContent.image_prompt }
+              this.addLog('generate_image', `Imagem salva na VPS: ${vpsResult.url}`, Date.now() - imageStart)
+            } else {
+              throw new Error(vpsResult.error || 'Falha no upload para VPS')
+            }
           }
         } else {
-          this.addLog('generate_image', 'Nenhuma imagem externa encontrada, continuando sem imagem');
+          this.addLog('generate_image', 'Nenhuma imagem externa encontrada, continuando sem imagem')
         }
+
       } catch (error) {
         this.addLog('generate_image', `Falha no processamento da imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`, Date.now() - imageStart, true);
         this.addLog('generate_image', 'Continuando sem imagem');
