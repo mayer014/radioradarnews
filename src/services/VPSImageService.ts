@@ -253,6 +253,7 @@ export class VPSImageService {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          'apikey': ENV.SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           action: 'upload',
@@ -281,6 +282,7 @@ export class VPSImageService {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          'apikey': ENV.SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({ action: 'delete', image_url: imageUrl })
       })

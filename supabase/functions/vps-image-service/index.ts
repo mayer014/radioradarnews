@@ -51,8 +51,10 @@ serve(async (req) => {
       const newFileName = `${timestamp}-${randomStr}.${extension}`
       
       // Upload to VPS
-      const formData = new FormData()
-      formData.append('file', new Blob([binaryData], { type: mime_type }), newFileName)
+      const fileBlob = new Blob([binaryData], { type: mime_type })
+      formData.append('file', fileBlob, newFileName)
+      // Alguns servidores esperam o campo 'image'; enviamos ambos por compatibilidade
+      formData.append('image', fileBlob, newFileName)
       formData.append('type', type)
       
       const uploadResponse = await fetch(`${VPS_HOST}/api/upload`, {
@@ -64,7 +66,8 @@ serve(async (req) => {
       })
 
       if (!uploadResponse.ok) {
-        throw new Error(`VPS upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
+        const errText = await uploadResponse.text().catch(() => '')
+        throw new Error(`VPS upload failed: ${uploadResponse.status} ${uploadResponse.statusText}${errText ? ' - ' + errText : ''}`)
       }
 
       const result = await uploadResponse.json()
@@ -121,7 +124,10 @@ serve(async (req) => {
       const newFileName = `${timestamp}-${randomStr}.${extension}`
 
       const formData = new FormData()
-      formData.append('file', new Blob([arrayBuffer], { type: contentType }), newFileName)
+      const fileBlob = new Blob([arrayBuffer], { type: contentType })
+      formData.append('file', fileBlob, newFileName)
+      // Compatibilidade com servidores que esperam 'image'
+      formData.append('image', fileBlob, newFileName)
       formData.append('type', type)
 
       const uploadResponse = await fetch(`${VPS_HOST}/api/upload`, {
@@ -130,7 +136,8 @@ serve(async (req) => {
         body: formData,
       })
       if (!uploadResponse.ok) {
-        throw new Error(`VPS upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
+        const errText = await uploadResponse.text().catch(() => '')
+        throw new Error(`VPS upload failed: ${uploadResponse.status} ${uploadResponse.statusText}${errText ? ' - ' + errText : ''}`)
       }
       const result = await uploadResponse.json()
       let returnedUrl = ''

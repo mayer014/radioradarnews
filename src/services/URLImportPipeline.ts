@@ -178,7 +178,10 @@ export class URLImportPipeline {
     try {
       const response = await fetch(`${ENV.SUPABASE_URL}/functions/v1/vps-image-service`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'apikey': ENV.SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({
           action: 'upload_from_url',
           source_url: sourceUrl,
@@ -205,6 +208,8 @@ export class URLImportPipeline {
   private async uploadToVPS(file: File): Promise<{ success: boolean; url: string; error?: string }> {
     const formData = new FormData();
     formData.append('file', file);
+    // Compatibilidade com servidores que esperam 'image'
+    formData.append('image', file);
     formData.append('type', 'article');
 
     const response = await fetch('https://media.radioradar.news/api/upload', {
