@@ -49,8 +49,6 @@ export class VPSImageService {
       
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()
-      formData.append('file', processedFile)
-      // Compatibilidade com servidores que esperam o campo 'image'
       formData.append('image', processedFile)
       formData.append('type', type)
       

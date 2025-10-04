@@ -53,8 +53,6 @@ serve(async (req) => {
       // Upload to VPS
       const fileBlob = new Blob([binaryData], { type: mime_type })
       const formData = new FormData()
-      formData.append('file', fileBlob, newFileName)
-      // Alguns servidores esperam o campo 'image'; enviamos ambos por compatibilidade
       formData.append('image', fileBlob, newFileName)
       formData.append('type', type)
       
@@ -126,8 +124,6 @@ serve(async (req) => {
 
       const formData = new FormData()
       const fileBlob = new Blob([arrayBuffer], { type: contentType })
-      formData.append('file', fileBlob, newFileName)
-      // Compatibilidade com servidores que esperam 'image'
       formData.append('image', fileBlob, newFileName)
       formData.append('type', type)
 

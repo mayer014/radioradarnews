@@ -207,8 +207,6 @@ export class URLImportPipeline {
 
   private async uploadToVPS(file: File): Promise<{ success: boolean; url: string; error?: string }> {
     const formData = new FormData();
-    formData.append('file', file);
-    // Compatibilidade com servidores que esperam 'image'
     formData.append('image', file);
     formData.append('type', 'article');
 
