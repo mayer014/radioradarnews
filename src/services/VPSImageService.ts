@@ -76,7 +76,12 @@ export class VPSImageService {
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Falha no upload')
+        console.warn('Upload direto retornou sucesso=false, tentando via proxy...', data)
+        const proxyResult = await this.uploadViaProxy(processedFile, type)
+        if (proxyResult.success) {
+          return proxyResult
+        }
+        throw new Error(data.error || proxyResult.error || 'Falha no upload')
       }
 
       // Construir URL completa e normalizar

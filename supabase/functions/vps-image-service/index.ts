@@ -105,7 +105,8 @@ serve(async (req) => {
         throw new Error(`Failed to fetch source image: ${res.status} ${res.statusText}`)
       }
       const arrayBuffer = await res.arrayBuffer()
-      const contentType = res.headers.get('content-type') || 'application/octet-stream'
+      const rawContentType = res.headers.get('content-type') || 'application/octet-stream'
+      const contentType = rawContentType.split(';')[0].trim()
 
       const extMap: Record<string, string> = {
         'image/jpeg': 'jpg',
