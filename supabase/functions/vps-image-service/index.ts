@@ -52,6 +52,7 @@ serve(async (req) => {
       
       // Upload to VPS
       const fileBlob = new Blob([binaryData], { type: mime_type })
+      const formData = new FormData()
       formData.append('file', fileBlob, newFileName)
       // Alguns servidores esperam o campo 'image'; enviamos ambos por compatibilidade
       formData.append('image', fileBlob, newFileName)
