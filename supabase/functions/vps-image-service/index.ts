@@ -44,7 +44,7 @@ serve(async (req) => {
         'image/jpeg': 'jpg',
         'image/jpg': 'jpg',
         'image/png': 'png',
-        'image/webp': 'webp',
+        'image/webp': 'jpg',
         'image/gif': 'gif',
       }
       const extension = extMap[mime_type] ?? 'bin'
@@ -114,7 +114,7 @@ serve(async (req) => {
         'image/jpeg': 'jpg',
         'image/jpg': 'jpg',
         'image/png': 'png',
-        'image/webp': 'webp',
+        'image/webp': 'jpg',
         'image/gif': 'gif',
       }
       const extension = extMap[contentType] ?? 'bin'

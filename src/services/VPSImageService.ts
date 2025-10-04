@@ -33,9 +33,8 @@ export class VPSImageService {
         throw new Error(`Arquivo muito grande. Máximo: ${(maxSize / 1024 / 1024).toFixed(0)}MB.`)
       }
 
-      // Compress to WebP (except GIFs when preserveGif is true)
-      const shouldPreserveGif = file.type === 'image/gif' && preserveGif
-      const processedFile = shouldPreserveGif ? file : await this.compressImage(file)
+      // Enviar arquivo original sem transcodificar no cliente para evitar conflito no VPS
+      const processedFile = file
       
       console.log('📤 Enviando para VPS:', {
         type,
@@ -44,12 +43,15 @@ export class VPSImageService {
         originalSize: (file.size / 1024).toFixed(2) + 'KB',
         processedType: processedFile.type,
         processedSize: (processedFile.size / 1024).toFixed(2) + 'KB',
-        wasCompressed: !shouldPreserveGif && file.type !== processedFile.type
+        wasCompressed: false
       })
       
       // Upload directly to VPS using multipart/form-data
       const formData = new FormData()
-      formData.append('image', processedFile)
+      const uploadName = processedFile.type === 'image/webp'
+        ? processedFile.name.replace(/\.[^/.]+$/, '.jpg')
+        : processedFile.name
+      formData.append('image', processedFile, uploadName)
       formData.append('type', type)
       
       let data: any | null = null
