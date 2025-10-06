@@ -65,46 +65,71 @@ const StorageOptimizationPanel: React.FC = () => {
       });
     } catch (error) {
       console.error('Erro ao carregar estatísticas da VPS:', error);
-      // Dados fictícios para demonstração caso a API não esteja disponível
+      toast({
+        title: "Aviso",
+        description: "Não foi possível conectar ao servidor VPS para estatísticas de armazenamento.",
+        variant: "destructive",
+      });
+      // Definir valores zerados se não conseguir conectar
       setVpsData({
-        total_mb: 50000,
-        used_mb: 2340,
-        available_mb: 47660,
-        article_images_mb: 1890,
-        avatars_mb: 250,
-        banners_mb: 200,
-        total_files: 487
+        total_mb: 0,
+        used_mb: 0,
+        available_mb: 0,
+        article_images_mb: 0,
+        avatars_mb: 0,
+        banners_mb: 0,
+        total_files: 0
       });
     }
   };
 
   const loadSupabaseStats = async () => {
     try {
+      // Buscar dados reais de contagem de tabelas
       const [
-        { data: storageData, error: storageError },
         { count: articlesCount },
         { count: commentsCount },
-        { count: auditCount }
+        { count: auditCount },
+        { data: storageObjects }
       ] = await Promise.all([
-        supabase.rpc('get_storage_usage'),
         supabase.from('articles').select('*', { count: 'exact', head: true }),
         supabase.from('comments').select('*', { count: 'exact', head: true }),
-        supabase.from('audit_log').select('*', { count: 'exact', head: true })
+        supabase.from('audit_log').select('*', { count: 'exact', head: true }),
+        supabase.storage.from('article-images').list()
       ]);
 
-      if (storageError) throw storageError;
+      // Calcular tamanho dos buckets manualmente
+      const buckets = [
+        { bucket: 'article-images', files: 0, size_mb: 0 },
+        { bucket: 'avatars', files: 0, size_mb: 0 },
+        { bucket: 'banners', files: 0, size_mb: 0 }
+      ];
 
-      const buckets = (storageData || []).map((bucket: any) => ({
-        bucket: bucket.bucket_name,
-        files: Number(bucket.file_count),
-        size_mb: Number(bucket.total_size_mb)
-      }));
+      // Buscar arquivos de cada bucket
+      for (const bucket of buckets) {
+        try {
+          const { data: files } = await supabase.storage.from(bucket.bucket).list();
+          if (files) {
+            bucket.files = files.length;
+            // Somar o tamanho de todos os arquivos (metadata.size está em bytes)
+            const totalBytes = files.reduce((sum, file: any) => {
+              return sum + (file.metadata?.size || 0);
+            }, 0);
+            bucket.size_mb = totalBytes / (1024 * 1024); // Converter para MB
+          }
+        } catch (err) {
+          console.warn(`Erro ao carregar bucket ${bucket.bucket}:`, err);
+        }
+      }
 
       const totalStorageMB = buckets.reduce((sum, b) => sum + b.size_mb, 0);
       
-      // Estimativa: 2KB por registro
-      const totalRecords = (articlesCount || 0) + (commentsCount || 0) + (auditCount || 0);
-      const estimatedDbSizeMB = (totalRecords * 2) / 1024;
+      // Estimativa: 2KB por registro de artigo, 1KB por comentário, 0.5KB por log
+      const estimatedDbSizeMB = (
+        ((articlesCount || 0) * 2) + 
+        ((commentsCount || 0) * 1) + 
+        ((auditCount || 0) * 0.5)
+      ) / 1024;
 
       setSupabaseData({
         total_mb: totalStorageMB,
