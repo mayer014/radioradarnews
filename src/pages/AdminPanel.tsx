@@ -32,7 +32,6 @@ import {
   Database,
   CheckCircle,
   AlertCircle,
-  Bell,
   User,
   Shield,
   HardDrive,
@@ -70,12 +69,10 @@ import ContactInfoManager from '@/components/ContactInfoManager';
 
 import ColumnistSelfProfileEditor from '@/components/ColumnistSelfProfileEditor';
 import CommentsManager from '@/components/CommentsManager';
-import NotificationsManager from '@/components/NotificationsManager';
 import BannerManager from '@/components/BannerManager';
 import LegalContentManager from '@/components/LegalContentManager';
 import SystemSettingsManager from '@/components/SystemSettingsManager';
 import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
-import VPSMigrationPanel from '@/components/VPSMigrationPanel';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -86,7 +83,7 @@ const AdminPanel = () => {
   const navigate = useNavigate();
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'notifications' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -449,16 +446,6 @@ const AdminPanel = () => {
                 <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Comentários</span>
                 <span className="sm:hidden">Com</span>
-              </Button>
-              <Button
-                variant={activeTab === 'notifications' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('notifications')}
-                className={`${activeTab === 'notifications' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Notificações</span>
-                <span className="sm:hidden">Not</span>
               </Button>
               <Button
                 variant={activeTab === 'system' ? 'default' : 'ghost'}
@@ -853,10 +840,6 @@ const AdminPanel = () => {
           <CommentsManager />
         )}
 
-        {/* Notificações - apenas para admin */}
-        {activeTab === 'notifications' && isAdmin && (
-          <NotificationsManager />
-        )}
 
         {/* Banners - apenas para admin */}
         {activeTab === 'banners' && isAdmin && (
@@ -875,10 +858,7 @@ const AdminPanel = () => {
 
         {/* Otimização de Armazenamento - apenas para admin */}
         {activeTab === 'storage' && isAdmin && (
-          <div className="space-y-6">
-            <VPSMigrationPanel />
-            <StorageOptimizationPanel />
-          </div>
+          <StorageOptimizationPanel />
         )}
       </div>
       

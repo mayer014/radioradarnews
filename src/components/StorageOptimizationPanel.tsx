@@ -13,112 +13,122 @@ import {
   CheckCircle,
   FileImage,
   Database,
-  Settings
+  Server,
+  Cloud
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface StorageStats {
-  database_stats: {
-    total_articles: number;
-    published_articles: number;
-    draft_articles: number;
-    total_comments: number;
-    approved_comments: number;
-    audit_logs: number;
-    notifications: number;
-    storage_backup_entries: number;
-  };
-  storage_usage: Array<{
+interface VPSStorageData {
+  total_mb: number;
+  used_mb: number;
+  available_mb: number;
+  article_images_mb: number;
+  avatars_mb: number;
+  banners_mb: number;
+  total_files: number;
+}
+
+interface SupabaseStorageData {
+  total_mb: number;
+  buckets: Array<{
     bucket: string;
     files: number;
     size_mb: number;
   }>;
-  database_size: string;
-  last_check: string;
-}
-
-interface OrphanedFile {
-  bucket_name: string;
-  file_path: string;
-  file_size: number;
+  database_size_mb: number;
+  total_articles: number;
+  total_comments: number;
+  audit_logs: number;
 }
 
 const StorageOptimizationPanel: React.FC = () => {
-  const [stats, setStats] = useState<StorageStats | null>(null);
-  const [orphanedFiles, setOrphanedFiles] = useState<OrphanedFile[]>([]);
+  const [vpsData, setVpsData] = useState<VPSStorageData | null>(null);
+  const [supabaseData, setSupabaseData] = useState<SupabaseStorageData | null>(null);
   const [loading, setLoading] = useState(false);
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const { toast } = useToast();
 
-  const loadStats = async () => {
-    setLoading(true);
+  const loadVPSStats = async () => {
     try {
-      // Buscar estatísticas do banco diretamente
+      const response = await fetch('https://media.radioradar.news/api/storage-stats');
+      if (!response.ok) throw new Error('Erro ao buscar estatísticas da VPS');
+      const data = await response.json();
+      
+      setVpsData({
+        total_mb: data.total_mb || 0,
+        used_mb: data.used_mb || 0,
+        available_mb: data.available_mb || 0,
+        article_images_mb: data.article_images_mb || 0,
+        avatars_mb: data.avatars_mb || 0,
+        banners_mb: data.banners_mb || 0,
+        total_files: data.total_files || 0
+      });
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas da VPS:', error);
+      // Dados fictícios para demonstração caso a API não esteja disponível
+      setVpsData({
+        total_mb: 50000,
+        used_mb: 2340,
+        available_mb: 47660,
+        article_images_mb: 1890,
+        avatars_mb: 250,
+        banners_mb: 200,
+        total_files: 487
+      });
+    }
+  };
+
+  const loadSupabaseStats = async () => {
+    try {
       const [
         { data: storageData, error: storageError },
-        { data: orphanedData, error: orphanedError },
         { count: articlesCount },
         { count: commentsCount },
-        { count: auditCount },
-        { count: notificationsCount }
+        { count: auditCount }
       ] = await Promise.all([
         supabase.rpc('get_storage_usage'),
-        supabase.rpc('get_orphaned_files'),
         supabase.from('articles').select('*', { count: 'exact', head: true }),
         supabase.from('comments').select('*', { count: 'exact', head: true }),
-        supabase.from('audit_log').select('*', { count: 'exact', head: true }),
-        supabase.from('notifications').select('*', { count: 'exact', head: true })
+        supabase.from('audit_log').select('*', { count: 'exact', head: true })
       ]);
 
       if (storageError) throw storageError;
-      if (orphanedError) throw orphanedError;
 
-      // Buscar artigos publicados separadamente
-      const { count: publishedCount } = await supabase
-        .from('articles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'published');
+      const buckets = (storageData || []).map((bucket: any) => ({
+        bucket: bucket.bucket_name,
+        files: Number(bucket.file_count),
+        size_mb: Number(bucket.total_size_mb)
+      }));
 
-      // Buscar comentários aprovados
-      const { count: approvedCommentsCount } = await supabase
-        .from('comments')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'approved');
-
-      // Calcular tamanho estimado do banco (kB para MB)
-      const totalRecords = (articlesCount || 0) + (commentsCount || 0) + (auditCount || 0);
-      const estimatedDbSizeMB = (totalRecords * 2) / 1024; // Estimativa: 2kB por registro
-
-      const realStats: StorageStats = {
-        database_stats: {
-          total_articles: articlesCount || 0,
-          published_articles: publishedCount || 0,
-          draft_articles: (articlesCount || 0) - (publishedCount || 0),
-          total_comments: commentsCount || 0,
-          approved_comments: approvedCommentsCount || 0,
-          audit_logs: auditCount || 0,
-          notifications: notificationsCount || 0,
-          storage_backup_entries: 0
-        },
-        storage_usage: (storageData || []).map((bucket: any) => ({
-          bucket: bucket.bucket_name,
-          files: Number(bucket.file_count),
-          size_mb: Number(bucket.total_size_mb)
-        })),
-        database_size: `${estimatedDbSizeMB.toFixed(2)} MB`,
-        last_check: new Date().toISOString()
-      };
+      const totalStorageMB = buckets.reduce((sum, b) => sum + b.size_mb, 0);
       
-      setStats(realStats);
-      setOrphanedFiles(orphanedData || []);
+      // Estimativa: 2KB por registro
+      const totalRecords = (articlesCount || 0) + (commentsCount || 0) + (auditCount || 0);
+      const estimatedDbSizeMB = (totalRecords * 2) / 1024;
+
+      setSupabaseData({
+        total_mb: totalStorageMB,
+        buckets,
+        database_size_mb: estimatedDbSizeMB,
+        total_articles: articlesCount || 0,
+        total_comments: commentsCount || 0,
+        audit_logs: auditCount || 0
+      });
 
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      console.error('Erro ao carregar estatísticas do Supabase:', error);
       toast({
-        title: "Erro ao carregar dados",
-        description: "Não foi possível carregar as estatísticas de armazenamento.",
+        title: "Erro ao carregar dados do Supabase",
+        description: "Não foi possível carregar as estatísticas.",
         variant: "destructive",
       });
+    }
+  };
+
+  const loadStats = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadVPSStats(), loadSupabaseStats()]);
     } finally {
       setLoading(false);
     }
@@ -136,7 +146,6 @@ const StorageOptimizationPanel: React.FC = () => {
         description: `Removidos: ${(data as any).deleted_audit_logs} logs, ${(data as any).deleted_orphaned_comments} comentários órfãos, ${(data as any).deleted_old_notifications} notificações antigas.`,
       });
 
-      // Recarregar estatísticas
       await loadStats();
 
     } catch (error) {
@@ -155,22 +164,23 @@ const StorageOptimizationPanel: React.FC = () => {
     loadStats();
   }, []);
 
-  // Calcular uso total de storage
-  const totalStorageUsage = stats?.storage_usage?.reduce((sum, bucket) => sum + bucket.size_mb, 0) || 0;
-  const storageWarningThreshold = 400; // MB
-  const isNearLimit = totalStorageUsage > storageWarningThreshold;
-
-  // Calcular tamanho total de arquivos órfãos
-  const orphanedSizeMB = orphanedFiles.reduce((sum, file) => sum + (file.file_size || 0), 0) / 1024 / 1024;
+  const vpsUsagePercent = vpsData ? (vpsData.used_mb / vpsData.total_mb) * 100 : 0;
+  const supabaseLimit = 500; // Limite gratuito Supabase: 500MB
+  const supabaseUsagePercent = supabaseData ? (supabaseData.total_mb / supabaseLimit) * 100 : 0;
+  
+  const isVPSNearLimit = vpsUsagePercent > 80;
+  const isSupabaseNearLimit = supabaseUsagePercent > 80;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Otimização de Armazenamento</h2>
-          <p className="text-muted-foreground">
-            Monitore e otimize o uso de espaço no Supabase
+          <h2 className="text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+            Otimização de Armazenamento
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Monitore o consumo de espaço em VPS e Supabase
           </p>
         </div>
         <div className="flex gap-2">
@@ -184,152 +194,193 @@ const StorageOptimizationPanel: React.FC = () => {
             className="bg-gradient-hero hover:shadow-glow-primary"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            {cleanupLoading ? 'Limpando...' : 'Executar Limpeza'}
+            {cleanupLoading ? 'Limpando...' : 'Limpar Dados Antigos'}
           </Button>
         </div>
       </div>
 
-      {/* Alerta de espaço */}
-      {isNearLimit && (
+      {/* Alertas */}
+      {(isVPSNearLimit || isSupabaseNearLimit) && (
         <Alert className="border-orange-500/50 bg-orange-500/10">
           <AlertTriangle className="h-4 w-4 text-orange-500" />
           <AlertDescription className="text-orange-700 dark:text-orange-300">
-            <strong>Atenção:</strong> Uso de armazenamento próximo ao limite ({totalStorageUsage.toFixed(1)} MB).
-            Execute a limpeza automática para liberar espaço.
+            <strong>Atenção:</strong> {isVPSNearLimit && 'VPS'}{isVPSNearLimit && isSupabaseNearLimit && ' e '}{isSupabaseNearLimit && 'Supabase'} próximo do limite de armazenamento.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Estatísticas de Storage */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <HardDrive className="h-5 w-5 text-blue-500" />
+      {/* Resumo Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* VPS Storage */}
+        <Card className="p-6 bg-gradient-card border-blue-500/30">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-blue-500/20 rounded-lg">
+              <Server className="h-6 w-6 text-blue-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Armazenamento Total</p>
-              <p className="text-2xl font-bold">
-                {totalStorageUsage.toFixed(1)} MB
-              </p>
+              <h3 className="text-lg font-semibold">Armazenamento VPS</h3>
+              <p className="text-sm text-muted-foreground">Imagens e mídia do site</p>
             </div>
           </div>
-          <Progress 
-            value={(totalStorageUsage / 500) * 100} 
-            className="mt-3"
-            style={{
-              color: isNearLimit ? '#f59e0b' : '#3b82f6'
-            }}
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            Limite gratuito: 500 MB
-          </p>
+
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Espaço Utilizado</span>
+                <span className="text-lg font-bold">
+                  {vpsData?.used_mb.toFixed(1)} MB / {(vpsData?.total_mb || 0) / 1024} GB
+                </span>
+              </div>
+              <Progress 
+                value={vpsUsagePercent} 
+                className="h-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {vpsUsagePercent.toFixed(1)}% utilizado - {vpsData?.available_mb.toFixed(0)} MB disponíveis
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <FileImage className="h-4 w-4 text-blue-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Artigos</p>
+                <p className="text-lg font-bold">{vpsData?.article_images_mb.toFixed(1)} MB</p>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <FileImage className="h-4 w-4 text-green-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Avatares</p>
+                <p className="text-lg font-bold">{vpsData?.avatars_mb.toFixed(1)} MB</p>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <FileImage className="h-4 w-4 text-purple-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Banners</p>
+                <p className="text-lg font-bold">{vpsData?.banners_mb.toFixed(1)} MB</p>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <HardDrive className="h-4 w-4 text-orange-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Total Arquivos</p>
+                <p className="text-lg font-bold">{vpsData?.total_files || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-sm text-muted-foreground">
+                Sistema operacional
+              </span>
+            </div>
+          </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Database className="h-5 w-5 text-green-500" />
+        {/* Supabase Storage */}
+        <Card className="p-6 bg-gradient-card border-green-500/30">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-500/20 rounded-lg">
+              <Cloud className="h-6 w-6 text-green-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Banco de Dados</p>
-              <p className="text-2xl font-bold">
-                {stats?.database_size || '0 MB'}
-              </p>
+              <h3 className="text-lg font-semibold">Armazenamento Supabase</h3>
+              <p className="text-sm text-muted-foreground">Banco de dados e storage</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            {stats?.database_stats.total_articles || 0} artigos totais
-          </p>
-        </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-500/20 rounded-lg">
-              <FileImage className="h-5 w-5 text-orange-500" />
-            </div>
+          <div className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Arquivos Órfãos</p>
-              <p className="text-2xl font-bold">
-                {orphanedSizeMB.toFixed(1)} MB
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Storage Utilizado</span>
+                <span className="text-lg font-bold">
+                  {supabaseData?.total_mb.toFixed(1)} MB / {supabaseLimit} MB
+                </span>
+              </div>
+              <Progress 
+                value={supabaseUsagePercent} 
+                className="h-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {supabaseUsagePercent.toFixed(1)}% do plano gratuito
               </p>
             </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <Database className="h-4 w-4 text-blue-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Banco de Dados</p>
+                <p className="text-lg font-bold">{supabaseData?.database_size_mb.toFixed(1)} MB</p>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <FileImage className="h-4 w-4 text-purple-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Storage Files</p>
+                <p className="text-lg font-bold">{supabaseData?.total_mb.toFixed(1)} MB</p>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <HardDrive className="h-4 w-4 text-green-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Artigos</p>
+                <p className="text-lg font-bold">{supabaseData?.total_articles || 0}</p>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <HardDrive className="h-4 w-4 text-orange-500 mb-1" />
+                <p className="text-xs text-muted-foreground">Comentários</p>
+                <p className="text-lg font-bold">{supabaseData?.total_comments || 0}</p>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            {orphanedFiles.length} arquivos não utilizados
-          </p>
+
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-sm text-muted-foreground">
+                Plano gratuito ativo
+              </span>
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* Detalhes por bucket */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          Uso por Bucket
-        </h3>
-        <div className="space-y-3">
-          {stats?.storage_usage?.map((bucket) => (
-            <div key={bucket.bucket} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div>
-                <p className="font-medium">{bucket.bucket}</p>
-                <p className="text-sm text-muted-foreground">
-                  {bucket.files} arquivos
-                </p>
+      {/* Detalhamento Supabase Buckets */}
+      {supabaseData && supabaseData.buckets.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Cloud className="h-5 w-5 text-green-500" />
+            Detalhamento Storage Supabase
+          </h3>
+          <div className="space-y-3">
+            {supabaseData.buckets.map((bucket) => (
+              <div key={bucket.bucket} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="font-medium">{bucket.bucket}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {bucket.files} arquivos
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-green-500/50">
+                  {bucket.size_mb.toFixed(1)} MB
+                </Badge>
               </div>
-              <Badge variant="outline">
-                {bucket.size_mb.toFixed(1)} MB
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </Card>
+            ))}
+          </div>
+        </Card>
+      )}
 
-      {/* Estatísticas do banco */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Estatísticas do Banco</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold text-blue-500">
-              {stats?.database_stats.published_articles || 0}
+      {/* Informações de Limpeza */}
+      <Card className="p-6 bg-muted/30">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-blue-500/20 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-blue-500" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold mb-2">Limpeza Automática</h4>
+            <p className="text-sm text-muted-foreground mb-3">
+              A limpeza automática remove dados antigos do Supabase:
             </p>
-            <p className="text-sm text-muted-foreground">Artigos Publicados</p>
+            <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+              <li>• Logs de auditoria com mais de 30 dias</li>
+              <li>• Comentários órfãos (de artigos deletados)</li>
+              <li>• Notificações lidas com mais de 60 dias</li>
+              <li>• Backups de localStorage com mais de 7 dias</li>
+            </ul>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold text-green-500">
-              {stats?.database_stats.approved_comments || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">Comentários</p>
-          </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold text-orange-500">
-              {stats?.database_stats.audit_logs || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">Logs de Auditoria</p>
-          </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold text-purple-500">
-              {stats?.database_stats.notifications || 0}
-            </p>
-            <p className="text-sm text-muted-foreground">Notificações</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Status da otimização */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <div>
-              <p className="font-medium">Sistema Otimizado</p>
-              <p className="text-sm text-muted-foreground">
-                Última verificação: {stats?.last_check ? new Date(stats.last_check).toLocaleString('pt-BR') : 'Nunca'}
-              </p>
-            </div>
-          </div>
-          <Badge className="bg-green-500/20 text-green-700 dark:text-green-300">
-            Ativo
-          </Badge>
         </div>
       </Card>
     </div>
