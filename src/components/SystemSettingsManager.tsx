@@ -16,10 +16,12 @@ import {
   Save,
   Key,
   Trash2,
-  TestTube
+  TestTube,
+  FileEdit
 } from 'lucide-react';
 import { ENV } from '@/config/environment';
 import { supabase } from '@/integrations/supabase/client';
+import AIPromptEditor from '@/components/AIPromptEditor';
 
 const SystemSettingsManager = () => {
   const { toast } = useToast();
@@ -169,10 +171,14 @@ const SystemSettingsManager = () => {
       </div>
 
       <Tabs defaultValue="ai" className="w-full">
-        <TabsList className="grid w-full grid-cols-1">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             IA / Extração
+          </TabsTrigger>
+          <TabsTrigger value="prompt" className="flex items-center gap-2">
+            <FileEdit className="h-4 w-4" />
+            Prompt de Reescrita
           </TabsTrigger>
         </TabsList>
 
@@ -334,6 +340,11 @@ const SystemSettingsManager = () => {
               </Alert>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* Prompt Editor Tab */}
+        <TabsContent value="prompt" className="space-y-4">
+          <AIPromptEditor />
         </TabsContent>
       </Tabs>
     </div>

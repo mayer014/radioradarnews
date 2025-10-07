@@ -26,7 +26,8 @@ interface RewrittenContent {
   published_at_suggestion: string;
 }
 
-const SYSTEM_PROMPT = `
+// Fallback prompt caso não consiga buscar do banco
+const FALLBACK_SYSTEM_PROMPT = `
 Você é um assistente especializado em reescrita jornalística.  
 Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo e atrativo para leitura, seguindo as regras abaixo:
 
@@ -74,6 +75,35 @@ Formato de resposta (JSON válido):
 CRÍTICO: TODOS os parágrafos devem ter <p style="margin-bottom: 1.5rem;"> para espaçamento adequado. Retorne APENAS o JSON válido.
 `;
 
+// Função para buscar o prompt customizado do banco
+async function getSystemPrompt(supabaseClient: any): Promise<string> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('category', 'ai')
+      .eq('key', 'rewriter_system_prompt')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Error fetching system prompt from database, using fallback:', error);
+      return FALLBACK_SYSTEM_PROMPT;
+    }
+
+    const promptValue = data?.value?.prompt;
+    if (promptValue && typeof promptValue === 'string') {
+      console.log('Using custom system prompt from database (length:', promptValue.length, 'chars)');
+      return promptValue;
+    }
+
+    console.warn('No custom prompt found in database, using fallback');
+    return FALLBACK_SYSTEM_PROMPT;
+  } catch (error) {
+    console.warn('Exception fetching system prompt from database, using fallback:', error);
+    return FALLBACK_SYSTEM_PROMPT;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -91,12 +121,17 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     let selectedModel = 'llama-3.1-8b-instant'; // Default
+    let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT; // Start with fallback
     
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
+        // Fetch custom prompt from database
+        SYSTEM_PROMPT = await getSystemPrompt(supabase);
+        
+        // Fetch preferred model
         const { data } = await supabase
           .from('settings')
           .select('value')
@@ -109,8 +144,10 @@ serve(async (req) => {
           console.log(`Using preferred Groq model: ${selectedModel}`);
         }
       } catch (configError) {
-        console.warn('Could not load Groq model preference, using default:', configError);
+        console.warn('Could not load configurations from database, using defaults:', configError);
       }
+    } else {
+      console.warn('Supabase environment not configured, using default prompt and model');
     }
 
     const { title, content, url }: RewriteRequest = await req.json();

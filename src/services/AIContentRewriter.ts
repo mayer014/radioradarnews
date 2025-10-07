@@ -16,7 +16,8 @@ export interface RewrittenContent {
 }
 
 export class AIContentRewriter {
-  private static readonly SYSTEM_PROMPT = `
+  // Fallback prompt caso não consiga buscar do banco
+  private static readonly FALLBACK_SYSTEM_PROMPT = `
 Você é um assistente especializado em reescrita jornalística.  
 Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo e atrativo para leitura, seguindo as regras abaixo:
 
@@ -60,7 +61,44 @@ Formato de resposta (JSON):
 CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrido. Use <p></p> para cada parágrafo com quebras duplas entre eles.
 `;
 
+  /**
+   * Busca o prompt customizado do banco de dados
+   */
+  private static async getSystemPrompt(): Promise<string> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('category', 'ai')
+        .eq('key', 'rewriter_system_prompt')
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[AIContentRewriter] Error fetching system prompt, using fallback:', error);
+        return this.FALLBACK_SYSTEM_PROMPT;
+      }
+
+      const valueData = data?.value as { prompt?: string } | null;
+      const customPrompt = valueData?.prompt;
+
+      if (customPrompt && typeof customPrompt === 'string') {
+        console.log('[AIContentRewriter] Using custom system prompt from database (length:', customPrompt.length, 'chars)');
+        return customPrompt;
+      }
+
+      console.warn('[AIContentRewriter] No custom prompt found, using fallback');
+      return this.FALLBACK_SYSTEM_PROMPT;
+    } catch (error) {
+      console.warn('[AIContentRewriter] Exception fetching system prompt, using fallback:', error);
+      return this.FALLBACK_SYSTEM_PROMPT;
+    }
+  }
+
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
+    // Buscar o prompt customizado do banco
+    const SYSTEM_PROMPT = await this.getSystemPrompt();
+
     try {
       // First try: Use Supabase Edge Function (Groq from secrets)
       return await this.callSupabaseAIRewriter(extractedContent);
@@ -78,7 +116,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
 `;
 
       try {
-        return await this.tryAIProviders(userPrompt);
+        return await this.tryAIProviders(userPrompt, SYSTEM_PROMPT);
       } catch (fallbackError) {
         console.error('All AI providers failed:', fallbackError);
         throw new Error(`Falha na reescrita por IA: ${fallbackError instanceof Error ? fallbackError.message : 'Erro desconhecido'}`);
@@ -86,7 +124,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     }
   }
 
-  private static async tryAIProviders(userPrompt: string): Promise<RewrittenContent> {
+  private static async tryAIProviders(userPrompt: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     // Get configured providers from localStorage
     const configuredProviders = this.getConfiguredProviders();
     
@@ -101,13 +139,13 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
         // Trying provider with model
         
         if (provider.id === 'openai') {
-          return await this.callOpenAI(userPrompt, provider.model);
+          return await this.callOpenAI(userPrompt, provider.model, SYSTEM_PROMPT);
         } else if (provider.id === 'anthropic') {
-          return await this.callAnthropic(userPrompt, provider.model);
+          return await this.callAnthropic(userPrompt, provider.model, SYSTEM_PROMPT);
         } else if (provider.id === 'glm') {
-          return await this.callGLM(userPrompt, provider.model);
+          return await this.callGLM(userPrompt, provider.model, SYSTEM_PROMPT);
         } else if (provider.id === 'groq') {
-          return await this.callGroq(userPrompt, provider.model);
+          return await this.callGroq(userPrompt, provider.model, SYSTEM_PROMPT);
         }
       } catch (error) {
         // Provider failed
@@ -360,7 +398,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     throw new Error('Lovable native AI not implemented');
   }
 
-  private static async callOpenAI(userPrompt: string, model: string): Promise<RewrittenContent> {
+  private static async callOpenAI(userPrompt: string, model: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     const apiKey = this.getEnvVar('OPENAI_API_KEY');
     if (!apiKey) throw new Error('OpenAI API key not found');
 
@@ -373,7 +411,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: this.SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
@@ -391,7 +429,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     return this.parseAIResponse(content);
   }
 
-  private static async callAnthropic(userPrompt: string, model: string): Promise<RewrittenContent> {
+  private static async callAnthropic(userPrompt: string, model: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     const apiKey = this.getEnvVar('ANTHROPIC_API_KEY');
     if (!apiKey) throw new Error('Anthropic API key not found');
 
@@ -406,7 +444,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
         model,
         max_tokens: 4000,
         messages: [
-          { role: 'user', content: this.SYSTEM_PROMPT + '\n\n' + userPrompt }
+          { role: 'user', content: SYSTEM_PROMPT + '\n\n' + userPrompt }
         ],
         temperature: 0.3
       })
@@ -422,7 +460,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     return this.parseAIResponse(content);
   }
 
-  private static async callGLM(userPrompt: string, model: string): Promise<RewrittenContent> {
+  private static async callGLM(userPrompt: string, model: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     const apiKey = this.getEnvVar('GLM_API_KEY');
     if (!apiKey) throw new Error('GLM API key not found');
 
@@ -435,7 +473,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: this.SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
@@ -453,7 +491,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     return this.parseAIResponse(content);
   }
 
-  private static async callGroq(userPrompt: string, model: string): Promise<RewrittenContent> {
+  private static async callGroq(userPrompt: string, model: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     const apiKey = this.getEnvVar('GROQ_API_KEY');
     if (!apiKey) throw new Error('Groq API key not found');
 
@@ -466,7 +504,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: this.SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
@@ -484,7 +522,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     return this.parseAIResponse(content);
   }
 
-  private static async callHuggingFace(userPrompt: string): Promise<RewrittenContent> {
+  private static async callHuggingFace(userPrompt: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     const apiKey = this.getEnvVar('HUGGINGFACE_API_KEY');
     if (!apiKey) throw new Error('Hugging Face API key not found');
 
@@ -495,7 +533,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        inputs: this.SYSTEM_PROMPT + '\n\n' + userPrompt,
+        inputs: SYSTEM_PROMPT + '\n\n' + userPrompt,
         options: { wait_for_model: true }
       })
     });
@@ -541,7 +579,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     return data as RewrittenContent;
   }
 
-  private static async callGenericLLM(userPrompt: string): Promise<RewrittenContent> {
+  private static async callGenericLLM(userPrompt: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     const baseUrl = this.getEnvVar('LLM_BASE_URL');
     const model = this.getEnvVar('LLM_MODEL');
     const apiKey = this.getEnvVar('LLM_API_KEY');
@@ -562,7 +600,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
       body: JSON.stringify({
         model,
         messages: [
-          { role: 'system', content: this.SYSTEM_PROMPT },
+          { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
