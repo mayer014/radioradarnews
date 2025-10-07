@@ -13,20 +13,9 @@ import {
   CheckCircle,
   FileImage,
   Database,
-  Server,
   Cloud
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
-interface VPSStorageData {
-  total_mb: number;
-  used_mb: number;
-  available_mb: number;
-  article_images_mb: number;
-  avatars_mb: number;
-  banners_mb: number;
-  total_files: number;
-}
 
 interface SupabaseStorageData {
   total_mb: number;
@@ -42,46 +31,11 @@ interface SupabaseStorageData {
 }
 
 const StorageOptimizationPanel: React.FC = () => {
-  const [vpsData, setVpsData] = useState<VPSStorageData | null>(null);
   const [supabaseData, setSupabaseData] = useState<SupabaseStorageData | null>(null);
   const [loading, setLoading] = useState(false);
   const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<string>('');
   const { toast } = useToast();
-
-  const loadVPSStats = async () => {
-    try {
-      const response = await fetch('https://media.radioradar.news/api/storage-stats');
-      if (!response.ok) throw new Error('Erro ao buscar estatísticas da VPS');
-      const data = await response.json();
-      
-      setVpsData({
-        total_mb: data.total_mb || 0,
-        used_mb: data.used_mb || 0,
-        available_mb: data.available_mb || 0,
-        article_images_mb: data.article_images_mb || 0,
-        avatars_mb: data.avatars_mb || 0,
-        banners_mb: data.banners_mb || 0,
-        total_files: data.total_files || 0
-      });
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas da VPS:', error);
-      toast({
-        title: "Aviso",
-        description: "Não foi possível conectar ao servidor VPS para estatísticas de armazenamento.",
-        variant: "destructive",
-      });
-      // Definir valores zerados se não conseguir conectar
-      setVpsData({
-        total_mb: 0,
-        used_mb: 0,
-        available_mb: 0,
-        article_images_mb: 0,
-        avatars_mb: 0,
-        banners_mb: 0,
-        total_files: 0
-      });
-    }
-  };
 
   const loadSupabaseStats = async () => {
     try {
@@ -105,18 +59,33 @@ const StorageOptimizationPanel: React.FC = () => {
         { bucket: 'banners', files: 0, size_mb: 0 }
       ];
 
-      // Buscar arquivos de cada bucket
+      // Buscar TODOS os arquivos de cada bucket com paginação
       for (const bucket of buckets) {
         try {
-          const { data: files } = await supabase.storage.from(bucket.bucket).list();
-          if (files) {
-            bucket.files = files.length;
-            // Somar o tamanho de todos os arquivos (metadata.size está em bytes)
-            const totalBytes = files.reduce((sum, file: any) => {
-              return sum + (file.metadata?.size || 0);
-            }, 0);
-            bucket.size_mb = totalBytes / (1024 * 1024); // Converter para MB
+          let allFiles: any[] = [];
+          let page = 0;
+          const limit = 100;
+
+          // Paginação para obter todos os arquivos
+          while (true) {
+            const { data: files, error } = await supabase.storage
+              .from(bucket.bucket)
+              .list('', { limit, offset: page * limit });
+            
+            if (error) throw error;
+            if (!files || files.length === 0) break;
+            
+            allFiles = [...allFiles, ...files];
+            if (files.length < limit) break;
+            page++;
           }
+
+          bucket.files = allFiles.length;
+          // Somar o tamanho de todos os arquivos (metadata.size está em bytes)
+          const totalBytes = allFiles.reduce((sum, file: any) => {
+            return sum + (file.metadata?.size || 0);
+          }, 0);
+          bucket.size_mb = totalBytes / (1024 * 1024); // Converter para MB
         } catch (err) {
           console.warn(`Erro ao carregar bucket ${bucket.bucket}:`, err);
         }
@@ -153,7 +122,8 @@ const StorageOptimizationPanel: React.FC = () => {
   const loadStats = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadVPSStats(), loadSupabaseStats()]);
+      await loadSupabaseStats();
+      setLastUpdate(new Date().toLocaleTimeString('pt-BR'));
     } finally {
       setLoading(false);
     }
@@ -189,11 +159,8 @@ const StorageOptimizationPanel: React.FC = () => {
     loadStats();
   }, []);
 
-  const vpsUsagePercent = vpsData ? (vpsData.used_mb / vpsData.total_mb) * 100 : 0;
   const supabaseLimit = 500; // Limite gratuito Supabase: 500MB
   const supabaseUsagePercent = supabaseData ? (supabaseData.total_mb / supabaseLimit) * 100 : 0;
-  
-  const isVPSNearLimit = vpsUsagePercent > 80;
   const isSupabaseNearLimit = supabaseUsagePercent > 80;
 
   return (
@@ -202,10 +169,11 @@ const StorageOptimizationPanel: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            Otimização de Armazenamento
+            Otimização de Armazenamento Supabase
           </h2>
           <p className="text-muted-foreground mt-1">
-            Monitore o consumo de espaço em VPS e Supabase
+            Monitore o consumo de espaço no Supabase (storage e banco de dados)
+            {lastUpdate && <span className="ml-2 text-xs">• Atualizado às {lastUpdate}</span>}
           </p>
         </div>
         <div className="flex gap-2">
@@ -225,82 +193,17 @@ const StorageOptimizationPanel: React.FC = () => {
       </div>
 
       {/* Alertas */}
-      {(isVPSNearLimit || isSupabaseNearLimit) && (
+      {isSupabaseNearLimit && (
         <Alert className="border-orange-500/50 bg-orange-500/10">
           <AlertTriangle className="h-4 w-4 text-orange-500" />
           <AlertDescription className="text-orange-700 dark:text-orange-300">
-            <strong>Atenção:</strong> {isVPSNearLimit && 'VPS'}{isVPSNearLimit && isSupabaseNearLimit && ' e '}{isSupabaseNearLimit && 'Supabase'} próximo do limite de armazenamento.
+            <strong>Atenção:</strong> Supabase próximo do limite de armazenamento ({supabaseUsagePercent.toFixed(1)}% utilizado).
           </AlertDescription>
         </Alert>
       )}
 
       {/* Resumo Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* VPS Storage */}
-        <Card className="p-6 bg-gradient-card border-blue-500/30">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-blue-500/20 rounded-lg">
-              <Server className="h-6 w-6 text-blue-500" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Armazenamento VPS</h3>
-              <p className="text-sm text-muted-foreground">Imagens e mídia do site</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Espaço Utilizado</span>
-                <span className="text-lg font-bold">
-                  {vpsData?.used_mb.toFixed(1)} MB / {(vpsData?.total_mb || 0) / 1024} GB
-                </span>
-              </div>
-              <Progress 
-                value={vpsUsagePercent} 
-                className="h-2"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {vpsUsagePercent.toFixed(1)}% utilizado - {vpsData?.available_mb.toFixed(0)} MB disponíveis
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/50">
-              <div className="bg-muted/30 p-3 rounded-lg">
-                <FileImage className="h-4 w-4 text-blue-500 mb-1" />
-                <p className="text-xs text-muted-foreground">Artigos</p>
-                <p className="text-lg font-bold">{vpsData?.article_images_mb.toFixed(1)} MB</p>
-              </div>
-              <div className="bg-muted/30 p-3 rounded-lg">
-                <FileImage className="h-4 w-4 text-green-500 mb-1" />
-                <p className="text-xs text-muted-foreground">Avatares</p>
-                <p className="text-lg font-bold">{vpsData?.avatars_mb.toFixed(1)} MB</p>
-              </div>
-              <div className="bg-muted/30 p-3 rounded-lg">
-                <FileImage className="h-4 w-4 text-purple-500 mb-1" />
-                <p className="text-xs text-muted-foreground">Banners</p>
-                <p className="text-lg font-bold">{vpsData?.banners_mb.toFixed(1)} MB</p>
-              </div>
-              <div className="bg-muted/30 p-3 rounded-lg">
-                <HardDrive className="h-4 w-4 text-orange-500 mb-1" />
-                <p className="text-xs text-muted-foreground">Total Arquivos</p>
-                <p className="text-lg font-bold">{vpsData?.total_files || 0}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-border/50">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-muted-foreground">
-                Sistema operacional
-              </span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Supabase Storage */}
-        <Card className="p-6 bg-gradient-card border-green-500/30">
+      <Card className="p-6 bg-gradient-card border-green-500/30 max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-green-500/20 rounded-lg">
               <Cloud className="h-6 w-6 text-green-500" />
@@ -361,11 +264,10 @@ const StorageOptimizationPanel: React.FC = () => {
             </div>
           </div>
         </Card>
-      </div>
 
       {/* Detalhamento Supabase Buckets */}
       {supabaseData && supabaseData.buckets.length > 0 && (
-        <Card className="p-6">
+        <Card className="p-6 max-w-4xl mx-auto">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Cloud className="h-5 w-5 text-green-500" />
             Detalhamento Storage Supabase
@@ -389,7 +291,7 @@ const StorageOptimizationPanel: React.FC = () => {
       )}
 
       {/* Informações de Limpeza */}
-      <Card className="p-6 bg-muted/30">
+      <Card className="p-6 bg-muted/30 max-w-4xl mx-auto">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-blue-500/20 rounded-lg">
             <AlertTriangle className="h-5 w-5 text-blue-500" />
