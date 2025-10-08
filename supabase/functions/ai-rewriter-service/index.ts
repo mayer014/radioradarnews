@@ -31,6 +31,8 @@ const FALLBACK_SYSTEM_PROMPT = `
 Você é um assistente especializado em reescrita jornalística.  
 Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo e atrativo para leitura, seguindo as regras abaixo:
 
+⚠️ IMPORTANTE: O TÍTULO DEVE SER COMPLETAMENTE REESCRITO - nunca use o título original igual, pois isso viola direitos autorais e prejudica o SEO no Google.
+
 1. **Tamanho**: entre 3 e 5 parágrafos no máximo.  
 2. **Clareza**: escreva em linguagem jornalística simples, fluida e sem repetições.  
 3. **Formatação HTML OBRIGATÓRIA**:  
@@ -78,6 +80,8 @@ CRÍTICO: TODOS os parágrafos devem ter <p style="margin-bottom: 1.5rem;"> para
 // Função para buscar o prompt customizado do banco
 async function getSystemPrompt(supabaseClient: any): Promise<string> {
   try {
+    // Force fresh fetch - no caching
+    const timestamp = new Date().getTime();
     const { data, error } = await supabaseClient
       .from('settings')
       .select('value')
@@ -91,12 +95,12 @@ async function getSystemPrompt(supabaseClient: any): Promise<string> {
     }
 
     const promptValue = data?.value?.prompt;
-    if (promptValue && typeof promptValue === 'string') {
-      console.log('Using custom system prompt from database (length:', promptValue.length, 'chars)');
+    if (promptValue && typeof promptValue === 'string' && promptValue.length > 0) {
+      console.log(`✅ Using custom system prompt from database (${promptValue.length} chars) - fetched at ${new Date().toISOString()}`);
       return promptValue;
     }
 
-    console.warn('No custom prompt found in database, using fallback');
+    console.warn('⚠️ No custom prompt found in database, using fallback');
     return FALLBACK_SYSTEM_PROMPT;
   } catch (error) {
     console.warn('Exception fetching system prompt from database, using fallback:', error);

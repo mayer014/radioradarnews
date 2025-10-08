@@ -21,6 +21,8 @@ export class AIContentRewriter {
 Você é um assistente especializado em reescrita jornalística.  
 Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo e atrativo para leitura, seguindo as regras abaixo:
 
+⚠️ CRÍTICO: O TÍTULO DEVE SER COMPLETAMENTE REESCRITO - nunca use o título original igual ou muito similar, pois isso viola direitos autorais e prejudica o SEO no Google.
+
 1. **Tamanho**: entre 3 e 5 parágrafos no máximo.  
 2. **Clareza**: escreva em linguagem jornalística simples, fluida e sem repetições.  
 3. **Formatação**:  
@@ -66,6 +68,8 @@ CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrid
    */
   private static async getSystemPrompt(): Promise<string> {
     try {
+      // Force fresh fetch with timestamp to avoid caching
+      const timestamp = new Date().getTime();
       const { supabase } = await import('@/integrations/supabase/client');
       const { data, error } = await supabase
         .from('settings')
@@ -82,12 +86,12 @@ CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrid
       const valueData = data?.value as { prompt?: string } | null;
       const customPrompt = valueData?.prompt;
 
-      if (customPrompt && typeof customPrompt === 'string') {
-        console.log('[AIContentRewriter] Using custom system prompt from database (length:', customPrompt.length, 'chars)');
+      if (customPrompt && typeof customPrompt === 'string' && customPrompt.length > 0) {
+        console.log(`✅ [AIContentRewriter] Using custom system prompt (${customPrompt.length} chars) fetched at ${new Date().toISOString()}`);
         return customPrompt;
       }
 
-      console.warn('[AIContentRewriter] No custom prompt found, using fallback');
+      console.warn('⚠️ [AIContentRewriter] No custom prompt found, using fallback');
       return this.FALLBACK_SYSTEM_PROMPT;
     } catch (error) {
       console.warn('[AIContentRewriter] Exception fetching system prompt, using fallback:', error);
@@ -96,8 +100,11 @@ CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrid
   }
 
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
-    // Buscar o prompt customizado do banco
+    console.log('🔄 Starting content rewriting with AI providers...');
+    
+    // Fetch the latest prompt every time (no caching)
     const SYSTEM_PROMPT = await this.getSystemPrompt();
+    console.log(`📝 Prompt loaded, starting rewrite process for: "${extractedContent.title}"`);
 
     try {
       // First try: Use Supabase Edge Function (Groq from secrets)
