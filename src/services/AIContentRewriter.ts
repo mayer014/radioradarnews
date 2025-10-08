@@ -108,7 +108,8 @@ CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrid
 
     try {
       // First try: Use Supabase Edge Function (Groq from secrets)
-      return await this.callSupabaseAIRewriter(extractedContent);
+      const primary = await this.callSupabaseAIRewriter(extractedContent);
+      return this.ensureRewrittenTitle(primary, extractedContent.title);
     } catch (error) {
       console.error('Supabase AI rewriter failed:', error);
       
@@ -123,7 +124,8 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
 `;
 
       try {
-        return await this.tryAIProviders(userPrompt, SYSTEM_PROMPT);
+        const result = await this.tryAIProviders(userPrompt, SYSTEM_PROMPT);
+        return this.ensureRewrittenTitle(result, extractedContent.title);
       } catch (fallbackError) {
         console.error('All AI providers failed:', fallbackError);
         throw new Error(`Falha na reescrita por IA: ${fallbackError instanceof Error ? fallbackError.message : 'Erro desconhecido'}`);
@@ -241,13 +243,13 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     // Clean the content first
     const cleanContent = this.processContentLocally(content);
     
-    // Split into sentences and group into 3-5 paragraphs
+    // Split into sentences and group into up to 3 paragraphs (máximo 3)
     const sentences = cleanContent.split(/[.!?]+/).filter(s => s.trim().length > 20);
     
     if (sentences.length === 0) return '<p>Conteúdo não disponível para processamento.</p>';
     
-    // Group sentences into 3-5 paragraphs
-    const paragraphCount = Math.min(5, Math.max(3, Math.ceil(sentences.length / 3)));
+    // Sempre limite a no máximo 3 parágrafos para uma versão mais enxuta
+    const paragraphCount = Math.min(3, Math.max(1, Math.ceil(sentences.length / 4)));
     const sentencesPerParagraph = Math.ceil(sentences.length / paragraphCount);
     
     const paragraphs: string[] = [];
@@ -295,7 +297,7 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
       'projeto': ['iniciativa', 'programa', 'plano']
     };
 
-    let rewrittenTitle = title;
+    let rewrittenTitle = title.trim();
     
     // Replace some words with synonyms
     Object.entries(synonyms).forEach(([word, alternatives]) => {
@@ -305,8 +307,40 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
         rewrittenTitle = rewrittenTitle.replace(regex, randomSynonym);
       }
     });
+
+    // Ensure the title is not identical; if it is, enforce a minimal change
+    if (rewrittenTitle.toLowerCase() === title.trim().toLowerCase()) {
+      // Simple transformation: add a subtle qualifier to differentiate
+      rewrittenTitle = rewrittenTitle.replace(/:?\s*$/,'') + ' — entenda o caso';
+    }
     
     return rewrittenTitle;
+  }
+
+  private static ensureRewrittenTitle(result: RewrittenContent, originalTitle: string): RewrittenContent {
+    let title = (result.title || '').trim();
+    const baseOriginal = originalTitle.trim();
+
+    if (!title || title.toLowerCase() === baseOriginal.toLowerCase()) {
+      title = this.rewriteTitleLocally(baseOriginal);
+      if (title.toLowerCase() === baseOriginal.toLowerCase()) {
+        title = title.replace(/:?\s*$/, '') + ' — entenda o caso';
+      }
+    }
+
+    // Enforce max 100 characters for the title (as per prompt)
+    if (title.length > 100) {
+      title = title.slice(0, 100).replace(/\s+\S*$/, '');
+    }
+
+    const slug = title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/--+/g, '-')
+      .substring(0, 60);
+
+    return { ...result, title, slug };
   }
 
   private static paraphraseText(text: string): string {
