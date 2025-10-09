@@ -114,8 +114,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = `REQ_${Date.now()}`;
+  console.log(`🔵 [${requestId}] ==================== AI Rewriter Service called at ${new Date().toISOString()} ====================`);
+
   try {
     const groqApiKey = Deno.env.get('GROQ_API_KEY');
+    console.log(`🔑 [${requestId}] GROQ_API_KEY configured:`, !!groqApiKey);
     if (!groqApiKey) {
       throw new Error('GROQ_API_KEY not configured in secrets');
     }
@@ -123,6 +127,7 @@ serve(async (req) => {
     // Get preferred model from configuration
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    console.log(`🔧 [${requestId}] Supabase credentials found:`, { hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_SERVICE_ROLE_KEY });
     
     let selectedModel = 'llama-3.1-8b-instant'; // Default
     let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT; // Start with fallback
@@ -133,7 +138,10 @@ serve(async (req) => {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
         // Fetch custom prompt from database
+        console.log(`📚 [${requestId}] Fetching custom system prompt from database...`);
         SYSTEM_PROMPT = await getSystemPrompt(supabase);
+        console.log(`✅ [${requestId}] System prompt loaded - Length: ${SYSTEM_PROMPT.length} chars`);
+        console.log(`📝 [${requestId}] First 200 chars of prompt:`, SYSTEM_PROMPT.substring(0, 200));
         
         // Fetch preferred model
         const { data } = await supabase
@@ -155,8 +163,14 @@ serve(async (req) => {
     }
 
     const { title, content, url }: RewriteRequest = await req.json();
+    console.log(`📥 [${requestId}] Request received:`, { 
+      titleLength: title?.length, 
+      contentLength: content?.length, 
+      url: url?.substring(0, 50) + '...' 
+    });
 
     if (!title || !content || !url) {
+      console.error(`❌ [${requestId}] Missing required fields`);
       return new Response(
         JSON.stringify({ error: 'Missing required fields: title, content, url' }), 
         { 
@@ -166,16 +180,19 @@ serve(async (req) => {
       );
     }
 
+    const cleanedContent = cleanTextContent(content);
+    console.log(`🧹 [${requestId}] Content cleaned - Original: ${content.length} chars, Cleaned: ${cleanedContent.length} chars`);
+
     const userPrompt = `
 TAREFA: Reescreva o conteúdo abaixo em formato jornalístico, retornando APENAS o JSON conforme instruções do sistema.
 
 CONTEÚDO ORIGINAL:
 Título: ${title}
 Fonte: ${url}
-Conteúdo: ${cleanTextContent(content)}
+Conteúdo: ${cleanedContent}
 `;
 
-    console.log('Calling Groq API for content rewriting...');
+    console.log(`🤖 [${requestId}] Calling Groq API with model: ${selectedModel}`);
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -196,28 +213,37 @@ Conteúdo: ${cleanTextContent(content)}
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API error:', response.status, errorText);
+      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
       throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const aiContent = data.choices[0]?.message?.content;
+    console.log(`✅ [${requestId}] Groq API response received - Content length: ${aiContent?.length || 0} chars`);
+    console.log(`🔍 [${requestId}] AI Response preview (first 300 chars):`, aiContent?.substring(0, 300));
     
     if (!aiContent) {
+      console.error(`❌ [${requestId}] No content returned from Groq API`);
       throw new Error('No content returned from Groq API');
     }
 
-    console.log('Successfully got response from Groq API');
+    console.log(`📊 [${requestId}] Parsing AI JSON response...`);
 
     // Parse AI response
     const rewrittenContent = parseAIResponse(aiContent, url);
+    console.log(`✅ [${requestId}] Content successfully rewritten and parsed`);
+    console.log(`📤 [${requestId}] Result - Title: "${rewrittenContent.title}"`);
+    console.log(`📤 [${requestId}] Result - Content length: ${rewrittenContent.content_html.length} chars`);
+    console.log(`📤 [${requestId}] Result - Has ${(rewrittenContent.content_html.match(/<p/g) || []).length} paragraphs`);
 
     return new Response(JSON.stringify(rewrittenContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in ai-rewriter-service:', error);
+    const errorId = `ERR_${Date.now()}`;
+    console.error(`❌ [${errorId}] Error in ai-rewriter-service:`, error);
+    console.error(`❌ [${errorId}] Error stack:`, error instanceof Error ? error.stack : 'No stack available');
     
     return new Response(
       JSON.stringify({ 

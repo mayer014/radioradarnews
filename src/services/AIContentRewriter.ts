@@ -590,7 +590,12 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
   }
 
   private static async callSupabaseAIRewriter(extractedContent: ExtractedContent): Promise<RewrittenContent> {
-    console.log('Calling Supabase AI rewriter service...');
+    console.log('🚀 [callSupabaseAIRewriter] Calling Supabase AI rewriter service...');
+    console.log('📤 [callSupabaseAIRewriter] Request data:', {
+      title: extractedContent.title.substring(0, 50) + '...',
+      contentLength: extractedContent.content.length,
+      url: extractedContent.url
+    });
     
     const { supabase } = await import('@/integrations/supabase/client');
     
@@ -600,6 +605,13 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
         content: extractedContent.content,
         url: extractedContent.url
       }
+    });
+    
+    console.log('📥 [callSupabaseAIRewriter] Response received:', { 
+      hasData: !!data, 
+      hasError: !!error,
+      dataKeys: data ? Object.keys(data) : [],
+      errorMessage: error?.message 
     });
 
     if (error) {
