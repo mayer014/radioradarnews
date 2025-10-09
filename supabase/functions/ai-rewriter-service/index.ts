@@ -118,10 +118,10 @@ serve(async (req) => {
   console.log(`🔵 [${requestId}] ==================== AI Rewriter Service called at ${new Date().toISOString()} ====================`);
 
   try {
-    const groqApiKey = Deno.env.get('GROQ_API_KEY');
-    console.log(`🔑 [${requestId}] GROQ_API_KEY configured:`, !!groqApiKey);
-    if (!groqApiKey) {
-      throw new Error('GROQ_API_KEY not configured in secrets');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    console.log(`🔑 [${requestId}] LOVABLE_API_KEY configured:`, !!LOVABLE_API_KEY);
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured in secrets');
     }
 
     // Get preferred model from configuration
@@ -129,7 +129,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     console.log(`🔧 [${requestId}] Supabase credentials found:`, { hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_SERVICE_ROLE_KEY });
     
-    let selectedModel = 'llama-3.1-8b-instant'; // Default
+    let selectedModel = 'google/gemini-2.5-flash'; // Default (Gemini 2.5 Flash)
     let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT; // Start with fallback
     
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -143,17 +143,28 @@ serve(async (req) => {
         console.log(`✅ [${requestId}] System prompt loaded - Length: ${SYSTEM_PROMPT.length} chars`);
         console.log(`📝 [${requestId}] First 200 chars of prompt:`, SYSTEM_PROMPT.substring(0, 200));
         
-        // Fetch preferred model
+        // Fetch preferred model (optional)
         const { data } = await supabase
           .from('settings')
           .select('value')
           .eq('category', 'ai')
-          .eq('key', 'groq_preferred_model')
+          .in('key', ['ai_gateway_preferred_model','groq_preferred_model'])
           .maybeSingle();
           
-        if (data?.value?.model) {
-          selectedModel = data.value.model;
-          console.log(`Using preferred Groq model: ${selectedModel}`);
+        const preferred = data?.value?.model as string | undefined;
+        const allowed = [
+          'google/gemini-2.5-pro',
+          'google/gemini-2.5-flash',
+          'google/gemini-2.5-flash-lite',
+          'openai/gpt-5',
+          'openai/gpt-5-mini',
+          'openai/gpt-5-nano'
+        ];
+        if (preferred && allowed.includes(preferred)) {
+          selectedModel = preferred;
+          console.log(`Using preferred AI gateway model: ${selectedModel}`);
+        } else if (preferred) {
+          console.log(`Ignoring unsupported preferred model from DB: ${preferred}`);
         }
       } catch (configError) {
         console.warn('Could not load configurations from database, using defaults:', configError);
@@ -192,12 +203,12 @@ Fonte: ${url}
 Conteúdo: ${cleanedContent}
 `;
 
-    console.log(`🤖 [${requestId}] Calling Groq API with model: ${selectedModel}`);
+    console.log(`🤖 [${requestId}] Calling Lovable AI Gateway with model: ${selectedModel}`);
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -205,16 +216,20 @@ Conteúdo: ${cleanedContent}
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000
+        ]
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
-      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+      console.error(`❌ [${requestId}] AI Gateway error:`, response.status, errorText);
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded (429). Please try again later.');
+      }
+      if (response.status === 402) {
+        throw new Error('Payment required (402). Please add credits to Lovable AI.');
+      }
+      throw new Error(`AI Gateway error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -230,7 +245,7 @@ Conteúdo: ${cleanedContent}
     console.log(`📊 [${requestId}] Parsing AI JSON response...`);
 
     // Parse AI response
-    const rewrittenContent = parseAIResponse(aiContent, url);
+    const rewrittenContent = parseAIResponse(aiContent, url, title);
     console.log(`✅ [${requestId}] Content successfully rewritten and parsed`);
     console.log(`📤 [${requestId}] Result - Title: "${rewrittenContent.title}"`);
     console.log(`📤 [${requestId}] Result - Content length: ${rewrittenContent.content_html.length} chars`);
@@ -271,31 +286,50 @@ function cleanTextContent(content: string): string {
     .substring(0, 8000); // Limit content length for API
 }
 
-function parseAIResponse(content: string, sourceUrl: string): RewrittenContent {
+function parseAIResponse(content: string, sourceUrl: string, originalTitle: string): RewrittenContent {
   try {
     const cleanContent = content.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleanContent);
 
-    return {
-      title: parsed.title || 'Título não disponível',
-      slug: parsed.slug || 'titulo-nao-disponivel',
-      lead: parsed.lead || 'Lead não disponível',
-      content_html: parsed.content_html || '<p>Conteúdo não disponível</p>',
-      excerpt: parsed.excerpt || 'Resumo não disponível',
-      category_suggestion: parsed.category_suggestion || 'Notícias',
+    const titleCandidate: string = parsed.title || parsed.titulo || 'Título não disponível';
+    const contentHtml: string = parsed.content_html || parsed.content || parsed.html || '<p>Conteúdo não disponível</p>';
+    const category: string = parsed.category_suggestion || parsed.category || 'Notícias';
+    const imagePrompt: string = parsed.image_prompt || parsed.imagePrompt || 'Imagem ilustrativa';
+    const srcUrl: string = parsed.source_url || parsed.sourceUrl || sourceUrl;
+    const srcDomain: string = parsed.source_domain || parsed.sourceDomain || getDomainFromUrl(sourceUrl);
+
+    let result: RewrittenContent = {
+      title: titleCandidate,
+      slug: (parsed.slug || titleCandidate).toString().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/--+/g, '-').substring(0, 60),
+      lead: parsed.lead || parsed.subtitulo || parsed.linha_fina || 'Lead não disponível',
+      content_html: contentHtml,
+      excerpt: parsed.excerpt || parsed.resumo || 'Resumo não disponível',
+      category_suggestion: category,
       tags: Array.isArray(parsed.tags) ? parsed.tags : [],
-      image_prompt: parsed.image_prompt || 'Imagem ilustrativa',
-      source_url: parsed.source_url || sourceUrl,
-      source_domain: parsed.source_domain || getDomainFromUrl(sourceUrl),
+      image_prompt: imagePrompt,
+      source_url: srcUrl,
+      source_domain: srcDomain,
       published_at_suggestion: parsed.published_at_suggestion || new Date().toISOString()
     };
+
+    // Enforce at most 3 paragraphs if the model returned more
+    const paragraphs = result.content_html.match(/<p[\s\S]*?<\/p>/gi);
+    if (paragraphs && paragraphs.length > 3) {
+      result.content_html = paragraphs.slice(0, 3).join('\n\n');
+    }
+
+    // Ensure title is different from the original
+    if (originalTitle && result.title && result.title.trim().toLowerCase() === originalTitle.trim().toLowerCase()) {
+      result.title = forceRewriteTitle(originalTitle);
+      result.slug = result.title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/--+/g, '-').substring(0, 60);
+    }
+
+    return result;
   } catch (error) {
     console.error('Error parsing AI response:', error);
-    
-    // Fallback response
     const domain = getDomainFromUrl(sourceUrl);
     return {
-      title: 'Conteúdo reescrito automaticamente',
+      title: forceRewriteTitle(originalTitle || 'Conteúdo reescrito automaticamente'),
       slug: 'conteudo-reescrito-automaticamente',
       lead: 'Artigo processado automaticamente devido a erro na análise de IA.',
       content_html: `<p>O conteúdo foi processado mas houve erro na formatação da resposta da IA.</p><p>Fonte: ${domain} – Leia a matéria completa em: ${sourceUrl}</p>`,
@@ -307,6 +341,28 @@ function parseAIResponse(content: string, sourceUrl: string): RewrittenContent {
       source_domain: domain,
       published_at_suggestion: new Date().toISOString()
     };
+  }
+}
+
+function forceRewriteTitle(original: string): string {
+  try {
+    let t = original || '';
+    const replacements: Array<[RegExp, string]> = [
+      [/\bsobe\b/gi, 'cresce'],
+      [/\bcai\b/gi, 'recuo'],
+      [/\binterrompendo\b/gi, 'após'],
+      [/\bmeses seguidos\b/gi, 'sequência de meses'],
+      [/\bsem crescimento\b/gi, 'sem avanço']
+    ];
+    replacements.forEach(([re, sub]) => t = t.replace(re, sub));
+    if (t.trim().toLowerCase() === (original || '').trim().toLowerCase()) {
+      t = t.replace(/:?\s*$/, '') + ' — entenda o caso';
+    }
+    // Cap at 100 chars
+    if (t.length > 100) t = t.slice(0, 100).replace(/\s+\S*$/, '');
+    return t;
+  } catch {
+    return (original || 'Artigo') + ' — entenda o caso';
   }
 }
 
