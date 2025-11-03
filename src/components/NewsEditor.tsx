@@ -197,7 +197,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
               columnist_name: selectedUser.name,
               columnist_avatar: selectedUser.columnistProfile.avatar || profile?.avatar,
               columnist_bio: selectedUser.columnistProfile.bio || profile?.bio,
-              columnist_specialty: selectedUser.columnistProfile.specialty || profile?.specialty
+              columnist_specialty: selectedUser.columnistProfile.specialty || profile?.specialty,
+              author_id: selectedUser.id // CRÍTICO: author_id deve ser do colunista, não do admin
             };
           }
         }

@@ -233,7 +233,9 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .from('articles')
         .insert([{
           ...articleData,
-          author_id: profile.id,
+          // Se author_id já foi fornecido (admin criando para colunista), usar ele
+          // Caso contrário, usar o ID do usuário logado
+          author_id: (articleData as any).author_id || profile.id,
           views: 0,
           comments_count: 0
         }]);
