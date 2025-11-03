@@ -157,7 +157,7 @@ const ColumnistPage = () => {
       <Navigation />
       
       {/* Breadcrumb e botão voltar */}
-      <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-sm border-b border-border/50">
+      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <Link to="/" className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -230,6 +230,16 @@ const ColumnistPage = () => {
             </div>
           </div>
         </header>
+
+        {/* Columnist Banner */}
+        {columnistBanner && (
+          <div className="mb-8">
+            <BannerDisplay 
+              banner={columnistBanner} 
+              position="columnist"
+            />
+          </div>
+        )}
 
         <Separator className="my-8" />
 
@@ -349,16 +359,6 @@ const ColumnistPage = () => {
             </>
           )}
         </div>
-
-        {/* Columnist Banner */}
-        {columnistBanner && (
-          <div className="mt-6 sm:mt-8 px-2 sm:px-0">
-            <BannerDisplay 
-              banner={columnistBanner} 
-              position="columnist"
-            />
-          </div>
-        )}
       </main>
 
       <Footer />
