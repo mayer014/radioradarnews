@@ -20,7 +20,7 @@ const HeroSection = () => {
   }, [getActiveBanner]);
   
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28">
       {/* Background com Parallax Animado - Apenas no tema escuro */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-parallax-zoom"
