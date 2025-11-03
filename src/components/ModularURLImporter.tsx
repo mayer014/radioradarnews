@@ -40,7 +40,9 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
     setCurrentStep('rewrite');
   };
 
-  const handleUseDirectly = (content: ExtractedContent) => {
+  const handleUseDirectly = async (content: ExtractedContent) => {
+    console.log('🔄 Usando conteúdo diretamente (sem IA), migrando imagem...');
+    
     // Create enhanced content from extracted content with complete article
     const cleanTextContent = content.content.replace(/<[^>]*>/g, '').trim();
     const firstParagraph = cleanTextContent.split('\n')[0] || cleanTextContent.substring(0, 200);
@@ -77,9 +79,44 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
       published_at_suggestion: new Date().toISOString()
     };
 
+    // IMPORTANTE: Migrar imagem para VPS antes de finalizar
+    let vpsImageUrl: string | undefined;
+    try {
+      if (content.mainImage) {
+        console.log('📥 Baixando imagem externa (modo direto):', content.mainImage);
+        
+        const response = await fetch(content.mainImage);
+        if (!response.ok) {
+          throw new Error(`Falha ao baixar imagem: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        console.log('✅ Imagem baixada, tamanho:', (blob.size / 1024).toFixed(2), 'KB');
+        
+        const file = new File([blob], `imported-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+        console.log('📤 Enviando para VPS (modo direto)...');
+        
+        const vpsResult = await VPSImageService.uploadImage(file, 'article');
+        
+        if (vpsResult.success && vpsResult.url) {
+          vpsImageUrl = vpsResult.url;
+          console.log('✅ Upload VPS concluído (modo direto):', vpsImageUrl);
+        } else {
+          console.error('❌ Falha no upload VPS (modo direto):', vpsResult.error);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Erro ao processar imagem externa (modo direto):', err);
+    }
+
     setExtractedContent(content);
     setRewrittenContent(directContent);
     setCurrentStep('complete');
+    
+    // Armazenar URL do VPS para uso posterior
+    if (vpsImageUrl) {
+      (directContent as any).vpsImageUrl = vpsImageUrl;
+    }
   };
 
   const handleContentRewritten = (content: RewrittenContent) => {
@@ -89,25 +126,54 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
 
   const handleUseContent = async () => {
     if (rewrittenContent) {
-      // Try to download external image and upload to VPS
-      let vpsImageUrl: string | undefined;
-      try {
-        if (extractedContent?.mainImage) {
-          const response = await fetch(extractedContent.mainImage);
-          if (response.ok) {
-            const blob = await response.blob();
-            const file = new File([blob], `imported-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
-            const vpsResult = await VPSImageService.uploadImage(file, 'article');
-            if (vpsResult.success) {
-              vpsImageUrl = vpsResult.url;
+      console.log('🔄 Finalizando importação, verificando imagem VPS...');
+      
+      // Verificar se já temos uma URL do VPS do modo direto
+      let vpsImageUrl = (rewrittenContent as any).vpsImageUrl;
+      
+      // Se não temos, tentar migrar agora
+      if (!vpsImageUrl) {
+        try {
+          if (extractedContent?.mainImage) {
+            console.log('📥 Baixando imagem externa:', extractedContent.mainImage);
+            
+            const response = await fetch(extractedContent.mainImage);
+            if (!response.ok) {
+              throw new Error(`Falha ao baixar imagem: ${response.status}`);
             }
+            
+            const blob = await response.blob();
+            console.log('✅ Imagem baixada, tamanho:', (blob.size / 1024).toFixed(2), 'KB');
+            
+            const file = new File([blob], `imported-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+            console.log('📤 Enviando para VPS...');
+            
+            const vpsResult = await VPSImageService.uploadImage(file, 'article');
+            
+            if (vpsResult.success && vpsResult.url) {
+              vpsImageUrl = vpsResult.url;
+              console.log('✅ Upload VPS concluído:', vpsImageUrl);
+            } else {
+              console.error('❌ Falha no upload VPS:', vpsResult.error);
+            }
+          } else {
+            console.warn('⚠️ Nenhuma imagem principal encontrada no conteúdo extraído');
           }
+        } catch (err) {
+          console.error('❌ Erro ao processar imagem externa:', err);
+          // Não usar a imagem externa se falhar o VPS
         }
-      } catch (err) {
-        console.warn('Falha ao processar imagem externa, continuando sem VPS:', err);
+      } else {
+        console.log('✅ Usando imagem VPS já migrada:', vpsImageUrl);
       }
 
+      // IMPORTANTE: Sempre usar a imagem do VPS se disponível, caso contrário não usar imagem
       const generatedImage = vpsImageUrl ? { url: vpsImageUrl } : undefined;
+
+      console.log('📦 Finalizando importação:', {
+        hasVPSImage: !!vpsImageUrl,
+        imageUrl: vpsImageUrl || 'nenhuma'
+      });
 
       onImportComplete({
         rewrittenContent,
