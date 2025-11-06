@@ -99,14 +99,21 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (error) throw error;
 
+      // Fetch user roles separately
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
       const mappedUsers: User[] = (data || []).map(profile => {
         console.log('UsersContext: Mapping profile:', profile.name, profile.is_active);
+        const userRole = rolesData?.find(r => r.user_id === profile.id);
+        
         return {
           id: profile.id,
           name: profile.name,
           username: profile.username || '', // Only available for authenticated users
           password: 'supabase-managed', // Passwords are managed by Supabase Auth
-          role: (profile.role || 'colunista') as UserRole,
+          role: (userRole?.role || 'colunista') as UserRole,
           columnistProfile: {
             id: profile.id,
             name: profile.name,

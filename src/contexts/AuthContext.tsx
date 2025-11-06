@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -48,7 +48,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
-      return data;
+      // Fetch user role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (roleError && roleError.code !== 'PGRST116') {
+        console.error('Erro ao buscar role:', roleError);
+      }
+
+      return profileData ? {
+        ...profileData,
+        role: roleData?.role || 'colunista' as 'admin' | 'colunista'
+      } : null;
     } catch (error) {
       console.error('Erro ao buscar perfil:', error);
       return null;

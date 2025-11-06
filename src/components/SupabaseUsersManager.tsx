@@ -56,13 +56,31 @@ const SupabaseUsersManager = () => {
 
   const fetchProfiles = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
-      if (error) throw error;
-      setProfiles(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) throw rolesError;
+
+      // Merge profiles with roles
+      const profilesWithRoles = (profilesData || []).map(profile => {
+        const userRole = rolesData?.find(r => r.user_id === profile.id);
+        return {
+          ...profile,
+          role: userRole?.role || 'colunista' as 'admin' | 'colunista'
+        };
+      });
+
+      setProfiles(profilesWithRoles);
     } catch (error) {
       console.error('Error fetching profiles:', error);
       toast({
@@ -110,13 +128,12 @@ const SupabaseUsersManager = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Update the profile with the correct role
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ role: newUser.role })
-          .eq('id', authData.user.id);
+        // Add role to user_roles table
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: authData.user.id, role: newUser.role });
 
-        if (profileError) throw profileError;
+        if (roleError) throw roleError;
 
         // Store password temporarily for display
         setVisiblePasswords(prev => ({

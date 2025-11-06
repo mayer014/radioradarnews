@@ -25,6 +25,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   }
 
   // Only allow admin and active columnists
+  // Role is now fetched from user_roles table via fetchProfile in SupabaseAuthContext
   if (profile.role !== 'admin' && (!profile.is_active || profile.role !== 'colunista')) {
     return <Navigate to="/" replace />;
   }

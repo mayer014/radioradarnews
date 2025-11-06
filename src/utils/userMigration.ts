@@ -36,17 +36,24 @@ export const migrateSupabaseUsersToLocal = async (): Promise<User[]> => {
       return [];
     }
 
+    // Fetch user roles separately
+    const { data: rolesData } = await supabase
+      .from('user_roles')
+      .select('user_id, role');
+
     const migratedUsers: User[] = profiles.map((profile: SupabaseProfile) => {
+      const userRole = rolesData?.find((r: any) => r.user_id === profile.id);
+      
       const user: User = {
         id: profile.id,
         name: profile.name,
         username: profile.username,
-        password: 'migrated123', // Senha temporária para usuários migrados
-        role: profile.role as UserRole,
+        password: 'supabase-managed', // Passwords managed by Supabase Auth
+        role: (userRole?.role || 'colunista') as UserRole,
       };
 
       // Se for colunista, criar o perfil
-      if (profile.role === 'colunista') {
+      if (userRole?.role === 'colunista') {
         user.columnistProfile = {
           id: profile.id,
           name: profile.name,

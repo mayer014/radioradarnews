@@ -31,13 +31,12 @@ interface Profile {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'colunista';
+  role: 'admin' | 'colunista'; // Fetched from user_roles table
   avatar?: string;
   bio?: string;
   specialty?: string;
   allowed_categories?: string[];
   is_active: boolean;
-  temp_password?: string;
   email?: string;
   created_at: string;
   updated_at: string;
@@ -167,7 +166,7 @@ const SuperAdminUsersManager = () => {
         description: `Senha de ${userName} foi alterada com sucesso`,
       });
 
-      // Refresh to get updated temp_password
+      // Refresh profiles
       fetchProfiles();
 
     } catch (error: any) {
@@ -428,32 +427,7 @@ const SuperAdminUsersManager = () => {
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <span className="font-medium">Senha:</span>
-                          <code className="bg-muted px-2 py-1 rounded text-xs">
-                            {visiblePasswords[user.id] && user.temp_password ? user.temp_password : '••••••••'}
-                          </code>
-                          {user.temp_password && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-6 w-6 p-0" 
-                                onClick={() => togglePasswordVisibility(user.id)}
-                              >
-                                {visiblePasswords[user.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                              </Button>
-                              {visiblePasswords[user.id] && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-6 w-6 p-0" 
-                                  onClick={() => copyCredentials(user.username, user.temp_password!)}
-                                  title="Copiar credenciais"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </>
-                          )}
+                          <span className="text-xs text-muted-foreground">Gerenciada via Supabase Auth</span>
                         </div>
                       </div>
                     </div>
@@ -524,32 +498,7 @@ const SuperAdminUsersManager = () => {
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <span className="font-medium">Senha:</span>
-                          <code className="bg-muted px-2 py-1 rounded text-xs">
-                            {visiblePasswords[user.id] && user.temp_password ? user.temp_password : '••••••••'}
-                          </code>
-                          {user.temp_password && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-6 w-6 p-0" 
-                                onClick={() => togglePasswordVisibility(user.id)}
-                              >
-                                {visiblePasswords[user.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                              </Button>
-                              {visiblePasswords[user.id] && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-6 w-6 p-0" 
-                                  onClick={() => copyCredentials(user.username, user.temp_password!)}
-                                  title="Copiar credenciais"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </>
-                          )}
+                          <span className="text-xs text-muted-foreground">Gerenciada via Supabase Auth</span>
                         </div>
                       </div>
                     </div>

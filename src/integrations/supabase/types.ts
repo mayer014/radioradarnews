@@ -470,7 +470,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           name: string
           parent_id: string | null
           status: Database["public"]["Enums"]["comment_status"] | null
@@ -481,7 +481,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           name: string
           parent_id?: string | null
           status?: Database["public"]["Enums"]["comment_status"] | null
@@ -492,7 +492,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           name?: string
           parent_id?: string | null
           status?: Database["public"]["Enums"]["comment_status"] | null
@@ -956,9 +956,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
-          role: Database["public"]["Enums"]["user_role"]
           specialty: string | null
-          temp_password: string | null
           theme_preference: string | null
           updated_at: string | null
           username: string
@@ -971,9 +969,7 @@ export type Database = {
           id: string
           is_active?: boolean | null
           name: string
-          role?: Database["public"]["Enums"]["user_role"]
           specialty?: string | null
-          temp_password?: string | null
           theme_preference?: string | null
           updated_at?: string | null
           username: string
@@ -986,9 +982,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
-          role?: Database["public"]["Enums"]["user_role"]
           specialty?: string | null
-          temp_password?: string | null
           theme_preference?: string | null
           updated_at?: string | null
           username?: string
@@ -1046,6 +1040,30 @@ export type Database = {
           name?: string
           slug?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1162,26 +1180,14 @@ export type Database = {
       }
     }
     Functions: {
-      auto_publish_scheduled_articles: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      auto_publish_scheduled_articles: { Args: never; Returns: undefined }
       check_contact_rate_limit: {
         Args: { request_ip: unknown }
         Returns: boolean
       }
-      cleanup_obsolete_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      ensure_super_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      execute_full_cleanup: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      cleanup_obsolete_data: { Args: never; Returns: undefined }
+      ensure_super_admin: { Args: never; Returns: undefined }
+      execute_full_cleanup: { Args: never; Returns: Json }
       get_columnist_info: {
         Args: { columnist_id: string }
         Returns: {
@@ -1193,7 +1199,7 @@ export type Database = {
         }[]
       }
       get_orphaned_files: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           bucket_name: string
           file_path: string
@@ -1201,7 +1207,7 @@ export type Database = {
         }[]
       }
       get_public_contact_info: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           city: string
           email1: string
@@ -1213,37 +1219,36 @@ export type Database = {
         }[]
       }
       get_storage_usage: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           bucket_name: string
           file_count: number
           total_size_mb: number
         }[]
       }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       hard_delete_article: {
         Args: { article_id_param: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
         Returns: boolean
       }
       increment_article_views: {
         Args: { article_id: string }
         Returns: undefined
       }
-      is_active_columnist: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_active_columnist_user: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_admin_user: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_active_columnist: { Args: { user_id: string }; Returns: boolean }
+      is_active_columnist_user: { Args: { user_id: string }; Returns: boolean }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_admin_user: { Args: { user_id: string }; Returns: boolean }
       submit_contact_message: {
         Args: {
           p_email: string
