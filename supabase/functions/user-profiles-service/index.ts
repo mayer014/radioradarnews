@@ -30,13 +30,13 @@ serve(async (req) => {
     }
 
     // Check if user is admin
-    const { data: profile } = await supabaseClient
-      .from('profiles')
+    const { data: userRole } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (!userRole || userRole.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Forbidden - Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -51,17 +51,26 @@ serve(async (req) => {
 
     if (profilesError) throw profilesError
 
+    // Get user roles
+    const { data: rolesData, error: rolesError } = await supabaseClient
+      .from('user_roles')
+      .select('user_id, role')
+
+    if (rolesError) throw rolesError
+
     // Get user emails from auth.users using admin privileges
     const { data: users, error: usersError } = await supabaseClient.auth.admin.listUsers()
     
     if (usersError) throw usersError
 
-    // Merge profile data with email information
+    // Merge profile data with email and role information
     const profilesWithEmails = profiles?.map(profile => {
       const authUser = users.users.find((user: any) => user.id === profile.id)
+      const userRole = rolesData?.find((r: any) => r.user_id === profile.id)
       return {
         ...profile,
-        email: authUser?.email || ''
+        email: authUser?.email || '',
+        role: userRole?.role || 'colunista'
       }
     }) || []
 

@@ -73,7 +73,19 @@ const SuperAdminUsersManager = () => {
           .order('created_at', { ascending: false });
 
         if (profilesError) throw profilesError;
-        setProfiles(profiles || []);
+
+        // Fetch roles for each profile
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        // Merge profiles with roles
+        const profilesWithRoles = (profiles || []).map(profile => ({
+          ...profile,
+          role: rolesData?.find((r: any) => r.user_id === profile.id)?.role || 'colunista'
+        }));
+
+        setProfiles(profilesWithRoles);
       }
     } catch (error) {
       console.error('Error fetching profiles:', error);

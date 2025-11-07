@@ -30,13 +30,13 @@ serve(async (req) => {
     }
 
     // Check if user is admin
-    const { data: profile } = await supabaseClient
-      .from('profiles')
+    const { data: userRole } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (!userRole || userRole.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Forbidden - Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
