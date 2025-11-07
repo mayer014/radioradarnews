@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
@@ -496,60 +497,7 @@ const AdminPanel = () => {
         )}
 
         {activeTab === 'stats' && isAdmin && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-card border-primary/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Total de Artigos</p>
-                  <p className="text-2xl font-bold">{statsData.totalArticles}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-card border-secondary/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-secondary/20 rounded-lg">
-                  <Eye className="h-6 w-6 text-secondary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Total de Visualizações</p>
-                  <p className="text-2xl font-bold">{statsData.totalViews.toLocaleString()}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-card border-accent/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-accent/20 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-accent" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Artigos em Destaque</p>
-                  <p className="text-2xl font-bold">{statsData.featuredArticles}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-card border-primary/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <Calendar className="h-6 w-6 text-primary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Última Atualização</p>
-                  <p className="text-sm font-medium">
-                    {articles.length > 0 
-                      ? new Date(Math.max(...articles.map(a => new Date(a.updated_at).getTime()))).toLocaleDateString('pt-BR')
-                      : 'Nenhuma'
-                    }
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
+          <AnalyticsDashboard />
         )}
 
         {/* Lista de Artigos */}

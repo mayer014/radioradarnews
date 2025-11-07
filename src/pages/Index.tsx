@@ -8,8 +8,15 @@ import Footer from '@/components/Footer';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { WebsiteStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
+import { useAnalyticsTracker } from '@/hooks/useAnalyticsTracker';
 
 const Index = () => {
+  const { trackPageView } = useAnalyticsTracker();
+
+  // Track home page view com título específico
+  React.useEffect(() => {
+    trackPageView({ pageTitle: 'Página Inicial - Portal News' });
+  }, []);
   const { announcePageChange } = useAccessibility();
 
   React.useEffect(() => {
