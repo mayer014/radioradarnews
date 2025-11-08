@@ -80,9 +80,3 @@ verify_jwt = false
 
 [functions.vps-image-migration]
 verify_jwt = true
-
-[functions.analytics-tracker]
-verify_jwt = false
-
-[functions.analytics-dashboard]
-verify_jwt = true

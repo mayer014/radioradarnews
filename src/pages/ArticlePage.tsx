@@ -17,7 +17,6 @@ import { LoadingState, ArticleSkeleton } from '@/components/accessibility/Loadin
 import { generateMetaDescription, generatePageTitle, generateKeywordsFromContent, optimizeImageAlt, generateBreadcrumbData } from '@/utils/seoUtils';
 import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibility';
 import { supabase } from '@/integrations/supabase/client';
-import { useAnalyticsTracker } from '@/hooks/useAnalyticsTracker';
 
 // Função para formatar o conteúdo do artigo
 const formatArticleContent = (content: string): string => {
@@ -55,7 +54,6 @@ const ArticlePage = () => {
   const { getArticleById, incrementViews, articles } = useSupabaseNews();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
-  const { trackPageView } = useAnalyticsTracker();
   const [isLoading, setIsLoading] = React.useState(true);
   const [columnistProfile, setColumnistProfile] = React.useState<any>(null);
   
@@ -99,11 +97,6 @@ const ArticlePage = () => {
 
     if (article) {
       loadColumnistProfile();
-      // Track analytics com informação do artigo
-      trackPageView({
-        articleId: article.id,
-        pageTitle: article.title,
-      });
     }
   }, [article]);
 

@@ -6,6 +6,7 @@ export interface SupabaseProfile {
   id: string;
   username: string;
   name: string;
+  role: 'admin' | 'colunista';
   is_active: boolean;
   bio?: string;
   specialty?: string;
