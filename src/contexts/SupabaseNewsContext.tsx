@@ -110,14 +110,16 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // Collect unique author_ids to check roles
-      const authorIds = [...new Set((data || []).map(a => a.author_id).filter(Boolean))];
+      // Collect unique IDs to check roles (both author_id and columnist_id from DB)
+      const articleAuthorIds = [...new Set((data || []).map(a => a.author_id).filter(Boolean))];
+      const articleColumnistIds = [...new Set((data || []).map(a => a.columnist_id).filter(Boolean))];
+      const allUserIds = [...new Set([...articleAuthorIds, ...articleColumnistIds])];
       
-      // Fetch roles for these authors
+      // Fetch roles for these users
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('user_id, role')
-        .in('user_id', authorIds);
+        .in('user_id', allUserIds);
       
       // Create a Set of columnist IDs
       const columnistIds = new Set(
@@ -126,30 +128,45 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           .map(r => r.user_id)
       );
 
-      // Enrich articles with fresh profile data ONLY for columnists
+      // Enrich articles with fresh profile data for columnists
       const enrichedArticles = (data || []).map(article => {
-        // Only enrich if author is a columnist AND we have profile data
-        const isColumnist = article.author_id && columnistIds.has(article.author_id);
-        const hasProfile = article.profiles_public;
+        // Check if this is a columnist article by:
+        // 1. columnist_id exists in DB AND that ID has role='colunista'
+        // 2. OR author_id has role='colunista'
+        const hasColumnistIdInDb = article.columnist_id && columnistIds.has(article.columnist_id);
+        const authorIsColumnist = article.author_id && columnistIds.has(article.author_id);
+        const isColumnistArticle = hasColumnistIdInDb || authorIsColumnist;
         
-        if (isColumnist && hasProfile) {
-          const profile = Array.isArray(article.profiles_public) ? article.profiles_public[0] : article.profiles_public;
-          if (profile && profile.is_active !== false) {
-            return {
-              ...article,
-              // Update columnist fields with profile data
-              columnist_id: article.author_id,
-              columnist_name: profile.name,
-              columnist_avatar: profile.avatar,
-              columnist_bio: profile.bio,
-              columnist_specialty: profile.specialty,
-              // Add timestamp for cache busting on avatar changes
-              _profile_updated_at: new Date().toISOString()
-            };
+        if (isColumnistArticle) {
+          // Determine which ID to use for fetching profile
+          const columnistUserId = article.columnist_id || article.author_id;
+          
+          // Try to get profile from profiles_public join
+          const hasProfile = article.profiles_public;
+          
+          if (hasProfile) {
+            const profile = Array.isArray(article.profiles_public) ? article.profiles_public[0] : article.profiles_public;
+            if (profile && profile.is_active !== false) {
+              return {
+                ...article,
+                // Keep columnist_id if it exists, otherwise use author_id
+                columnist_id: columnistUserId,
+                columnist_name: profile.name,
+                columnist_avatar: profile.avatar,
+                columnist_bio: profile.bio,
+                columnist_specialty: profile.specialty,
+                _profile_updated_at: new Date().toISOString()
+              };
+            }
+          }
+          
+          // If no profile data but columnist_id exists in DB, keep it
+          if (article.columnist_id) {
+            return article;
           }
         }
         
-        // Not a columnist or no profile data - ensure columnist fields are undefined
+        // Not a columnist article - clear columnist fields
         return {
           ...article,
           columnist_id: undefined,
