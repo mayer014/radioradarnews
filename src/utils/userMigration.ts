@@ -6,7 +6,6 @@ export interface SupabaseProfile {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'colunista';
   is_active: boolean;
   bio?: string;
   specialty?: string;
@@ -41,19 +40,20 @@ export const migrateSupabaseUsersToLocal = async (): Promise<User[]> => {
       .from('user_roles')
       .select('user_id, role');
 
-    const migratedUsers: User[] = profiles.map((profile: SupabaseProfile) => {
+    const migratedUsers: User[] = profiles.map((profile: any) => {
       const userRole = rolesData?.find((r: any) => r.user_id === profile.id);
+      const role = (userRole?.role || 'colunista') as UserRole;
       
       const user: User = {
         id: profile.id,
         name: profile.name,
         username: profile.username,
         password: 'supabase-managed', // Passwords managed by Supabase Auth
-        role: (userRole?.role || 'colunista') as UserRole,
+        role: role,
       };
 
       // Se for colunista, criar o perfil
-      if (userRole?.role === 'colunista') {
+      if (role === 'colunista') {
         user.columnistProfile = {
           id: profile.id,
           name: profile.name,

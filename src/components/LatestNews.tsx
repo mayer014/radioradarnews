@@ -9,9 +9,14 @@ import { getArticleLink } from '@/lib/utils';
 const LatestNews = () => {
   const { articles } = useSupabaseNews();
   
-  // Filtrar apenas notícias publicadas e pegar as 6 mais recentes
+  // Filtrar apenas notícias gerais (não de colunistas) publicadas e pegar as 6 mais recentes
   const latestNews = articles
-    .filter(article => article.status === 'published' && !article.columnist_id)
+    .filter(article => {
+      const isPublished = article.status === 'published';
+      const isNotColumnist = !article.columnist_id;
+      const isNotColumnCopy = !article.is_column_copy;
+      return isPublished && isNotColumnist && isNotColumnCopy;
+    })
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 

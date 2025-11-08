@@ -83,7 +83,8 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             name,
             avatar,
             bio,
-            specialty
+            specialty,
+            is_active
           )
         `)
         .order('created_at', { ascending: false });
@@ -109,12 +110,31 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
 
-      // Enrich articles with fresh profile data for columnists
+      // Collect unique author_ids to check roles
+      const authorIds = [...new Set((data || []).map(a => a.author_id).filter(Boolean))];
+      
+      // Fetch roles for these authors
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', authorIds);
+      
+      // Create a Set of columnist IDs
+      const columnistIds = new Set(
+        (rolesData || [])
+          .filter(r => r.role === 'colunista')
+          .map(r => r.user_id)
+      );
+
+      // Enrich articles with fresh profile data ONLY for columnists
       const enrichedArticles = (data || []).map(article => {
-        // If this is a columnist article and we have profile data from profiles_public
-        if (article.author_id && article.profiles_public) {
+        // Only enrich if author is a columnist AND we have profile data
+        const isColumnist = article.author_id && columnistIds.has(article.author_id);
+        const hasProfile = article.profiles_public;
+        
+        if (isColumnist && hasProfile) {
           const profile = Array.isArray(article.profiles_public) ? article.profiles_public[0] : article.profiles_public;
-          if (profile) {
+          if (profile && profile.is_active !== false) {
             return {
               ...article,
               // Update columnist fields with profile data
@@ -128,7 +148,16 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             };
           }
         }
-        return article;
+        
+        // Not a columnist or no profile data - ensure columnist fields are undefined
+        return {
+          ...article,
+          columnist_id: undefined,
+          columnist_name: undefined,
+          columnist_avatar: undefined,
+          columnist_bio: undefined,
+          columnist_specialty: undefined
+        };
       });
 
       setArticles(enrichedArticles);

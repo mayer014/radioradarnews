@@ -48,12 +48,17 @@ const NewsGrid: React.FC = () => {
     return articles.filter(a => a.status === 'published');
   }, [articles]);
 
+  // Filter out columnist articles - only show general news in categories
+  const publishedGeneral = useMemo(() => {
+    return published.filter(a => !a.columnist_id && !a.is_column_copy);
+  }, [published]);
+
   const categoriesWithArticles = useMemo(() => {
     if (selectedCategory === 'Todas') {
       // Group articles by category usando slugs internos
       const grouped = BASE_NEWS_CATEGORIES.reduce((acc, category) => {
         const internalSlug = getInternalCategorySlug(category);
-        const allCategory = published
+        const allCategory = publishedGeneral
           .filter(a => a.category === internalSlug)
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -67,19 +72,19 @@ const NewsGrid: React.FC = () => {
           acc[category] = categoryArticles;
         }
         return acc;
-      }, {} as Record<string, typeof published>);
+      }, {} as Record<string, typeof publishedGeneral>);
       
       return grouped;
     } else {
       // Single category view usando slug interno
       const internalSlug = getInternalCategorySlug(selectedCategory);
-      const categoryArticles = published
+      const categoryArticles = publishedGeneral
         .filter(a => a.category === internalSlug)
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       return categoryArticles.length > 0 ? { [selectedCategory]: categoryArticles } : {};
     }
-  }, [published, selectedCategory]);
+  }, [publishedGeneral, selectedCategory]);
 
   const handleViewMore = (category: string) => {
     const internalSlug = getInternalCategorySlug(category);
@@ -102,11 +107,11 @@ const NewsGrid: React.FC = () => {
               className={selectedCategory === 'Todas' ? 'bg-gradient-hero' : 'border-primary/30'}
               onClick={() => handleCategoryChange('Todas')}
             >
-              Todas ({published.length})
+              Todas ({publishedGeneral.length})
             </Button>
             {BASE_NEWS_CATEGORIES.map((category) => {
               const internalSlug = getInternalCategorySlug(category);
-              const count = published.filter(a => a.category === internalSlug).length;
+              const count = publishedGeneral.filter(a => a.category === internalSlug).length;
               if (count === 0) return null;
               return (
                 <Button

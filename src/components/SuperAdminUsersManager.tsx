@@ -66,14 +66,28 @@ const SuperAdminUsersManager = () => {
       if (data?.success && data?.profiles) {
         setProfiles(data.profiles);
       } else {
-        // Fallback to just profiles without emails
+        // Fallback to just profiles without emails - need to fetch roles separately
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
           .order('created_at', { ascending: false });
 
         if (profilesError) throw profilesError;
-        setProfiles(profiles || []);
+        
+        // Fetch roles for these profiles
+        const profileIds = (profiles || []).map(p => p.id);
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', profileIds);
+        
+        // Merge role into profiles
+        const enrichedProfiles = (profiles || []).map(p => ({
+          ...p,
+          role: rolesData?.find(r => r.user_id === p.id)?.role || 'colunista'
+        }));
+        
+        setProfiles(enrichedProfiles as Profile[]);
       }
     } catch (error) {
       console.error('Error fetching profiles:', error);
