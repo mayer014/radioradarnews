@@ -69,132 +69,89 @@ const RadioPlayer = () => {
 
   return (
     <div className={cn(
-      "fixed bottom-0 left-0 right-0 z-50",
-      "bg-gradient-card backdrop-blur-md",
-      "border-t border-primary/30",
-      "shadow-lg shadow-primary/20",
+      "fixed bottom-4 right-4 z-50",
+      "bg-background/95 backdrop-blur-sm",
+      "border border-border",
+      "rounded-full shadow-lg",
       "transition-all duration-300 ease-in-out",
-      isExpanded ? "translate-y-0" : "translate-y-[calc(100%-3rem)]"
+      isExpanded ? "w-64" : "w-auto"
     )}>
-      {/* Header - sempre visível */}
-      <div 
-        className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-primary/5 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "p-2 rounded-full",
-            isPlaying ? "bg-gradient-hero animate-pulse" : "bg-primary/20"
-          )}>
-            <Radio className={cn(
-              "h-4 w-4",
-              isPlaying ? "text-white" : "text-primary"
-            )} />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">
-              Rádio Ao Vivo
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {isLoading ? 'Conectando...' : isPlaying ? 'No ar' : 'Parado'}
-            </p>
-          </div>
-        </div>
+      <div className="flex items-center gap-2 px-3 py-2">
+        {/* Play/Pause Button */}
+        <Button
+          onClick={togglePlay}
+          disabled={isLoading}
+          size="sm"
+          variant="ghost"
+          className={cn(
+            "h-8 w-8 p-0 rounded-full",
+            isPlaying && "bg-primary/10"
+          )}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isPlaying ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4 ml-0.5" />
+          )}
+        </Button>
 
+        {/* Status Indicator */}
+        {isPlaying && (
+          <div className="flex items-center gap-0.5">
+            <span className="inline-block w-0.5 h-2 bg-primary animate-pulse" style={{ animationDelay: '0ms' }}></span>
+            <span className="inline-block w-0.5 h-3 bg-primary animate-pulse" style={{ animationDelay: '150ms' }}></span>
+            <span className="inline-block w-0.5 h-2 bg-primary animate-pulse" style={{ animationDelay: '300ms' }}></span>
+          </div>
+        )}
+
+        {/* Expand/Collapse Button */}
         <Button
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsExpanded(!isExpanded);
-          }}
+          onClick={() => setIsExpanded(!isExpanded)}
         >
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-3 w-3" />
           ) : (
-            <ChevronUp className="h-4 w-4" />
+            <Radio className="h-3 w-3" />
           )}
         </Button>
-      </div>
 
-      {/* Player Controls - expandível */}
-      <div className={cn(
-        "px-4 pb-4 space-y-4",
-        "transition-all duration-300",
-        isExpanded ? "opacity-100 max-h-40" : "opacity-0 max-h-0 overflow-hidden"
-      )}>
-        {/* Error Message */}
-        {error && (
-          <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
+        {/* Volume Control - só aparece quando expandido */}
+        {isExpanded && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={toggleMute}
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="h-3 w-3" />
+              ) : (
+                <Volume2 className="h-3 w-3" />
+              )}
+            </Button>
+
+            <div className="flex-1 min-w-[80px]">
+              <Slider
+                value={[volume]}
+                onValueChange={handleVolumeChange}
+                max={1}
+                step={0.01}
+                className="cursor-pointer"
+              />
+            </div>
+          </>
         )}
 
-        {/* Play/Pause Button */}
-        <div className="flex items-center justify-center">
-          <Button
-            onClick={togglePlay}
-            disabled={isLoading}
-            size="lg"
-            className={cn(
-              "h-14 w-14 rounded-full",
-              isPlaying ? "bg-gradient-hero" : "bg-primary",
-              "hover:shadow-glow-primary transition-all duration-300"
-            )}
-          >
-            {isLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : isPlaying ? (
-              <Pause className="h-6 w-6" />
-            ) : (
-              <Play className="h-6 w-6 ml-1" />
-            )}
-          </Button>
-        </div>
-
-        {/* Volume Control */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={toggleMute}
-          >
-            {isMuted || volume === 0 ? (
-              <VolumeX className="h-4 w-4" />
-            ) : (
-              <Volume2 className="h-4 w-4" />
-            )}
-          </Button>
-
-          <div className="flex-1">
-            <Slider
-              value={[volume]}
-              onValueChange={handleVolumeChange}
-              max={1}
-              step={0.01}
-              className="cursor-pointer"
-            />
-          </div>
-
-          <span className="text-xs text-muted-foreground w-10 text-right">
-            {Math.round(volume * 100)}%
-          </span>
-        </div>
-
-        {/* Status Indicator */}
-        <div className="text-center">
-          {isPlaying && (
-            <div className="flex items-center justify-center gap-1">
-              <span className="inline-block w-1 h-3 bg-primary animate-pulse" style={{ animationDelay: '0ms' }}></span>
-              <span className="inline-block w-1 h-4 bg-primary animate-pulse" style={{ animationDelay: '150ms' }}></span>
-              <span className="inline-block w-1 h-3 bg-primary animate-pulse" style={{ animationDelay: '300ms' }}></span>
-              <span className="text-xs text-muted-foreground ml-2">Transmitindo</span>
-            </div>
-          )}
-        </div>
+        {/* Error Indicator */}
+        {error && (
+          <AlertCircle className="h-3 w-3 text-destructive" />
+        )}
       </div>
     </div>
   );
