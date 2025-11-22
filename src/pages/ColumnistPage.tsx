@@ -276,38 +276,38 @@ const ColumnistPage = () => {
                     <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-primary/30 hover:border-primary/60 transition-all duration-300 hover:scale-[1.01] overflow-hidden shadow-glow-primary">
                       <div className="relative">
                         {/* Imagem grande do artigo em destaque */}
-                        <div className="relative h-72 overflow-hidden bg-muted/20">
+                        <div className="relative h-48 sm:h-64 md:h-72 overflow-hidden bg-muted/20">
                           <img
                             src={featuredArticle.featured_image}
                             alt={featuredArticle.title}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent" />
                         </div>
 
                         {/* Conteúdo do artigo em destaque */}
-                        <div className="absolute bottom-0 left-0 right-0 p-8">
-                          <div className="flex items-center gap-4 mb-4">
-                            <Badge variant="outline" className="bg-background/80 backdrop-blur-sm border-primary/50">
+                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+                            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm border-primary/50 text-xs sm:text-sm">
                               {featuredArticle.category}
                             </Badge>
-                            <div className="flex items-center text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded">
+                            <div className="flex items-center text-xs text-muted-foreground bg-background/90 backdrop-blur-sm px-2 py-1 rounded">
                               <Calendar className="w-3 h-3 mr-1" />
-                              <span>{new Date(featuredArticle.created_at).toLocaleDateString('pt-BR')}</span>
+                              <span className="whitespace-nowrap">{new Date(featuredArticle.created_at).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>
 
-                          <h3 className="text-3xl font-bold mb-4 text-foreground group-hover:text-primary transition-colors duration-300">
+                          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
                             {featuredArticle.title}
                           </h3>
                           
-                          <p className="text-muted-foreground mb-6 text-base line-clamp-2 max-w-3xl">
+                          <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base line-clamp-2 sm:line-clamp-3">
                             {featuredArticle.excerpt}
                           </p>
 
                           <Button 
-                            size="lg"
-                            className="bg-gradient-hero hover:shadow-glow-primary"
+                            size="default"
+                            className="bg-gradient-hero hover:shadow-glow-primary w-full sm:w-auto text-sm sm:text-base"
                           >
                             Ler artigo completo
                           </Button>
@@ -333,50 +333,56 @@ const ColumnistPage = () => {
                     Mostrando {paginatedArticles.length} de {regularArticles.length} artigos
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-6 mb-8">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-8">
                     {paginatedArticles.map((article) => (
                     <Link key={article.id} to={getArticleLink(article)}>
-                      <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden">
-                        <div className="flex gap-6 p-6">
+                      <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.01] overflow-hidden">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6">
                           {/* Imagem do artigo */}
-                          <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
+                          <div className="relative rounded-lg flex-shrink-0 bg-muted/20 w-full sm:w-32 h-48 sm:h-32">
                             <img
                               src={article.featured_image}
                               alt={article.title}
-                              className="w-32 h-32 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
+                              className="w-full h-full object-cover sm:object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                             />
                           </div>
 
                           {/* Conteúdo do artigo */}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-3">
-                              <Badge variant="outline" className="hover:bg-primary/10 hover:border-primary/50 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-3">
+                              <Badge variant="outline" className="hover:bg-primary/10 hover:border-primary/50 transition-colors text-xs sm:text-sm">
                                 {article.category}
                               </Badge>
                               <div className="flex items-center text-xs text-muted-foreground">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
+                                <span className="whitespace-nowrap">{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
                               </div>
                             </div>
 
-                            <h3 className="text-xl font-bold mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                            <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2 sm:mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 break-words">
                               {article.title}
                             </h3>
                             
-                            <p className="text-muted-foreground mb-4 text-sm line-clamp-3">
+                            <p className="text-muted-foreground mb-3 sm:mb-4 text-xs sm:text-sm line-clamp-2 sm:line-clamp-3 break-words">
                               {article.excerpt}
                             </p>
 
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center text-xs text-muted-foreground">
-                                <Clock className="w-3 h-3 mr-1" />
-                                <span>{new Date(article.created_at).toLocaleString('pt-BR')}</span>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                              <div className="flex items-center text-xs text-muted-foreground order-2 sm:order-1">
+                                <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
+                                <span className="truncate">{new Date(article.created_at).toLocaleString('pt-BR', { 
+                                  day: '2-digit', 
+                                  month: '2-digit', 
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}</span>
                               </div>
                               
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="hover:bg-primary/10 hover:border-primary/50"
+                                className="hover:bg-primary/10 hover:border-primary/50 w-full sm:w-auto order-1 sm:order-2"
                               >
                                 Ler artigo
                               </Button>
