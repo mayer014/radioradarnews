@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deploy script for VPS deployment
+# Deploy script for VPS deployment with dynamic CACHEBUST
 # Usage: ./deploy.sh [production|staging]
 
 set -e
@@ -36,8 +36,26 @@ if [ ! -f .env ]; then
     fi
 fi
 
-echo "📦 Building Docker image..."
-docker build -t ${APP_NAME}:${ENVIRONMENT} .
+# Gerar CACHEBUST dinâmico
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    GIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "")
+    CACHEBUST="${GIT_HASH:-$(date +%s)}"
+    echo "📌 Using Git commit hash as CACHEBUST: ${GIT_HASH}"
+else
+    CACHEBUST=$(date +%s)
+    echo "📅 Using timestamp as CACHEBUST: ${CACHEBUST}"
+fi
+
+BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+echo "⏰ Build time: ${BUILD_TIME}"
+
+echo "📦 Building Docker image with CACHEBUST=${CACHEBUST}..."
+docker build \
+    --build-arg CACHEBUST="${CACHEBUST}" \
+    --build-arg BUILD_TIME="${BUILD_TIME}" \
+    --no-cache \
+    -t ${APP_NAME}:${ENVIRONMENT} \
+    .
 
 echo "🛑 Stopping existing container (if running)..."
 docker stop ${CONTAINER_NAME} 2>/dev/null || true
