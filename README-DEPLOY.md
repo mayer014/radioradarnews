@@ -101,13 +101,41 @@ NODE_ENV=production
 
 ## 🚀 Deploy
 
-1. **Execute o script de deploy:**
+### Deploy Automático com CACHEBUST
+
+O sistema agora gera automaticamente um CACHEBUST único para cada build, garantindo que o navegador sempre carregue a versão mais recente.
+
+#### 1. Deploy Completo (Recomendado):
 ```bash
-chmod +x deploy.sh
+chmod +x deploy.sh scripts/*.sh
 ./deploy.sh production
 ```
 
-2. **Para staging:**
+O script automaticamente:
+- ✅ Gera CACHEBUST baseado no hash do Git (ou timestamp)
+- ✅ Adiciona timestamp do build
+- ✅ Força rebuild sem cache
+- ✅ Cria tags de versão
+- ✅ Salva informações do build
+
+#### 2. Build Apenas (sem deploy):
+```bash
+./scripts/build-with-cachebust.sh portal-noticias latest
+```
+
+#### 3. Build Local (desenvolvimento):
+```bash
+./scripts/local-build.sh
+```
+
+### Verificar Versão Implantada
+
+Após o deploy, você pode verificar a versão em:
+- **No footer do site**: Versão e timestamp visíveis
+- **Arquivo de build**: `http://seu-dominio.com/build-info.txt`
+- **Arquivo JSON**: `build-info/last-build.json` (servidor)
+
+### Deploy para Staging:
 ```bash
 ./deploy.sh staging
 ```
