@@ -29,10 +29,6 @@ const NewsGrid: React.FC = () => {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [selectedCategory]);
-
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     if (category === 'Todas') {
