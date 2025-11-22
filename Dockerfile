@@ -9,8 +9,11 @@ WORKDIR /app
 # Copiar package files
 COPY package*.json ./
 
-# Limpar cache do npm e instalar dependências
-RUN npm cache clean --force && npm install
+# CACHE BUSTING: Limpar completamente o cache e reinstalar
+RUN npm cache clean --force && \
+    rm -rf node_modules && \
+    rm -rf ~/.npm && \
+    npm install --no-cache
 
 # Copiar código fonte
 COPY . .
@@ -19,11 +22,17 @@ COPY . .
 ARG BUILD_TIME
 ARG CACHEBUST=1
 
+# Forçar rebuild exibindo CACHEBUST
+RUN echo "CACHEBUST: ${CACHEBUST}" && \
+    echo "BUILD_TIME: ${BUILD_TIME}"
+
 ENV VITE_BUILD_TIME=${BUILD_TIME}
 ENV VITE_APP_VERSION=1.0.0
 
-# Build da aplicação
-RUN npm run build
+# CACHE BUSTING: Limpar cache do Vite e fazer build limpo
+RUN rm -rf node_modules/.vite && \
+    rm -rf dist && \
+    npm run build
 
 # Criar arquivo de informação do build
 RUN echo "Build Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > /app/dist/build-info.txt && \
