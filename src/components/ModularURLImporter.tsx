@@ -146,21 +146,21 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
           // Tentativa 3: Usar image-proxy edge function
           setImageStatus(`Tentativa ${attempt}/${maxAttempts}: Usando servidor proxy...`);
           const { data, error } = await supabase.functions.invoke('image-proxy', {
-            body: { imageUrl }
+            body: { url: imageUrl }  // Corrigido: usar 'url' ao invés de 'imageUrl'
           });
           
           if (error) throw error;
           if (!data || !data.success) throw new Error(data?.error || 'Proxy failed');
           
           // Converter base64 para blob
-          const base64Data = data.imageData.split(',')[1];
+          const base64Data = data.base64;  // Corrigido: usar 'base64' ao invés de 'imageData'
           const byteCharacters = atob(base64Data);
           const byteNumbers = new Array(byteCharacters.length);
           for (let i = 0; i < byteCharacters.length; i++) {
             byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
           const byteArray = new Uint8Array(byteNumbers);
-          blob = new Blob([byteArray], { type: 'image/jpeg' });
+          blob = new Blob([byteArray], { type: data.mime_type || 'image/jpeg' });
         }
         
         console.log(`✅ Imagem baixada (tentativa ${attempt}), tamanho:`, (blob.size / 1024).toFixed(2), 'KB');
