@@ -5,6 +5,7 @@ import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
 import Footer from '@/components/Footer';
+import RadioPlayer from '@/components/RadioPlayer';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { WebsiteStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
@@ -47,6 +48,9 @@ const Index = () => {
       
       {/* Footer */}
       <Footer />
+
+      {/* Player de Rádio Fixo */}
+      <RadioPlayer />
     </div>
   );
 };

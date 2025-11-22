@@ -8,6 +8,7 @@ import { useUsers } from '@/contexts/UsersContext';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import RadioPlayer from '@/components/RadioPlayer';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { BreadcrumbStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
@@ -165,6 +166,7 @@ const ColumnistsPage = () => {
       </main>
 
       <Footer />
+      <RadioPlayer />
     </>
   );
 };

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import RadioPlayer from '@/components/RadioPlayer';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
@@ -97,6 +98,7 @@ const ColumnistPage = () => {
           <ColumnistSkeleton />
         </main>
         <Footer />
+        <RadioPlayer />
       </div>
     );
   }
@@ -128,6 +130,7 @@ const ColumnistPage = () => {
           </div>
         </main>
         <Footer />
+        <RadioPlayer />
       </div>
     );
   }
@@ -362,6 +365,7 @@ const ColumnistPage = () => {
       </main>
 
       <Footer />
+      <RadioPlayer />
     </div>
   );
 };

@@ -74,6 +74,7 @@ import LegalContentManager from '@/components/LegalContentManager';
 import SystemSettingsManager from '@/components/SystemSettingsManager';
 import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
 import VPSMigrationPanel from '@/components/VPSMigrationPanel';
+import RadioManager from '@/components/RadioManager';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -96,7 +97,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -493,6 +494,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Otimização</span>
                 <span className="sm:hidden">Opt</span>
               </Button>
+              <Button
+                variant={activeTab === 'radio' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('radio')}
+                className={`${activeTab === 'radio' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Mic className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Rádio</span>
+                <span className="sm:hidden">Rádio</span>
+              </Button>
             </div>
           </div>
         )}
@@ -886,6 +897,11 @@ const AdminPanel = () => {
             <VPSMigrationPanel />
             <StorageOptimizationPanel />
           </div>
+        )}
+
+        {/* Rádio Online - apenas para admin */}
+        {activeTab === 'radio' && isAdmin && (
+          <RadioManager />
         )}
       </div>
       
