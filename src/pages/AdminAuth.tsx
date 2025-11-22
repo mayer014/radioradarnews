@@ -19,15 +19,29 @@ const AdminAuth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Indica que está carregando perfil quando autenticado mas sem perfil
+    // Timeout de segurança: se passar 10 segundos carregando perfil, mostra erro
+    let timeoutId: NodeJS.Timeout;
+    
     if (isAuthenticated && !profile && !authLoading) {
       setLoadingProfile(true);
+      
+      timeoutId = setTimeout(() => {
+        if (!profile) {
+          console.error('⚠️ Timeout ao carregar perfil');
+          setLoadingProfile(false);
+          toast({
+            title: "Erro ao carregar perfil",
+            description: "Não foi possível carregar suas informações. Tente novamente.",
+            variant: "destructive",
+          });
+        }
+      }, 10000); // 10 segundos
     }
     
     // Só redireciona quando terminar de carregar E tiver perfil
     if (isAuthenticated && profile && !authLoading) {
       setLoadingProfile(false);
-      console.log('Redirecionando usuário:', profile);
+      console.log('✅ Redirecionando usuário:', profile);
       
       if (profile.role === 'admin') {
         navigate('/admin');
@@ -37,7 +51,11 @@ const AdminAuth = () => {
         navigate('/');
       }
     }
-  }, [isAuthenticated, profile, authLoading, navigate]);
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isAuthenticated, profile, authLoading, navigate, toast]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
