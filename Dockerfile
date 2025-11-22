@@ -1,19 +1,32 @@
 # Stage 1: Build da aplicação
 FROM node:18-alpine AS builder
 
+# Argumento para forçar invalidação de cache
+ARG CACHEBUST=1
+
 WORKDIR /app
 
 # Copiar package files
 COPY package*.json ./
 
-# Instalar dependências
-RUN npm install
+# Limpar cache do npm e instalar dependências
+RUN npm cache clean --force && npm install
 
 # Copiar código fonte
 COPY . .
 
+# Definir variáveis de build com timestamp
+ARG BUILD_TIME
+ENV VITE_BUILD_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+ENV VITE_APP_VERSION=1.0.0
+
 # Build da aplicação
 RUN npm run build
+
+# Criar arquivo de informação do build
+RUN echo "Build Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > /app/dist/build-info.txt && \
+    echo "Version: 1.0.0" >> /app/dist/build-info.txt && \
+    echo "Cache Bust: ${CACHEBUST}" >> /app/dist/build-info.txt
 
 # Stage 2: Servir com Nginx
 FROM nginx:alpine
