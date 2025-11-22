@@ -222,9 +222,17 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-sm text-muted-foreground">
             <div className="flex flex-col items-center md:items-start gap-1">
               <p>© 2024 Portal News. Todos os direitos reservados.</p>
-              <p className="text-xs opacity-60">
-                v{import.meta.env.VITE_APP_VERSION || '1.0.0'} | Build: {import.meta.env.VITE_BUILD_TIME || new Date().toISOString()}
-              </p>
+              <div className="flex flex-col text-xs opacity-60 gap-0.5">
+                <p>
+                  v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
+                </p>
+                <p>
+                  Build: {import.meta.env.VITE_BUILD_TIME || new Date().toISOString()}
+                </p>
+                <p className="font-mono text-[10px] opacity-50">
+                  Cache: {Date.now().toString(36)}
+                </p>
+              </div>
             </div>
             <div className="flex space-x-6">
               <Link to="/politica-privacidade" className="hover:text-primary transition-colors duration-200">

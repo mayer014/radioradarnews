@@ -1,22 +1,27 @@
 # Stage 1: Build da aplicação
 FROM node:18-alpine AS builder
 
-# Argumento para forçar invalidação de cache
+# Argumentos para forçar invalidação de cache
 ARG CACHEBUST=1
+ARG BUILD_TIME
 
 WORKDIR /app
 
-# Copiar package files
-COPY package*.json ./
+# CRITICAL: Copiar código fonte PRIMEIRO (antes de npm install)
+# Isso força o Docker a detectar mudanças no código
+COPY . .
 
-# CACHE BUSTING: Limpar completamente o cache e reinstalar
+# CACHE BUSTING AGRESSIVO: Criar arquivo único por build
+RUN echo "FORCE REBUILD: ${CACHEBUST}-$(date +%s)" > /tmp/cachebust.txt && \
+    echo "BUILD_TIME: ${BUILD_TIME}" >> /tmp/cachebust.txt && \
+    cat /tmp/cachebust.txt
+
+# Limpar TODOS os caches possíveis
 RUN npm cache clean --force && \
     rm -rf node_modules && \
     rm -rf ~/.npm && \
+    rm -rf .npm && \
     npm install --no-cache
-
-# Copiar código fonte
-COPY . .
 
 # Definir variáveis de build
 ARG BUILD_TIME
@@ -32,7 +37,8 @@ ENV VITE_APP_VERSION=1.0.0
 # CACHE BUSTING: Limpar cache do Vite e fazer build limpo
 RUN rm -rf node_modules/.vite && \
     rm -rf dist && \
-    npm run build
+    rm -rf .vite && \
+    npm run build -- --force
 
 # Criar arquivo de informação do build
 RUN echo "Build Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > /app/dist/build-info.txt && \
