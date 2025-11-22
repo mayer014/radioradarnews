@@ -65,9 +65,13 @@ const ColumnistPage = () => {
     .filter(article => !article.is_column_copy)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  // Pagination
-  const totalPages = Math.ceil(sortedArticles.length / itemsPerPage);
-  const paginatedArticles = sortedArticles.slice(
+  // Separar artigo em destaque dos demais
+  const featuredArticle = sortedArticles.find(article => article.featured);
+  const regularArticles = sortedArticles.filter(article => !article.featured);
+
+  // Pagination apenas para artigos regulares
+  const totalPages = Math.ceil(regularArticles.length / itemsPerPage);
+  const paginatedArticles = regularArticles.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -259,71 +263,132 @@ const ColumnistPage = () => {
             </div>
           ) : (
             <>
-              <div className="mb-6 text-sm text-muted-foreground">
-                Mostrando {paginatedArticles.length} de {sortedArticles.length} artigos
-              </div>
-              
-              <div className="grid grid-cols-1 gap-6 mb-8">
-                {paginatedArticles.map((article) => (
-                <Link key={article.id} to={getArticleLink(article)}>
-                  <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden">
-                    <div className="flex gap-6 p-6">
-                      {/* Imagem do artigo */}
-                      <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
-                        <img
-                          src={article.featured_image}
-                          alt={article.title}
-                          className="w-32 h-32 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
-                        />
-                        {article.featured && (
-                          <div className="absolute top-2 left-2">
-                            <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
-                              DESTAQUE
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Conteúdo do artigo */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-3">
-                          <Badge variant="outline" className="hover:bg-primary/10 hover:border-primary/50 transition-colors">
-                            {article.category}
-                          </Badge>
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
-                          </div>
+              {/* Artigo em Destaque */}
+              {featuredArticle && (
+                <div className="mb-12">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge className="bg-gradient-hero text-primary-foreground px-3 py-1">
+                      ⭐ ARTIGO EM DESTAQUE
+                    </Badge>
+                  </div>
+                  
+                  <Link to={getArticleLink(featuredArticle)}>
+                    <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-primary/30 hover:border-primary/60 transition-all duration-300 hover:scale-[1.01] overflow-hidden shadow-glow-primary">
+                      <div className="relative">
+                        {/* Imagem grande do artigo em destaque */}
+                        <div className="relative h-72 overflow-hidden bg-muted/20">
+                          <img
+                            src={featuredArticle.featured_image}
+                            alt={featuredArticle.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
                         </div>
 
-                        <h3 className="text-xl font-bold mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
-                          {article.title}
-                        </h3>
-                        
-                        <p className="text-muted-foreground mb-4 text-sm line-clamp-3">
-                          {article.excerpt}
-                        </p>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3 mr-1" />
-                            <span>{new Date(article.created_at).toLocaleString('pt-BR')}</span>
+                        {/* Conteúdo do artigo em destaque */}
+                        <div className="absolute bottom-0 left-0 right-0 p-8">
+                          <div className="flex items-center gap-4 mb-4">
+                            <Badge variant="outline" className="bg-background/80 backdrop-blur-sm border-primary/50">
+                              {featuredArticle.category}
+                            </Badge>
+                            <div className="flex items-center text-xs text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              <span>{new Date(featuredArticle.created_at).toLocaleDateString('pt-BR')}</span>
+                            </div>
                           </div>
+
+                          <h3 className="text-3xl font-bold mb-4 text-foreground group-hover:text-primary transition-colors duration-300">
+                            {featuredArticle.title}
+                          </h3>
                           
+                          <p className="text-muted-foreground mb-6 text-base line-clamp-2 max-w-3xl">
+                            {featuredArticle.excerpt}
+                          </p>
+
                           <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="hover:bg-primary/10 hover:border-primary/50"
+                            size="lg"
+                            className="bg-gradient-hero hover:shadow-glow-primary"
                           >
-                            Ler artigo
+                            Ler artigo completo
                           </Button>
                         </div>
                       </div>
+                    </Card>
+                  </Link>
+                </div>
+              )}
+
+              {/* Outros Artigos */}
+              {regularArticles.length > 0 && (
+                <>
+                  {featuredArticle && (
+                    <div className="flex items-center gap-3 mb-6">
+                      <Separator className="flex-1" />
+                      <span className="text-sm text-muted-foreground font-semibold">OUTROS ARTIGOS</span>
+                      <Separator className="flex-1" />
                     </div>
-                  </Card>
-                </Link>
-                ))}
-              </div>
+                  )}
+                  
+                  <div className="mb-6 text-sm text-muted-foreground">
+                    Mostrando {paginatedArticles.length} de {regularArticles.length} artigos
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-6 mb-8">
+                    {paginatedArticles.map((article) => (
+                    <Link key={article.id} to={getArticleLink(article)}>
+                      <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden">
+                        <div className="flex gap-6 p-6">
+                          {/* Imagem do artigo */}
+                          <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
+                            <img
+                              src={article.featured_image}
+                              alt={article.title}
+                              className="w-32 h-32 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
+                            />
+                          </div>
+
+                          {/* Conteúdo do artigo */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-3">
+                              <Badge variant="outline" className="hover:bg-primary/10 hover:border-primary/50 transition-colors">
+                                {article.category}
+                              </Badge>
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
+                              </div>
+                            </div>
+
+                            <h3 className="text-xl font-bold mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                              {article.title}
+                            </h3>
+                            
+                            <p className="text-muted-foreground mb-4 text-sm line-clamp-3">
+                              {article.excerpt}
+                            </p>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Clock className="w-3 h-3 mr-1" />
+                                <span>{new Date(article.created_at).toLocaleString('pt-BR')}</span>
+                              </div>
+                              
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="hover:bg-primary/10 hover:border-primary/50"
+                              >
+                                Ler artigo
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    </Link>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {/* Pagination */}
               {totalPages > 1 && (
