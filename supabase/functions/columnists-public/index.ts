@@ -24,10 +24,11 @@ serve(async (req) => {
     console.log("columnists-public: Fetching columnists from profiles table");
 
     // Fetch only safe, public fields for ACTIVE columnists
+    // Join with user_roles to get role information
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, avatar, bio, specialty, allowed_categories, is_active, role")
-      .eq("role", "colunista")
+      .select("id, name, avatar, bio, specialty, allowed_categories, is_active, user_roles!inner(role)")
+      .eq("user_roles.role", "colunista")
       .eq("is_active", true)
       .order("name", { ascending: true });
 
