@@ -12,6 +12,7 @@ import CommentsSection from '@/components/CommentsSection';
 import { ShareMenu } from '@/components/share/ShareMenu';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { getArticleLink } from '@/lib/utils';
+import { getProductionUrl } from '@/utils/shareHelpers';
 
 // Função para formatar o conteúdo do artigo
 const formatArticleContent = (content: string): string => {
@@ -203,7 +204,7 @@ const ColumnistArticlePage = () => {
             <ShareMenu
               title={article.title}
               excerpt={article.excerpt}
-              url={window.location.href}
+              url={getProductionUrl()}
               image={article.featured_image}
               category={article.category}
               author={article.columnist_name}
