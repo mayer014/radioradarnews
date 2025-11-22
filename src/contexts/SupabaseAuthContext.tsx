@@ -66,9 +66,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            setTimeout(() => {
-              fetchProfile(session.user.id);
-            }, 0);
+            // Fetch profile imediatamente após autenticação
+            await fetchProfile(session.user.id);
           } else {
             setProfile(null);
           }

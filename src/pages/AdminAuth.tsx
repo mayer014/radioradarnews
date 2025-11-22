@@ -19,7 +19,9 @@ const AdminAuth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isAuthenticated && profile) {
+    // Só redireciona quando terminar de carregar E tiver perfil
+    if (isAuthenticated && profile && !loading) {
+      console.log('Redirecionando usuário:', profile);
       if (profile.role === 'admin') {
         navigate('/admin');
       } else if (profile.role === 'colunista' && profile.is_active) {
@@ -28,7 +30,7 @@ const AdminAuth = () => {
         navigate('/');
       }
     }
-  }, [isAuthenticated, profile, navigate]);
+  }, [isAuthenticated, profile, loading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
