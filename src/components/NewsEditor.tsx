@@ -154,7 +154,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           columnist_name: profile.name,
           columnist_avatar: profile.avatar,
           columnist_bio: profile.bio,
-          columnist_specialty: profile.specialty
+          columnist_specialty: profile.specialty,
+          author_id: profile.id // Define o autor como o próprio colunista
         };
       } else if (isAdmin) {
         // Administrador: usar opções de publicação selecionadas
@@ -176,7 +177,8 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
             columnist_name: null,
             columnist_avatar: null,
             columnist_bio: null,
-            columnist_specialty: null
+            columnist_specialty: null,
+            author_id: profile.id // Define o autor como o admin
           };
         } else {
           // Publicar em nome de um colunista
