@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import RadioPlayer from '@/components/RadioPlayer';
 import { Helmet } from 'react-helmet-async';
 import { Card } from '@/components/ui/card';
 import { useLegalContent } from '@/contexts/LegalContentContext';
@@ -36,6 +37,7 @@ const TermsOfService = () => {
           <LoadingState />
         </div>
         <Footer />
+        <RadioPlayer />
       </div>
     );
   }
@@ -82,6 +84,7 @@ const TermsOfService = () => {
       </div>
       
       <Footer />
+      <RadioPlayer />
     </div>
   );
 };
