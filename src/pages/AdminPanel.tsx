@@ -82,6 +82,18 @@ const AdminPanel = () => {
   const { users } = useUsers();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Log de diagnóstico
+  React.useEffect(() => {
+    console.log('🔍 AdminPanel Diagnóstico:', {
+      isAuthenticated: !!profile,
+      userRole: profile?.role,
+      isAdmin: profile?.role === 'admin',
+      isColunista: profile?.role === 'colunista',
+      totalUsers: users.length,
+      totalArticles: articles.length
+    });
+  }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage'>('articles');
@@ -424,9 +436,12 @@ const AdminPanel = () => {
                 className={`${activeTab === 'users' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
                 size="sm"
               >
-                <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Usuários</span>
                 <span className="sm:hidden">User</span>
+                <Badge className="ml-1 bg-primary/20 text-primary text-xs px-1 py-0">
+                  {users.length}
+                </Badge>
               </Button>
               <Button
                 variant={activeTab === 'contact' ? 'default' : 'ghost'}
@@ -828,7 +843,15 @@ const AdminPanel = () => {
 
         {/* Usuários - apenas para admin */}
         {activeTab === 'users' && isAdmin && (
-          <SuperAdminUsersManager />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold flex items-center gap-2">
+                <Users className="h-6 w-6 text-primary" />
+                Gerenciamento de Usuários
+              </h2>
+            </div>
+            <SuperAdminUsersManager />
+          </div>
         )}
 
         {/* Informações de Contato - apenas para admin */}
