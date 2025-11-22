@@ -238,6 +238,16 @@ const ColumnistPage = () => {
           </div>
         </header>
 
+        {/* Aviso de Responsabilidade */}
+        <div className="mb-8 p-4 sm:p-5 bg-muted/30 border-l-4 border-primary/60 rounded-lg">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Aviso Importante:</span> Este é um colunista independente. 
+            As opiniões, análises e conteúdos expressos em seus artigos são de exclusiva responsabilidade do autor, 
+            não representando necessariamente a posição editorial deste portal. O colunista é o único responsável 
+            pela veracidade, precisão e legalidade das informações e opiniões apresentadas em suas publicações.
+          </p>
+        </div>
+
         {/* Columnist Banner */}
         {columnistBanner && (
           <div className="mb-8">
