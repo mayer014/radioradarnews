@@ -61,19 +61,27 @@ const SuperAdminUsersManager = () => {
     try {
       console.log('🔄 Carregando usuários...');
       
-      // Try edge function first
-      const { data: edgeData, error: edgeError } = await supabase.functions.invoke('user-profiles-service');
+      // Try edge function first with better error handling
+      try {
+        const { data: edgeData, error: edgeError } = await supabase.functions.invoke('user-profiles-service');
 
-      if (edgeData?.success && edgeData?.profiles) {
-        console.log('✅ Usuários carregados via Edge Function:', edgeData.profiles.length);
-        setProfiles(edgeData.profiles);
-        setLoading(false);
-        return;
+        if (edgeData?.success && edgeData?.profiles) {
+          console.log('✅ Usuários carregados via Edge Function:', edgeData.profiles.length);
+          setProfiles(edgeData.profiles);
+          setLoading(false);
+          return;
+        }
+        
+        if (edgeError) {
+          console.warn('⚠️ Edge function retornou erro:', edgeError);
+          // Continue to fallback
+        }
+      } catch (edgeFunctionError) {
+        console.warn('⚠️ Edge function falhou completamente:', edgeFunctionError);
+        // Continue to fallback
       }
       
-      if (edgeError) {
-        console.warn('⚠️ Edge function falhou, usando fallback:', edgeError);
-      }
+      console.log('📋 Usando fallback - consultando tabelas diretamente...');
       
       // Fallback: fetch profiles and roles separately
       const { data: profiles, error: profilesError } = await supabase
@@ -81,12 +89,22 @@ const SuperAdminUsersManager = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('❌ Erro ao buscar profiles:', profilesError);
+        throw profilesError;
+      }
       
       console.log('📋 Profiles carregados:', profiles?.length || 0);
       
       // Fetch roles for these profiles
       const profileIds = (profiles || []).map(p => p.id);
+      
+      if (profileIds.length === 0) {
+        console.warn('⚠️ Nenhum profile encontrado');
+        setProfiles([]);
+        return;
+      }
+
       const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -94,6 +112,7 @@ const SuperAdminUsersManager = () => {
       
       if (rolesError) {
         console.error('❌ Erro ao buscar roles:', rolesError);
+        // Continue mesmo com erro, apenas não teremos os roles
       }
       
       console.log('🎭 Roles carregadas:', rolesData?.length || 0);
