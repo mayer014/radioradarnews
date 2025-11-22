@@ -6,22 +6,29 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Lock, Shield, Mail } from 'lucide-react';
+import { Lock, Shield, Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  // Removed bootstrap loading - no longer needed
-  const { signIn, isAuthenticated, profile } = useSupabaseAuth();
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const { signIn, isAuthenticated, profile, loading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Indica que está carregando perfil quando autenticado mas sem perfil
+    if (isAuthenticated && !profile && !authLoading) {
+      setLoadingProfile(true);
+    }
+    
     // Só redireciona quando terminar de carregar E tiver perfil
-    if (isAuthenticated && profile && !loading) {
+    if (isAuthenticated && profile && !authLoading) {
+      setLoadingProfile(false);
       console.log('Redirecionando usuário:', profile);
+      
       if (profile.role === 'admin') {
         navigate('/admin');
       } else if (profile.role === 'colunista' && profile.is_active) {
@@ -30,7 +37,7 @@ const AdminAuth = () => {
         navigate('/');
       }
     }
-  }, [isAuthenticated, profile, loading, navigate]);
+  }, [isAuthenticated, profile, authLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,9 +53,10 @@ const AdminAuth = () => {
           variant: "destructive",
         });
       } else {
+        setLoadingProfile(true);
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando para o painel administrativo...",
+          description: "Carregando seu perfil...",
         });
       }
     } catch (error) {
@@ -129,12 +137,33 @@ const AdminAuth = () => {
 
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || loadingProfile}
                 className="w-full bg-gradient-hero hover:shadow-glow-primary transition-all duration-300"
               >
-                {loading ? 'Autenticando...' : 'Entrar no Sistema'}
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Autenticando...
+                  </span>
+                ) : loadingProfile ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando perfil...
+                  </span>
+                ) : (
+                  'Entrar no Sistema'
+                )}
               </Button>
             </form>
+            
+            {loadingProfile && (
+              <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span>Carregando suas informações de perfil...</span>
+                </div>
+              </div>
+            )}
 
           </div>
         </Card>
