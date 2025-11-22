@@ -6,6 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import { Card } from '@/components/ui/card';
 import { useLegalContent } from '@/contexts/LegalContentContext';
 import { LoadingState } from '@/components/accessibility/LoadingState';
+import { sanitizeHtml } from '@/utils/contentSanitizer';
 
 const TermsOfService = () => {
   const { getContent, loading } = useLegalContent();
@@ -17,7 +18,7 @@ const TermsOfService = () => {
 
   const formatContent = (content: string) => {
     // Converter Markdown básico para HTML
-    return content
+    let formatted = content
       .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-semibold mb-4 mt-8">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold mb-6">$1</h1>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -27,6 +28,9 @@ const TermsOfService = () => {
       .replace(/^(.+)$/gm, '<p class="mb-4">$1</p>')
       .replace(/<p class="mb-4"><h/g, '<h')
       .replace(/<\/h([1-6])><\/p>/g, '</h$1>');
+    
+    // SECURITY: Sanitize HTML to prevent XSS attacks
+    return sanitizeHtml(formatted);
   };
 
   if (loading) {

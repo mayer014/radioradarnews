@@ -6,6 +6,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Simple rate limiter - only allows one execution per minute
+const rateLimiter = {
+  lastExecution: 0,
+  cooldownMs: 60000, // 1 minute
+  
+  canExecute(): boolean {
+    const now = Date.now();
+    if (now - this.lastExecution < this.cooldownMs) {
+      return false;
+    }
+    this.lastExecution = now;
+    return true;
+  },
+  
+  getRemainingTime(): number {
+    const now = Date.now();
+    const elapsed = now - this.lastExecution;
+    return Math.max(0, this.cooldownMs - elapsed);
+  }
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,6 +34,21 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Rate limiting
+    if (!rateLimiter.canExecute()) {
+      const remainingTime = Math.ceil(rateLimiter.getRemainingTime() / 1000);
+      console.warn('Bootstrap Admin: Rate limit exceeded');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Rate limit exceeded',
+        message: `Please wait ${remainingTime} seconds before trying again`,
+        retryAfter: remainingTime
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': remainingTime.toString() }
+      });
+    }
+
     console.log('Bootstrap Admin: Starting...');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

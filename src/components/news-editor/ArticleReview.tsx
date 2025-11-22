@@ -8,6 +8,7 @@ import { Info } from 'lucide-react';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
+import { sanitizeHtml } from '@/utils/contentSanitizer';
 
 interface ReviewData {
   title: string;
@@ -96,7 +97,7 @@ const ArticleReview: React.FC<ArticleReviewProps> = ({
           )}
 
           <div className="prose max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-3 prose-li:my-1 dark:prose-invert">
-            <div dangerouslySetInnerHTML={{ __html: content || '<p>Seu conteúdo aparecerá aqui...</p>' }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content || '<p>Seu conteúdo aparecerá aqui...</p>') }} />
           </div>
         </div>
       </Card>
