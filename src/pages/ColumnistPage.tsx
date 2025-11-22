@@ -274,51 +274,48 @@ const ColumnistPage = () => {
                   
                   <Link to={getArticleLink(featuredArticle)}>
                     <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-2 border-primary/40 hover:border-primary/70 transition-all duration-300 hover:scale-[1.01] overflow-hidden shadow-glow-primary hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]">
-                      <div className="relative">
-                        {/* Imagem grande do artigo em destaque */}
-                        <div className="relative h-64 sm:h-80 md:h-96 overflow-hidden bg-muted/20">
-                          <img
-                            src={featuredArticle.featured_image}
-                            alt={featuredArticle.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/98 via-background/70 to-transparent" />
-                          
-                          {/* Badge destaque flutuante */}
-                          <div className="absolute top-4 right-4">
-                            <Badge className="bg-gradient-hero text-primary-foreground shadow-glow-primary text-xs sm:text-sm px-3 py-1">
-                              ⭐ DESTAQUE
-                            </Badge>
+                      {/* Imagem grande do artigo em destaque */}
+                      <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden bg-muted/20">
+                        <img
+                          src={featuredArticle.featured_image}
+                          alt={featuredArticle.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        
+                        {/* Badge destaque flutuante */}
+                        <div className="absolute top-4 right-4">
+                          <Badge className="bg-gradient-hero text-primary-foreground shadow-glow-primary text-xs sm:text-sm px-3 py-1">
+                            ⭐ DESTAQUE
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Conteúdo do artigo em destaque - ABAIXO da imagem */}
+                      <div className="p-5 sm:p-7 md:p-9">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4">
+                          <Badge variant="outline" className="border-primary/60 text-sm sm:text-base px-3 py-1">
+                            {featuredArticle.category}
+                          </Badge>
+                          <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4 mr-1.5" />
+                            <span className="whitespace-nowrap">{new Date(featuredArticle.created_at).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
 
-                        {/* Conteúdo do artigo em destaque */}
-                        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 md:p-10">
-                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
-                            <Badge variant="outline" className="bg-background/95 backdrop-blur-sm border-primary/60 text-sm sm:text-base px-3 py-1">
-                              {featuredArticle.category}
-                            </Badge>
-                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded">
-                              <Calendar className="w-4 h-4 mr-1.5" />
-                              <span className="whitespace-nowrap">{new Date(featuredArticle.created_at).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                          </div>
+                        <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-4 sm:mb-5 text-foreground group-hover:text-primary transition-colors duration-300 leading-tight break-words">
+                          {featuredArticle.title}
+                        </h3>
+                        
+                        <p className="text-muted-foreground mb-5 sm:mb-7 text-sm sm:text-base md:text-lg line-clamp-3 sm:line-clamp-4 leading-relaxed">
+                          {featuredArticle.excerpt}
+                        </p>
 
-                          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-foreground group-hover:text-primary transition-colors duration-300 leading-tight">
-                            {featuredArticle.title}
-                          </h3>
-                          
-                          <p className="text-muted-foreground mb-5 sm:mb-7 text-base sm:text-lg line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                            {featuredArticle.excerpt}
-                          </p>
-
-                          <Button 
-                            size="lg"
-                            className="bg-gradient-hero hover:shadow-glow-primary w-full sm:w-auto text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4"
-                          >
-                            📖 Ler artigo completo
-                          </Button>
-                        </div>
+                        <Button 
+                          size="lg"
+                          className="bg-gradient-hero hover:shadow-glow-primary w-full sm:w-auto text-sm sm:text-base md:text-lg px-6 py-3 sm:px-8 sm:py-4"
+                        >
+                          📖 Ler artigo completo
+                        </Button>
                       </div>
                     </Card>
                   </Link>
