@@ -60,19 +60,22 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log('🔐 Auth state changed:', event, 'Session:', !!session);
+        
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           
           if (session?.user) {
-            // Fetch profile imediatamente após autenticação
-            await fetchProfile(session.user.id);
+            // Usar setTimeout para evitar deadlock
+            setTimeout(() => {
+              fetchProfile(session.user.id);
+            }, 0);
           } else {
             setProfile(null);
+            setLoading(false);
           }
-          
-          setLoading(false);
         }
       }
     );
@@ -85,6 +88,8 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('🔍 Fetching profile for user:', userId);
+      
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -93,9 +98,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .single();
 
       if (profileError) {
-        console.error('Error fetching profile:', profileError);
+        console.error('❌ Error fetching profile:', profileError);
+        // Mesmo com erro, desabilita loading para não travar
+        setLoading(false);
         return;
       }
+
+      console.log('✅ Profile data fetched:', profileData);
 
       // Fetch user role from user_roles table
       const { data: roleData, error: roleError } = await supabase
@@ -105,17 +114,27 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .single();
 
       if (roleError) {
-        console.error('Error fetching user role:', roleError);
+        console.error('❌ Error fetching user role:', roleError);
+        // Mesmo com erro, desabilita loading para não travar
+        setLoading(false);
         return;
       }
 
+      console.log('✅ Role data fetched:', roleData);
+
       // Combine profile and role data
-      setProfile({
+      const completeProfile = {
         ...profileData,
         role: roleData.role as 'admin' | 'colunista'
-      });
+      };
+      
+      console.log('✅ Complete profile set:', completeProfile);
+      setProfile(completeProfile);
+      
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('❌ Unexpected error fetching profile:', error);
+      // Garante que loading seja desabilitado mesmo com erro
+      setLoading(false);
     }
   };
 
