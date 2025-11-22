@@ -130,10 +130,9 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Enrich articles with fresh profile data for columnists
       const enrichedArticles = (data || []).map(article => {
-        // Check if this is a columnist article by:
-        // 1. columnist_id exists in DB AND that ID has role='colunista'
-        // 2. OR author_id has role='colunista'
-        const hasColumnistIdInDb = article.columnist_id && columnistIds.has(article.columnist_id);
+        // CRITICAL: If columnist_id exists in DB, it's ALWAYS a columnist article
+        // We check role only to enrich data, not to determine if it's a columnist article
+        const hasColumnistIdInDb = !!article.columnist_id;
         const authorIsColumnist = article.author_id && columnistIds.has(article.author_id);
         const isColumnistArticle = hasColumnistIdInDb || authorIsColumnist;
         
@@ -160,21 +159,34 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             }
           }
           
-          // If no profile data but columnist_id exists in DB, keep it
+          // If no profile data but columnist_id exists in DB, keep all existing columnist data
           if (article.columnist_id) {
             return article;
           }
+          
+          // If author_id is columnist but no columnist_id, set it
+          if (authorIsColumnist && !article.columnist_id) {
+            return {
+              ...article,
+              columnist_id: article.author_id
+            };
+          }
         }
         
-        // Not a columnist article - clear columnist fields
-        return {
-          ...article,
-          columnist_id: undefined,
-          columnist_name: undefined,
-          columnist_avatar: undefined,
-          columnist_bio: undefined,
-          columnist_specialty: undefined
-        };
+        // Not a columnist article - clear columnist fields ONLY if columnist_id is not set
+        if (!article.columnist_id) {
+          return {
+            ...article,
+            columnist_id: undefined,
+            columnist_name: undefined,
+            columnist_avatar: undefined,
+            columnist_bio: undefined,
+            columnist_specialty: undefined
+          };
+        }
+        
+        // Has columnist_id, keep the article as is
+        return article;
       });
 
       setArticles(enrichedArticles);
