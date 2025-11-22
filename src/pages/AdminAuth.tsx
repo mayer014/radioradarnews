@@ -7,16 +7,14 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, Shield, Mail, Loader2 } from 'lucide-react';
-import OTPVerification from '@/components/OTPVerification';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [requiresOTP, setRequiresOTP] = useState(false);
-  const [otpAttempts, setOtpAttempts] = useState(0);
-  const { signIn, verifyOTP, resendOTP, isAuthenticated, profile, loading: authLoading } = useSupabaseAuth();
+  const { signIn, isAuthenticated, profile, loading: authLoading } = useSupabaseAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -61,93 +59,36 @@ const AdminAuth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
-    const result = await signIn(email, password);
-    setLoading(false);
 
-    if (result.error) {
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        toast({
+          title: "Erro de autenticação",
+          description: error,
+          variant: "destructive",
+        });
+      } else {
+        setLoadingProfile(true);
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Carregando seu perfil...",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Erro de autenticação",
-        description: result.error,
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao servidor.",
         variant: "destructive",
       });
-    } else if (result.requiresOTP) {
-      setRequiresOTP(true);
-      toast({
-        title: "Código enviado",
-        description: "Verifique seu email para o código de verificação",
-      });
-    } else {
-      setLoadingProfile(true);
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Carregando seu perfil...",
-      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleVerifyOTP = async (code: string) => {
-    if (otpAttempts >= 3) {
-      toast({
-        title: "Bloqueado",
-        description: "Muitas tentativas incorretas. Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-      setRequiresOTP(false);
-      setEmail('');
-      setPassword('');
-      setOtpAttempts(0);
-      return;
-    }
-
-    setLoading(true);
-    const result = await verifyOTP(email, code);
-    setLoading(false);
-
-    if (result.error) {
-      setOtpAttempts(prev => prev + 1);
-      toast({
-        title: "Código inválido",
-        description: `Tentativa ${otpAttempts + 1} de 3`,
-        variant: "destructive",
-      });
-    } else {
-      setOtpAttempts(0);
-      toast({
-        title: "Login realizado",
-        description: "Bem-vindo de volta!",
-      });
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setLoading(true);
-    const result = await resendOTP(email);
-    setLoading(false);
-
-    if (result.error) {
-      toast({
-        title: "Erro",
-        description: result.error,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Código reenviado",
-        description: "Verifique seu email",
-      });
-    }
-  };
+  // Removed bootstrap function - super admin is now automatically available
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -166,92 +107,82 @@ const AdminAuth = () => {
 
         <Card className="bg-gradient-card backdrop-blur-sm border-primary/30 p-8">
           <div className="space-y-6">
-            {!requiresOTP ? (
-              <>
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold text-foreground mb-2">
-                    Acesso Administrativo
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Faça login para acessar o sistema
-                  </p>
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                Acesso Administrativo
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Faça login para acessar o sistema
+              </p>
+            </div>
+
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Digite seu email"
+                    className="pl-10 border-primary/30 focus:border-primary"
+                    required
+                  />
                 </div>
+              </div>
 
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">
-                      Email
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Digite seu email"
-                        className="pl-10 border-primary/30 focus:border-primary"
-                        required
-                      />
-                    </div>
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Senha
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Digite sua senha"
+                    className="pl-10 border-primary/30 focus:border-primary"
+                    required
+                  />
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">
-                      Senha
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Digite sua senha"
-                        className="pl-10 border-primary/30 focus:border-primary"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={loading || loadingProfile}
-                    className="w-full bg-gradient-hero hover:shadow-glow-primary transition-all duration-300"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Autenticando...
-                      </span>
-                    ) : loadingProfile ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Carregando perfil...
-                      </span>
-                    ) : (
-                      'Entrar no Sistema'
-                    )}
-                  </Button>
-                </form>
-                
-                {loadingProfile && (
-                  <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span>Carregando suas informações de perfil...</span>
-                    </div>
-                  </div>
+              <Button
+                type="submit"
+                disabled={loading || loadingProfile}
+                className="w-full bg-gradient-hero hover:shadow-glow-primary transition-all duration-300"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Autenticando...
+                  </span>
+                ) : loadingProfile ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Carregando perfil...
+                  </span>
+                ) : (
+                  'Entrar no Sistema'
                 )}
-              </>
-            ) : (
-              <OTPVerification
-                email={email}
-                onVerify={handleVerifyOTP}
-                onResend={handleResendOTP}
-                loading={loading}
-              />
+              </Button>
+            </form>
+            
+            {loadingProfile && (
+              <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span>Carregando suas informações de perfil...</span>
+                </div>
+              </div>
             )}
+
           </div>
         </Card>
       </div>

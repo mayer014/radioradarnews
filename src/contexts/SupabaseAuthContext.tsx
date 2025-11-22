@@ -23,12 +23,10 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string; requiresOTP?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, username: string, name: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error?: string }>;
-  verifyOTP: (email: string, token: string) => Promise<{ error?: string }>;
-  resendOTP: (email: string) => Promise<{ error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,87 +140,18 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Primeiro valida a senha
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (authError) {
-        return { error: authError.message };
-      }
-
-      // Verifica se é admin
-      if (authData.user) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', authData.user.id)
-          .single();
-
-        // Se é admin, requer OTP
-        if (roleData?.role === 'admin') {
-          // Faz logout temporário
-          await supabase.auth.signOut();
-          
-          // Envia OTP
-          const { error: otpError } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-              shouldCreateUser: false
-            }
-          });
-
-          if (otpError) {
-            return { error: otpError.message };
-          }
-
-          return { requiresOTP: true };
-        }
+      if (error) {
+        return { error: error.message };
       }
 
       return {};
     } catch (error) {
       console.error('Sign in error:', error);
-      return { error: 'Erro de conexão' };
-    }
-  };
-
-  const verifyOTP = async (email: string, token: string) => {
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'email'
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      return {};
-    } catch (error) {
-      console.error('Verify OTP error:', error);
-      return { error: 'Erro de conexão' };
-    }
-  };
-
-  const resendOTP = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false
-        }
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      return {};
-    } catch (error) {
-      console.error('Resend OTP error:', error);
       return { error: 'Erro de conexão' };
     }
   };
@@ -307,9 +236,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     signIn,
     signUp,
     signOut,
-    updateProfile,
-    verifyOTP,
-    resendOTP
+    updateProfile
   };
 
   return (
