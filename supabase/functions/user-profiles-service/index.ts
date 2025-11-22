@@ -20,37 +20,68 @@ serve(async (req) => {
     )
 
     // Check if user is authenticated
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
-
-    if (authError || !user) {
-      console.error('❌ Usuário não autenticado:', authError);
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('❌ Authorization header não encontrado');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Authorization header missing' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('✅ Usuário autenticado:', user.id);
+    const token = authHeader.replace('Bearer ', '');
+    console.log('🔑 Token recebido:', token.substring(0, 20) + '...');
 
-    // Check if user is admin
-    const { data: userRole } = await supabaseClient
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+
+    if (authError) {
+      console.error('❌ Erro de autenticação:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', details: authError.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!user) {
+      console.error('❌ Usuário não encontrado');
+      return new Response(
+        JSON.stringify({ error: 'User not found' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('✅ Usuário autenticado:', user.id, user.email);
+
+    // Check if user is admin - usando RPC para garantir que funciona
+    const { data: userRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle();
 
-    console.log('🎭 Role do usuário:', userRole?.role);
+    if (roleError) {
+      console.error('❌ Erro ao buscar role:', roleError);
+      return new Response(
+        JSON.stringify({ error: 'Error checking user role', details: roleError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('🎭 Role encontrada:', userRole);
 
     if (!userRole || userRole.role !== 'admin') {
-      console.error('❌ Acesso negado - não é admin');
+      console.error('❌ Acesso negado - Role:', userRole?.role || 'nenhuma');
       return new Response(
-        JSON.stringify({ error: 'Forbidden - Admin access required' }),
+        JSON.stringify({ 
+          error: 'Forbidden - Admin access required',
+          userRole: userRole?.role || 'none',
+          userId: user.id
+        }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    console.log('✅ Usuário é admin - prosseguindo...');
     console.log('🔍 Buscando profiles...');
 
     // Get all profiles
@@ -61,7 +92,10 @@ serve(async (req) => {
 
     if (profilesError) {
       console.error('❌ Erro ao buscar profiles:', profilesError);
-      throw profilesError;
+      return new Response(
+        JSON.stringify({ error: 'Error fetching profiles', details: profilesError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log('📋 Profiles encontrados:', profiles?.length || 0);
@@ -80,22 +114,22 @@ serve(async (req) => {
     console.log('🎭 Roles encontradas:', rolesData?.length || 0);
 
     // Get user emails from auth.users using admin privileges
-    const { data: users, error: usersError } = await supabaseClient.auth.admin.listUsers()
+    const { data: usersData, error: usersError } = await supabaseClient.auth.admin.listUsers()
     
     if (usersError) {
       console.error('⚠️ Erro ao buscar emails:', usersError);
     }
 
-    console.log('📧 Emails encontrados:', users?.users?.length || 0);
+    console.log('📧 Emails encontrados:', usersData?.users?.length || 0);
 
     // Merge profile data with email information and roles
     const profilesWithData = (profiles || []).map(profile => {
-      const authUser = users?.users?.find((u: any) => u.id === profile.id);
-      const userRole = rolesData?.find(r => r.user_id === profile.id);
+      const authUser = usersData?.users?.find((u: any) => u.id === profile.id);
+      const userRoleData = rolesData?.find(r => r.user_id === profile.id);
       return {
         ...profile,
         email: authUser?.email || '',
-        role: userRole?.role || 'colunista'
+        role: userRoleData?.role || 'colunista'
       }
     });
 
@@ -111,7 +145,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Erro fatal em user-profiles-service:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
