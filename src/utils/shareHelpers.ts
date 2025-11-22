@@ -21,6 +21,19 @@ interface CaptionData {
   author?: string;
 }
 
+// Função para obter URL de produção
+export const getProductionUrl = (path?: string): string => {
+  const productionDomain = 'https://radioradar.news';
+  
+  // Se um path específico for fornecido, use-o
+  if (path) {
+    return `${productionDomain}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+  
+  // Caso contrário, use o pathname atual
+  return `${productionDomain}${window.location.pathname}`;
+};
+
 // Category to hashtags mapping
 const categoryHashtags: Record<string, string[]> = {
   'Política': ['#política', '#brasil', '#governo', '#democracia'],

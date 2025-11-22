@@ -18,6 +18,7 @@ import { LoadingState, ArticleSkeleton } from '@/components/accessibility/Loadin
 import { generateMetaDescription, generatePageTitle, generateKeywordsFromContent, optimizeImageAlt, generateBreadcrumbData } from '@/utils/seoUtils';
 import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibility';
 import { supabase } from '@/integrations/supabase/client';
+import { getProductionUrl } from '@/utils/shareHelpers';
 
 // Função para formatar o conteúdo do artigo
 const formatArticleContent = (content: string): string => {
@@ -269,7 +270,7 @@ const ArticlePage = () => {
               <ShareMenu
                 title={article.title}
                 excerpt={article.excerpt}
-                url={window.location.href}
+                url={getProductionUrl()}
                 image={article.featured_image}
                 category={article.category}
                 author={article.columnist_name}
