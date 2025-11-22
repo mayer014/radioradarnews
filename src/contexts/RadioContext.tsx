@@ -144,6 +144,9 @@ export const RadioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       audioRef.current.load();
       if (wasPlaying) {
         play();
+      } else {
+        // Autoplay quando o stream carregar pela primeira vez
+        play();
       }
     }
   }, [streamUrl]);
