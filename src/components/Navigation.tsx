@@ -21,8 +21,13 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleHomeClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/');
+  };
+
   const navItems = [
-    { name: 'Início', icon: Home, href: '/' },
+    { name: 'Início', icon: Home, href: '/', onClick: handleHomeClick },
     { name: 'Contato', icon: Users, href: '/contato' },
   ];
 
@@ -47,7 +52,7 @@ const Navigation = () => {
           {/* Primeira linha: Logo e menu mobile */}
           <div className="flex items-center justify-between h-12">
             {/* Logo */}
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={handleHomeClick}>
               <img 
                 src={logoUrl} 
                 alt="Radio Radar RRN News" 
@@ -75,7 +80,7 @@ const Navigation = () => {
               <Button
                 key={item.name}
                 variant="ghost"
-                onClick={() => navigate(item.href)}
+                onClick={() => item.onClick ? item.onClick() : navigate(item.href)}
                 className="flex items-center space-x-2 hover:bg-primary/10 hover:text-primary transition-all duration-200 text-sm px-3 py-1 h-8"
               >
                 <item.icon className="w-4 h-4" />
@@ -221,7 +226,11 @@ const Navigation = () => {
                   variant="ghost"
                   className="w-full justify-start space-x-3 hover:bg-primary/10 hover:text-primary"
                   onClick={() => {
-                    navigate(item.href);
+                    if (item.onClick) {
+                      item.onClick();
+                    } else {
+                      navigate(item.href);
+                    }
                     setIsMobileMenuOpen(false);
                   }}
                 >
