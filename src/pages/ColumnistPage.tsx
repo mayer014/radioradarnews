@@ -266,50 +266,57 @@ const ColumnistPage = () => {
               {/* Artigo em Destaque */}
               {featuredArticle && (
                 <div className="mb-12">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Badge className="bg-gradient-hero text-primary-foreground px-3 py-1">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Badge className="bg-gradient-hero text-primary-foreground px-4 py-1.5 text-sm sm:text-base shadow-glow-primary">
                       ⭐ ARTIGO EM DESTAQUE
                     </Badge>
                   </div>
                   
                   <Link to={getArticleLink(featuredArticle)}>
-                    <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-primary/30 hover:border-primary/60 transition-all duration-300 hover:scale-[1.01] overflow-hidden shadow-glow-primary">
+                    <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-2 border-primary/40 hover:border-primary/70 transition-all duration-300 hover:scale-[1.01] overflow-hidden shadow-glow-primary hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]">
                       <div className="relative">
                         {/* Imagem grande do artigo em destaque */}
-                        <div className="relative h-48 sm:h-64 md:h-72 overflow-hidden bg-muted/20">
+                        <div className="relative h-64 sm:h-80 md:h-96 overflow-hidden bg-muted/20">
                           <img
                             src={featuredArticle.featured_image}
                             alt={featuredArticle.title}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-background/98 via-background/70 to-transparent" />
+                          
+                          {/* Badge destaque flutuante */}
+                          <div className="absolute top-4 right-4">
+                            <Badge className="bg-gradient-hero text-primary-foreground shadow-glow-primary text-xs sm:text-sm px-3 py-1">
+                              ⭐ DESTAQUE
+                            </Badge>
+                          </div>
                         </div>
 
                         {/* Conteúdo do artigo em destaque */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
-                            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm border-primary/50 text-xs sm:text-sm">
+                        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 md:p-10">
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 sm:mb-5">
+                            <Badge variant="outline" className="bg-background/95 backdrop-blur-sm border-primary/60 text-sm sm:text-base px-3 py-1">
                               {featuredArticle.category}
                             </Badge>
-                            <div className="flex items-center text-xs text-muted-foreground bg-background/90 backdrop-blur-sm px-2 py-1 rounded">
-                              <Calendar className="w-3 h-3 mr-1" />
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded">
+                              <Calendar className="w-4 h-4 mr-1.5" />
                               <span className="whitespace-nowrap">{new Date(featuredArticle.created_at).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>
 
-                          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-foreground group-hover:text-primary transition-colors duration-300 leading-tight">
                             {featuredArticle.title}
                           </h3>
                           
-                          <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base line-clamp-2 sm:line-clamp-3">
+                          <p className="text-muted-foreground mb-5 sm:mb-7 text-base sm:text-lg line-clamp-2 sm:line-clamp-3 leading-relaxed">
                             {featuredArticle.excerpt}
                           </p>
 
                           <Button 
-                            size="default"
-                            className="bg-gradient-hero hover:shadow-glow-primary w-full sm:w-auto text-sm sm:text-base"
+                            size="lg"
+                            className="bg-gradient-hero hover:shadow-glow-primary w-full sm:w-auto text-base sm:text-lg px-6 py-3 sm:px-8 sm:py-4"
                           >
-                            Ler artigo completo
+                            📖 Ler artigo completo
                           </Button>
                         </div>
                       </div>
@@ -322,9 +329,9 @@ const ColumnistPage = () => {
               {regularArticles.length > 0 && (
                 <>
                   {featuredArticle && (
-                    <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center gap-3 mb-8 mt-4">
                       <Separator className="flex-1" />
-                      <span className="text-sm text-muted-foreground font-semibold">OUTROS ARTIGOS</span>
+                      <span className="text-sm sm:text-base text-muted-foreground font-semibold">OUTROS ARTIGOS</span>
                       <Separator className="flex-1" />
                     </div>
                   )}
@@ -333,13 +340,13 @@ const ColumnistPage = () => {
                     Mostrando {paginatedArticles.length} de {regularArticles.length} artigos
                   </div>
                   
-                  <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-8">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
                     {paginatedArticles.map((article) => (
                     <Link key={article.id} to={getArticleLink(article)}>
                       <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.01] overflow-hidden">
-                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 p-4 sm:p-5">
                           {/* Imagem do artigo */}
-                          <div className="relative rounded-lg flex-shrink-0 bg-muted/20 w-full sm:w-32 h-48 sm:h-32">
+                          <div className="relative rounded-lg flex-shrink-0 bg-muted/20 w-full sm:w-28 h-40 sm:h-28">
                             <img
                               src={article.featured_image}
                               alt={article.title}
@@ -349,8 +356,8 @@ const ColumnistPage = () => {
 
                           {/* Conteúdo do artigo */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-3">
-                              <Badge variant="outline" className="hover:bg-primary/10 hover:border-primary/50 transition-colors text-xs sm:text-sm">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <Badge variant="outline" className="hover:bg-primary/10 hover:border-primary/50 transition-colors text-xs">
                                 {article.category}
                               </Badge>
                               <div className="flex items-center text-xs text-muted-foreground">
@@ -359,15 +366,15 @@ const ColumnistPage = () => {
                               </div>
                             </div>
 
-                            <h3 className="text-base sm:text-lg md:text-xl font-bold mb-2 sm:mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 break-words">
+                            <h3 className="text-sm sm:text-base md:text-lg font-bold mb-2 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 break-words">
                               {article.title}
                             </h3>
                             
-                            <p className="text-muted-foreground mb-3 sm:mb-4 text-xs sm:text-sm line-clamp-2 sm:line-clamp-3 break-words">
+                            <p className="text-muted-foreground mb-3 text-xs sm:text-sm line-clamp-2 break-words">
                               {article.excerpt}
                             </p>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                               <div className="flex items-center text-xs text-muted-foreground order-2 sm:order-1">
                                 <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
                                 <span className="truncate">{new Date(article.created_at).toLocaleString('pt-BR', { 
@@ -382,7 +389,7 @@ const ColumnistPage = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="hover:bg-primary/10 hover:border-primary/50 w-full sm:w-auto order-1 sm:order-2"
+                                className="hover:bg-primary/10 hover:border-primary/50 w-full sm:w-auto order-1 sm:order-2 text-xs sm:text-sm"
                               >
                                 Ler artigo
                               </Button>
