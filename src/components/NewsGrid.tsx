@@ -1,16 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Users } from 'lucide-react';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import CategoryNewsSection from '@/components/CategoryNewsSection';
 import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
+import { useUsers } from '@/contexts/UsersContext';
 
 const NewsGrid: React.FC = () => {
   const { articles, loading } = useSupabaseNews();
+  const { columnists, isLoading: columnistsLoading } = useUsers();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
+
+  // Filtrar apenas colunistas ativos
+  const activeColumnists = useMemo(() => {
+    return columnists.filter(c => c.columnistProfile?.isActive);
+  }, [columnists]);
 
   useEffect(() => {
     const categoria = searchParams.get('categoria');
@@ -162,6 +172,63 @@ const NewsGrid: React.FC = () => {
                 onViewMore={handleViewMore}
               />
             ))}
+          </div>
+        )}
+
+        {/* Seção de Colunistas */}
+        {!loading && !columnistsLoading && activeColumnists.length > 0 && (
+          <div className="mt-16 pt-12 border-t border-border/50">
+            <div className="flex items-center gap-3 mb-8">
+              <Users className="w-6 h-6 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-bold">Nossos Colunistas</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {activeColumnists.map((columnist) => (
+                <Link 
+                  key={columnist.id} 
+                  to={`/colunista/${columnist.id}`}
+                  className="group"
+                >
+                  <Card className="p-4 bg-gradient-card border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] h-full">
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/30 group-hover:border-primary/50 transition-colors">
+                          {columnist.columnistProfile?.avatar ? (
+                            <img
+                              src={columnist.columnistProfile.avatar}
+                              alt={columnist.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted/50 flex items-center justify-center">
+                              <span className="text-sm font-bold text-muted-foreground">
+                                {columnist.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                          {columnist.name}
+                        </h3>
+                        <Badge variant="outline" className="text-xs mb-2">
+                          {columnist.columnistProfile?.specialty || 'Jornalista'}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {columnist.columnistProfile?.bio || 'Colunista experiente'}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>
