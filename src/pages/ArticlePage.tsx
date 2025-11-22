@@ -20,7 +20,9 @@ import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibili
 import { supabase } from '@/integrations/supabase/client';
 import { getProductionUrl } from '@/utils/shareHelpers';
 
-// Função para formatar o conteúdo do artigo
+import { sanitizeHtml } from '@/utils/contentSanitizer';
+
+// Função para formatar e sanitizar o conteúdo do artigo
 const formatArticleContent = (content: string): string => {
   let formattedContent = content;
   
@@ -48,7 +50,8 @@ const formatArticleContent = (content: string): string => {
   // Remove espaços em branco desnecessários
   formattedContent = formattedContent.trim();
   
-  return formattedContent;
+  // SECURITY: Sanitize HTML to prevent XSS attacks
+  return sanitizeHtml(formattedContent);
 };
 
 const ArticlePage = () => {

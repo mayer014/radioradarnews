@@ -6,6 +6,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// SECURITY: Simple rate limiter to prevent abuse
+const rateLimiter = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS = 10; // 10 requests per minute per IP
+
+function checkRateLimit(identifier: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const requests = rateLimiter.get(identifier) || [];
+  
+  // Clean old requests outside the window
+  const validRequests = requests.filter(time => now - time < RATE_LIMIT_WINDOW);
+  
+  if (validRequests.length >= MAX_REQUESTS) {
+    const oldestRequest = Math.min(...validRequests);
+    const retryAfter = Math.ceil((RATE_LIMIT_WINDOW - (now - oldestRequest)) / 1000);
+    return { allowed: false, retryAfter };
+  }
+  
+  validRequests.push(now);
+  rateLimiter.set(identifier, validRequests);
+  
+  // Cleanup old entries periodically
+  if (rateLimiter.size > 1000) {
+    for (const [key, times] of rateLimiter.entries()) {
+      if (times.every(t => now - t > RATE_LIMIT_WINDOW)) {
+        rateLimiter.delete(key);
+      }
+    }
+  }
+  
+  return { allowed: true };
+}
+
 interface RewriteRequest {
   title: string;
   content: string;
@@ -118,6 +151,25 @@ serve(async (req) => {
   console.log(`🔵 [${requestId}] ==================== AI Rewriter Service called at ${new Date().toISOString()} ====================`);
 
   try {
+    // SECURITY: Rate limiting - use IP address or a unique identifier
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const rateLimitCheck = checkRateLimit(clientIp);
+    
+    if (!rateLimitCheck.allowed) {
+      console.warn(`⚠️ [${requestId}] Rate limit exceeded for ${clientIp}`);
+      return new Response(JSON.stringify({
+        error: 'Rate limit exceeded',
+        message: `Too many requests. Please try again in ${rateLimitCheck.retryAfter} seconds.`,
+        retryAfter: rateLimitCheck.retryAfter
+      }), {
+        status: 429,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Retry-After': rateLimitCheck.retryAfter!.toString()
+        }
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     console.log(`🔑 [${requestId}] LOVABLE_API_KEY configured:`, !!LOVABLE_API_KEY);
     if (!LOVABLE_API_KEY) {
