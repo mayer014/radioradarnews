@@ -1016,6 +1016,107 @@ export type Database = {
         }
         Relationships: []
       }
+      site_analytics: {
+        Row: {
+          article_id: string | null
+          country: string | null
+          created_at: string | null
+          device_type: string | null
+          id: string
+          ip_address: unknown
+          is_unique_visit: boolean | null
+          page_path: string
+          page_title: string | null
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          visitor_hash: string
+        }
+        Insert: {
+          article_id?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: unknown
+          is_unique_visit?: boolean | null
+          page_path: string
+          page_title?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_hash: string
+        }
+        Update: {
+          article_id?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: unknown
+          is_unique_visit?: boolean | null
+          page_path?: string
+          page_title?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visitor_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_analytics_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_analytics_summary: {
+        Row: {
+          article_visits: number | null
+          created_at: string | null
+          date: string
+          desktop_visits: number | null
+          home_visits: number | null
+          id: string
+          mobile_visits: number | null
+          other_visits: number | null
+          total_visits: number | null
+          unique_visitors: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          article_visits?: number | null
+          created_at?: string | null
+          date: string
+          desktop_visits?: number | null
+          home_visits?: number | null
+          id?: string
+          mobile_visits?: number | null
+          other_visits?: number | null
+          total_visits?: number | null
+          unique_visitors?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          article_visits?: number | null
+          created_at?: string | null
+          date?: string
+          desktop_visits?: number | null
+          home_visits?: number | null
+          id?: string
+          mobile_visits?: number | null
+          other_visits?: number | null
+          total_visits?: number | null
+          unique_visitors?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string | null
@@ -1180,6 +1281,10 @@ export type Database = {
       }
     }
     Functions: {
+      aggregate_daily_analytics: {
+        Args: { target_date?: string }
+        Returns: undefined
+      }
       auto_publish_scheduled_articles: { Args: never; Returns: undefined }
       check_contact_rate_limit: {
         Args: { request_ip: unknown }

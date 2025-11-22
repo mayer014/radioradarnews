@@ -57,43 +57,65 @@ const SuperAdminUsersManager = () => {
   const { toast } = useToast();
 
   const fetchProfiles = async () => {
+    setLoading(true);
     try {
-      // Use edge function to get profiles with emails
-      const { data, error } = await supabase.functions.invoke('user-profiles-service');
-
-      if (error) throw error;
+      console.log('🔄 Carregando usuários...');
       
-      if (data?.success && data?.profiles) {
-        setProfiles(data.profiles);
-      } else {
-        // Fallback to just profiles without emails - need to fetch roles separately
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
+      // Try edge function first
+      const { data: edgeData, error: edgeError } = await supabase.functions.invoke('user-profiles-service');
 
-        if (profilesError) throw profilesError;
-        
-        // Fetch roles for these profiles
-        const profileIds = (profiles || []).map(p => p.id);
-        const { data: rolesData } = await supabase
-          .from('user_roles')
-          .select('user_id, role')
-          .in('user_id', profileIds);
-        
-        // Merge role into profiles
-        const enrichedProfiles = (profiles || []).map(p => ({
-          ...p,
-          role: rolesData?.find(r => r.user_id === p.id)?.role || 'colunista'
-        }));
-        
-        setProfiles(enrichedProfiles as Profile[]);
+      if (edgeData?.success && edgeData?.profiles) {
+        console.log('✅ Usuários carregados via Edge Function:', edgeData.profiles.length);
+        setProfiles(edgeData.profiles);
+        setLoading(false);
+        return;
       }
+      
+      if (edgeError) {
+        console.warn('⚠️ Edge function falhou, usando fallback:', edgeError);
+      }
+      
+      // Fallback: fetch profiles and roles separately
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw profilesError;
+      
+      console.log('📋 Profiles carregados:', profiles?.length || 0);
+      
+      // Fetch roles for these profiles
+      const profileIds = (profiles || []).map(p => p.id);
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', profileIds);
+      
+      if (rolesError) {
+        console.error('❌ Erro ao buscar roles:', rolesError);
+      }
+      
+      console.log('🎭 Roles carregadas:', rolesData?.length || 0);
+      
+      // Merge role into profiles
+      const enrichedProfiles = (profiles || []).map(p => {
+        const userRole = rolesData?.find(r => r.user_id === p.id);
+        return {
+          ...p,
+          role: userRole?.role || 'colunista',
+          email: '' // Will be empty in fallback mode
+        };
+      });
+      
+      console.log('✅ Usuários enriquecidos:', enrichedProfiles.length);
+      setProfiles(enrichedProfiles as Profile[]);
+      
     } catch (error) {
-      console.error('Error fetching profiles:', error);
+      console.error('❌ Erro fatal ao carregar usuários:', error);
       toast({
-        title: "Erro",
-        description: "Erro ao carregar usuários",
+        title: "Erro ao carregar usuários",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
     } finally {
@@ -312,12 +334,35 @@ const SuperAdminUsersManager = () => {
     }
   };
 
+  if (!currentProfile) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          <Shield className="h-12 w-12 mx-auto mb-4" />
+          <p>Carregando informações do usuário...</p>
+        </div>
+      </Card>
+    );
+  }
+
   if (currentProfile?.role !== 'admin') {
     return (
       <Card className="p-6">
         <div className="text-center text-muted-foreground">
           <Shield className="h-12 w-12 mx-auto mb-4" />
           <p>Acesso negado. Apenas administradores podem gerenciar usuários.</p>
+          <p className="text-xs mt-2">Seu role atual: {currentProfile?.role || 'não definido'}</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando usuários...</p>
         </div>
       </Card>
     );
@@ -326,6 +371,8 @@ const SuperAdminUsersManager = () => {
   const admins = profiles.filter(p => p.role === 'admin');
   const columnists = profiles.filter(p => p.role === 'colunista');
   const isSuperAdmin = currentProfile?.username === 'admin';
+
+  console.log('👥 Usuários no painel:', { total: profiles.length, admins: admins.length, columnists: columnists.length });
 
   return (
     <div className="space-y-6">
@@ -468,7 +515,12 @@ const SuperAdminUsersManager = () => {
                   </div>
                 </div>
               ))}
-              {admins.length === 0 && <p className="text-sm text-muted-foreground">Nenhum admin cadastrado.</p>}
+              {admins.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground">
+                  <UserIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">Nenhum administrador encontrado.</p>
+                </div>
+              )}
             </div>
           </Card>
 
