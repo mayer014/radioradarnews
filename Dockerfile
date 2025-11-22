@@ -38,7 +38,7 @@ ENV VITE_APP_VERSION=1.0.0
 RUN rm -rf node_modules/.vite && \
     rm -rf dist && \
     rm -rf .vite && \
-    npm run build -- --force
+    npm run build
 
 # Criar arquivo de informação do build
 RUN echo "Build Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > /app/dist/build-info.txt && \
