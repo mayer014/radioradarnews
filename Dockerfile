@@ -15,9 +15,11 @@ RUN npm cache clean --force && npm install
 # Copiar código fonte
 COPY . .
 
-# Definir variáveis de build com timestamp
+# Definir variáveis de build
 ARG BUILD_TIME
-ENV VITE_BUILD_TIME=${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+ARG CACHEBUST=1
+
+ENV VITE_BUILD_TIME=${BUILD_TIME}
 ENV VITE_APP_VERSION=1.0.0
 
 # Build da aplicação
