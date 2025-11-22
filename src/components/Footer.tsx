@@ -220,7 +220,12 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-primary/20 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-sm text-muted-foreground">
-            <p>© 2024 Portal News. Todos os direitos reservados.</p>
+            <div className="flex flex-col items-center md:items-start gap-1">
+              <p>© 2024 Portal News. Todos os direitos reservados.</p>
+              <p className="text-xs opacity-60">
+                v{import.meta.env.VITE_APP_VERSION || '1.0.0'} | Build: {import.meta.env.VITE_BUILD_TIME || new Date().toISOString()}
+              </p>
+            </div>
             <div className="flex space-x-6">
               <Link to="/politica-privacidade" className="hover:text-primary transition-colors duration-200">
                 Política de Privacidade
