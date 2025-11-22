@@ -201,30 +201,83 @@ function extractContentFromHTML(html: string, originalUrl: string): ExtractedCon
     
     title = title.trim() || 'Artigo Importado';
     
-    // Extract main image
+    // Extract main image - múltiplas fontes e estratégias
     let mainImage = '';
-    const ogImageElement = doc.querySelector('meta[property="og:image"]');
-    const twitterImageElement = doc.querySelector('meta[name="twitter:image"]');
-    const firstImg = doc.querySelector('article img, main img, .content img, img');
     
-    if (ogImageElement) {
+    // Estratégia 1: Meta tags (og:image, twitter:image)
+    const ogImageElement = doc.querySelector('meta[property="og:image"]');
+    const ogImageSecure = doc.querySelector('meta[property="og:image:secure_url"]');
+    const twitterImageElement = doc.querySelector('meta[name="twitter:image"]');
+    
+    if (ogImageSecure) {
+      mainImage = ogImageSecure.getAttribute('content') || '';
+      console.log('Image found: og:image:secure_url');
+    } else if (ogImageElement) {
       mainImage = ogImageElement.getAttribute('content') || '';
+      console.log('Image found: og:image');
     } else if (twitterImageElement) {
       mainImage = twitterImageElement.getAttribute('content') || '';
-    } else if (firstImg) {
-      mainImage = firstImg.getAttribute('src') || '';
+      console.log('Image found: twitter:image');
     }
     
-    // Make relative URLs absolute
+    // Estratégia 2: Imagens dentro do artigo/conteúdo
+    if (!mainImage) {
+      const contentSelectors = [
+        'article img[src]',
+        'main img[src]',
+        '.content img[src]',
+        '.post-content img[src]',
+        '.entry-content img[src]',
+        '.article-body img[src]',
+        'img[class*="featured"]',
+        'img[class*="hero"]',
+        'img[class*="main"]',
+        'img[itemprop="image"]'
+      ];
+      
+      for (const selector of contentSelectors) {
+        const img = doc.querySelector(selector);
+        if (img) {
+          mainImage = img.getAttribute('src') || '';
+          if (mainImage) {
+            console.log(`Image found: ${selector}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Estratégia 3: Primeira imagem com tamanho significativo
+    if (!mainImage) {
+      const allImages = doc.querySelectorAll('img[src]');
+      for (const img of allImages) {
+        const src = img.getAttribute('src') || '';
+        const width = img.getAttribute('width');
+        const height = img.getAttribute('height');
+        
+        // Filtrar imagens pequenas (ícones, logos, etc)
+        if (src && (!width || parseInt(width) > 200) && (!height || parseInt(height) > 200)) {
+          mainImage = src;
+          console.log('Image found: first large image');
+          break;
+        }
+      }
+    }
+    
+    // Converter URLs relativas em absolutas
     if (mainImage && !mainImage.startsWith('http')) {
       try {
         const baseUrl = new URL(originalUrl);
         mainImage = new URL(mainImage, baseUrl.origin).href;
+        console.log('Image URL converted to absolute:', mainImage);
       } catch (e) {
         console.warn('Failed to resolve image URL:', e);
         mainImage = '';
       }
     }
+    
+    // Log final do resultado
+    console.log('Final image extraction result:', mainImage ? mainImage.substring(0, 100) : 'No image found');
     
     // Extract content - try multiple selectors
     let contentElement;

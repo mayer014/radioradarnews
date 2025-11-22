@@ -8,7 +8,8 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  Settings
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ContentExtractorStep from './ContentExtractorStep';
@@ -17,6 +18,7 @@ import { useSupabaseAIConfig } from '@/contexts/SupabaseAIConfigContext';
 import type { ExtractedContent } from '@/services/ContentExtractor';
 import type { RewrittenContent } from '@/services/AIContentRewriter';
 import { VPSImageService } from '@/services/VPSImageService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ModularURLImporterProps {
   onImportComplete: (data: {
@@ -30,6 +32,8 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
   const [currentStep, setCurrentStep] = useState<'extract' | 'rewrite' | 'complete'>('extract');
   const [extractedContent, setExtractedContent] = useState<ExtractedContent | null>(null);
   const [rewrittenContent, setRewrittenContent] = useState<RewrittenContent | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageStatus, setImageStatus] = useState<string>('');
   const { configurations } = useSupabaseAIConfig();
   
   // Check if we have any AI configuration
@@ -42,6 +46,8 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
 
   const handleUseDirectly = async (content: ExtractedContent) => {
     console.log('🔄 Usando conteúdo diretamente (sem IA), migrando imagem...');
+    setIsProcessingImage(true);
+    setImageStatus('Preparando conteúdo...');
     
     // Create enhanced content from extracted content with complete article
     const cleanTextContent = content.content.replace(/<[^>]*>/g, '').trim();
@@ -79,44 +85,117 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
       published_at_suggestion: new Date().toISOString()
     };
 
-    // IMPORTANTE: Migrar imagem para VPS antes de finalizar
+    // IMPORTANTE: Migrar imagem para VPS com múltiplas tentativas
     let vpsImageUrl: string | undefined;
-    try {
-      if (content.mainImage) {
-        console.log('📥 Baixando imagem externa (modo direto):', content.mainImage);
-        
-        const response = await fetch(content.mainImage);
-        if (!response.ok) {
-          throw new Error(`Falha ao baixar imagem: ${response.status}`);
-        }
-        
-        const blob = await response.blob();
-        console.log('✅ Imagem baixada, tamanho:', (blob.size / 1024).toFixed(2), 'KB');
-        
-        const file = new File([blob], `imported-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
-        console.log('📤 Enviando para VPS (modo direto)...');
-        
-        const vpsResult = await VPSImageService.uploadImage(file, 'article');
-        
-        if (vpsResult.success && vpsResult.url) {
-          vpsImageUrl = vpsResult.url;
-          console.log('✅ Upload VPS concluído (modo direto):', vpsImageUrl);
-        } else {
-          console.error('❌ Falha no upload VPS (modo direto):', vpsResult.error);
-        }
-      }
-    } catch (err) {
-      console.error('❌ Erro ao processar imagem externa (modo direto):', err);
+    if (content.mainImage) {
+      setImageStatus('Baixando imagem...');
+      vpsImageUrl = await downloadAndUploadImage(content.mainImage, 'modo direto');
+    } else {
+      setImageStatus('Nenhuma imagem encontrada na URL');
     }
 
     setExtractedContent(content);
     setRewrittenContent(directContent);
     setCurrentStep('complete');
+    setIsProcessingImage(false);
+    setImageStatus('');
     
     // Armazenar URL do VPS para uso posterior
     if (vpsImageUrl) {
       (directContent as any).vpsImageUrl = vpsImageUrl;
     }
+  };
+
+  // Função auxiliar para baixar e fazer upload de imagens com retry logic
+  const downloadAndUploadImage = async (imageUrl: string, context: string): Promise<string | undefined> => {
+    const maxAttempts = 3;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        setImageStatus(`Tentativa ${attempt}/${maxAttempts}: Baixando imagem...`);
+        console.log(`📥 [Tentativa ${attempt}/${maxAttempts}] Baixando imagem (${context}):`, imageUrl.substring(0, 100));
+        
+        // Tentar com diferentes métodos
+        let blob: Blob;
+        
+        if (attempt === 1) {
+          // Tentativa 1: Fetch direto
+          const response = await fetch(imageUrl, {
+            mode: 'cors',
+            cache: 'no-cache'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          blob = await response.blob();
+        } else if (attempt === 2) {
+          // Tentativa 2: Fetch com proxy CORS
+          setImageStatus(`Tentativa ${attempt}/${maxAttempts}: Usando proxy...`);
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
+          const response = await fetch(proxyUrl);
+          
+          if (!response.ok) {
+            throw new Error(`Proxy failed: ${response.status}`);
+          }
+          
+          blob = await response.blob();
+        } else {
+          // Tentativa 3: Usar image-proxy edge function
+          setImageStatus(`Tentativa ${attempt}/${maxAttempts}: Usando servidor proxy...`);
+          const { data, error } = await supabase.functions.invoke('image-proxy', {
+            body: { imageUrl }
+          });
+          
+          if (error) throw error;
+          if (!data || !data.success) throw new Error(data?.error || 'Proxy failed');
+          
+          // Converter base64 para blob
+          const base64Data = data.imageData.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          blob = new Blob([byteArray], { type: 'image/jpeg' });
+        }
+        
+        console.log(`✅ Imagem baixada (tentativa ${attempt}), tamanho:`, (blob.size / 1024).toFixed(2), 'KB');
+        
+        // Fazer upload para VPS
+        setImageStatus(`Enviando imagem para o servidor...`);
+        const file = new File([blob], `imported-${Date.now()}.jpg`, { 
+          type: blob.type || 'image/jpeg' 
+        });
+        
+        console.log(`📤 Enviando para VPS (${context}, tentativa ${attempt})...`);
+        const vpsResult = await VPSImageService.uploadImage(file, 'article');
+        
+        if (vpsResult.success && vpsResult.url) {
+          console.log(`✅ Upload VPS concluído (${context}, tentativa ${attempt}):`, vpsResult.url);
+          setImageStatus('Imagem importada com sucesso!');
+          return vpsResult.url;
+        } else {
+          throw new Error(vpsResult.error || 'Upload VPS falhou');
+        }
+      } catch (err) {
+        lastError = err;
+        console.error(`❌ Tentativa ${attempt} falhou (${context}):`, err);
+        
+        // Se não é a última tentativa, esperar antes de tentar novamente
+        if (attempt < maxAttempts) {
+          setImageStatus(`Tentativa ${attempt} falhou. Tentando novamente...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
+    
+    console.error(`❌ Todas as ${maxAttempts} tentativas falharam para baixar/upload da imagem (${context}):`, lastError);
+    setImageStatus('Falha ao importar imagem. Você poderá fazer upload manual.');
+    return undefined;
   };
 
   const handleContentRewritten = (content: RewrittenContent) => {
@@ -126,45 +205,22 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
 
   const handleUseContent = async () => {
     if (rewrittenContent) {
+      setIsProcessingImage(true);
       console.log('🔄 Finalizando importação, verificando imagem VPS...');
       
       // Verificar se já temos uma URL do VPS do modo direto
       let vpsImageUrl = (rewrittenContent as any).vpsImageUrl;
       
-      // Se não temos, tentar migrar agora
-      if (!vpsImageUrl) {
-        try {
-          if (extractedContent?.mainImage) {
-            console.log('📥 Baixando imagem externa:', extractedContent.mainImage);
-            
-            const response = await fetch(extractedContent.mainImage);
-            if (!response.ok) {
-              throw new Error(`Falha ao baixar imagem: ${response.status}`);
-            }
-            
-            const blob = await response.blob();
-            console.log('✅ Imagem baixada, tamanho:', (blob.size / 1024).toFixed(2), 'KB');
-            
-            const file = new File([blob], `imported-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
-            console.log('📤 Enviando para VPS...');
-            
-            const vpsResult = await VPSImageService.uploadImage(file, 'article');
-            
-            if (vpsResult.success && vpsResult.url) {
-              vpsImageUrl = vpsResult.url;
-              console.log('✅ Upload VPS concluído:', vpsImageUrl);
-            } else {
-              console.error('❌ Falha no upload VPS:', vpsResult.error);
-            }
-          } else {
-            console.warn('⚠️ Nenhuma imagem principal encontrada no conteúdo extraído');
-          }
-        } catch (err) {
-          console.error('❌ Erro ao processar imagem externa:', err);
-          // Não usar a imagem externa se falhar o VPS
-        }
+      // Se não temos, tentar migrar agora com múltiplas tentativas
+      if (!vpsImageUrl && extractedContent?.mainImage) {
+        setImageStatus('Processando imagem...');
+        vpsImageUrl = await downloadAndUploadImage(extractedContent.mainImage, 'finalização');
+      } else if (!extractedContent?.mainImage) {
+        console.warn('⚠️ Nenhuma imagem principal encontrada no conteúdo extraído');
+        setImageStatus('Nenhuma imagem encontrada');
       } else {
         console.log('✅ Usando imagem VPS já migrada:', vpsImageUrl);
+        setImageStatus('Usando imagem já processada');
       }
 
       // IMPORTANTE: Sempre usar a imagem do VPS se disponível, caso contrário não usar imagem
@@ -174,6 +230,9 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
         hasVPSImage: !!vpsImageUrl,
         imageUrl: vpsImageUrl || 'nenhuma'
       });
+
+      setIsProcessingImage(false);
+      setImageStatus('');
 
       onImportComplete({
         rewrittenContent,
@@ -279,6 +338,18 @@ const ModularURLImporter: React.FC<ModularURLImporterProps> = ({ onImportComplet
       </Card>
 
       {/* Step Content */}
+      {isProcessingImage && imageStatus && (
+        <Card className="bg-gradient-card border-primary/30 p-6">
+          <div className="flex items-center space-x-3">
+            <RefreshCw className="h-5 w-5 text-primary animate-spin" />
+            <div>
+              <p className="font-semibold">Processando imagem</p>
+              <p className="text-sm text-muted-foreground">{imageStatus}</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {currentStep === 'extract' && (
         <ContentExtractorStep 
           onContentExtracted={handleContentExtracted}
