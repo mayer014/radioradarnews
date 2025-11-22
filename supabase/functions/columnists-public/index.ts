@@ -21,14 +21,35 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    console.log("columnists-public: Fetching columnists from profiles table");
+    console.log("columnists-public: Fetching columnist IDs from user_roles");
 
-    // Fetch only safe, public fields for ACTIVE columnists
-    // Join with user_roles to get role information
+    // First, get all user IDs with colunista role
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "colunista");
+
+    if (roleError) {
+      console.error("columnists-public: Error fetching roles:", roleError);
+      throw roleError;
+    }
+
+    if (!roleData || roleData.length === 0) {
+      console.log("columnists-public: No columnists found");
+      return new Response(
+        JSON.stringify({ success: true, columnists: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const columnistIds = roleData.map(r => r.user_id);
+    console.log("columnists-public: Found columnist IDs:", columnistIds);
+
+    // Then, fetch profiles for those user IDs
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, avatar, bio, specialty, allowed_categories, is_active, user_roles!inner(role)")
-      .eq("user_roles.role", "colunista")
+      .select("id, name, avatar, bio, specialty, allowed_categories, is_active")
+      .in("id", columnistIds)
       .eq("is_active", true)
       .order("name", { ascending: true });
 
