@@ -881,10 +881,45 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         console.log('🖼️ Tentando carregar imagem do artigo:', image);
         
         articleImage.onload = () => {
-          console.log('✅ Imagem do artigo carregada com sucesso');
-          articleImageLoaded = true;
-          articleImageSuccess = true;
-          checkIfReady();
+          console.log('✅ [DESKTOP] Imagem do artigo carregada:', {
+            naturalWidth: articleImage.naturalWidth,
+            naturalHeight: articleImage.naturalHeight,
+            complete: articleImage.complete,
+            src: image.substring(0, 100)
+          });
+          
+          // Verificar se a imagem tem dimensões válidas
+          if (articleImage.naturalWidth > 0 && articleImage.naturalHeight > 0) {
+            articleImageLoaded = true;
+            articleImageSuccess = true;
+            console.log('✅ [DESKTOP] Imagem válida confirmada');
+            checkIfReady();
+          } else {
+            console.error('❌ [DESKTOP] Imagem sem dimensões válidas!');
+            articleImageLoaded = true;
+            articleImageSuccess = false;
+            
+            // Tentar fallback
+            if (columnist) {
+              console.log('🔄 [DESKTOP] Carregando fallback para colunista');
+              const fallbackUrl = getCategoryFallbackImage(category);
+              fallbackImage.onload = () => {
+                console.log('✅ Fallback carregado');
+                fallbackImageLoaded = true;
+                fallbackImageSuccess = true;
+                checkIfReady();
+              };
+              fallbackImage.onerror = () => {
+                console.warn('⚠️ Falha ao carregar fallback');
+                fallbackImageLoaded = true;
+                fallbackImageSuccess = false;
+                checkIfReady();
+              };
+              fallbackImage.src = fallbackUrl;
+            } else {
+              checkIfReady();
+            }
+          }
         };
         
         articleImage.onerror = () => {
