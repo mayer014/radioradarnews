@@ -76,15 +76,18 @@ const getCategoryFallbackImage = (category: string): string => {
 };
 
 export const generateFeedImage = async ({ title, image, category, summary, columnist, source, sourceUrl }: ArticleData): Promise<Blob> => {
-  // Versão v6.0 - Auditoria completa para colunistas
-  console.log('🖼️ [v6.0] Iniciando geração com auditoria completa para colunistas:', category);
-  console.log('📊 Dados recebidos:', { title, image, category, summary, columnist });
-  console.log('🔍 Dados do colunista em detalhes:', {
+  // Versão v7.0 - Correção completa de CORS no mobile com proxy para avatares
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  console.log('🖼️ [v7.0] Iniciando geração de imagem para Feed');
+  console.log('📱 Ambiente:', isMobile ? 'Mobile' : 'Desktop');
+  console.log('📊 Dados recebidos:', { 
+    title: title.substring(0, 50), 
+    hasImage: !!image, 
+    imageUrl: image?.substring(0, 100),
+    category, 
     hasColumnist: !!columnist,
     columnistName: columnist?.name,
-    columnistAvatar: columnist?.avatar,
-    columnistBio: columnist?.bio,
-    columnistSpecialty: columnist?.specialty
+    columnistAvatar: columnist?.avatar?.substring(0, 100)
   });
   
   // AUDITORIA: Validar dados críticos para colunistas
@@ -102,6 +105,9 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     
     if (issues.length > 0) {
       console.warn('⚠️ [AUDITORIA] Problemas encontrados para colunista:', issues);
+      if (isMobile) {
+        console.log('📱 [MOBILE] Estes problemas podem causar falhas no carregamento. Usando fallbacks robustos.');
+      }
     } else {
       console.log('✅ [AUDITORIA] Dados do colunista completos');
     }
@@ -547,18 +553,39 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           ctx.stroke();
         } else {
           console.log('🔄 [COLUNISTA] Usando avatar de fallback para:', columnist.name);
-          // Avatar fallback
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+          // Avatar fallback com cor da categoria e iniciais
+          ctx.save();
+          
+          // Círculo de fundo com cor da categoria
+          ctx.fillStyle = categoryColor;
           ctx.beginPath();
           ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
           ctx.fill();
           
-          // Inicial do nome
+          // Borda do avatar
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+          ctx.stroke();
+          
+          // Iniciais do nome
+          const initials = columnist.name
+            .split(' ')
+            .filter(n => n.length > 0)
+            .map(n => n[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase();
+          
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 20px Arial, sans-serif';
+          ctx.font = 'bold 28px Arial, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(columnist.name[0]?.toUpperCase() || 'C', avatarX + avatarSize/2, avatarY + avatarSize/2);
+          ctx.fillText(initials, avatarX + avatarSize/2, avatarY + avatarSize/2 + 2);
+          
+          ctx.restore();
+          console.log('✅ Avatar fallback desenhado com iniciais:', initials);
         }
         
         // Nome do colunista
@@ -662,13 +689,16 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
 
     // Carregar imagem do artigo se necessário (com proteção CORS)
     if (image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'))) {
-      const isCorsFriendly = image.startsWith('/')
-        || image.includes(window.location.host)
-        || image.includes('supabase.co')
-        || image.includes('images.unsplash.com');
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // No celular, usar proxy para URLs externas (incluindo VPS e Supabase storage)
+      const needsProxy = isMobile && image.startsWith('http') && 
+        (!image.includes(window.location.host) || 
+         image.includes('media.radioradar.news') ||
+         image.includes('supabase.co/storage'));
 
-      if (!isCorsFriendly) {
-        console.warn('⚠️ Imagem externa potencialmente sem CORS. Tentando proxy seguro:', image);
+      if (needsProxy) {
+        console.log('📱 Mobile detectado - usando proxy para imagem:', image);
         const tryProxyFetch = async () => {
           try {
             const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
@@ -792,9 +822,11 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         
         articleImage.src = image;
         
+        // Timeout maior para mobile devido a conexões mais lentas
+        const imageTimeout = isMobile ? 6000 : 3000;
         setTimeout(() => {
           if (!articleImageLoaded) {
-            console.warn('⏰ Timeout no carregamento da imagem do artigo');
+            console.warn(`⏰ Timeout (${imageTimeout}ms) no carregamento da imagem do artigo`);
             articleImageLoaded = true;
             articleImageSuccess = false;
             
@@ -822,7 +854,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
               checkIfReady();
             }
           }
-        }, 3000);
+        }, imageTimeout);
       }
     } else {
       console.log('📷 Nenhuma imagem principal fornecida');
@@ -872,33 +904,92 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       }
     }
 
-    // Carregar avatar do colunista se necessário
+    // Carregar avatar do colunista se necessário (com proteção CORS via proxy)
     if (columnist?.avatar && (columnist.avatar.startsWith('http') || columnist.avatar.startsWith('data:') || columnist.avatar.startsWith('/'))) {
       console.log('🖼️ Tentando carregar avatar do colunista:', columnist.avatar);
       columnistAvatarImage.crossOrigin = 'anonymous';
       
-      columnistAvatarImage.onload = () => {
-        console.log('✅ Avatar do colunista carregado com sucesso');
-        columnistAvatarLoaded = true;
-        checkIfReady();
-      };
+      // Detectar se precisa de proxy (imagens externas ou Supabase storage)
+      const avatarNeedsProxy = columnist.avatar.startsWith('http') && 
+        (!columnist.avatar.includes(window.location.host) || 
+         columnist.avatar.includes('supabase.co/storage'));
       
-      columnistAvatarImage.onerror = (error) => {
-        console.warn('⚠️ Falha ao carregar avatar do colunista:', columnist.avatar);
-        columnistAvatarLoaded = true;
-        checkIfReady();
-      };
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      columnistAvatarImage.src = columnist.avatar;
-      
-      setTimeout(() => {
-        if (!columnistAvatarLoaded) {
-          console.warn('⏰ Timeout no carregamento do avatar do colunista');
+      // No celular, sempre usar proxy para URLs externas
+      if (avatarNeedsProxy && isMobile) {
+        console.log('📱 Mobile detectado - usando proxy para avatar:', columnist.avatar);
+        
+        const tryAvatarProxy = async () => {
+          try {
+            const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
+            const resp = await fetch(proxyUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: columnist.avatar })
+            });
+            
+            if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
+            const data = await resp.json();
+            
+            if (data?.success && data?.base64 && data?.mime_type?.startsWith('image/')) {
+              const dataUrl = `data:${data.mime_type};base64,${data.base64}`;
+              columnistAvatarImage.onload = () => {
+                console.log('✅ Avatar do colunista (proxy) carregado com sucesso');
+                columnistAvatarLoaded = true;
+                checkIfReady();
+              };
+              columnistAvatarImage.onerror = () => {
+                console.warn('⚠️ Falha ao carregar avatar via proxy');
+                columnistAvatarLoaded = true;
+                checkIfReady();
+              };
+              columnistAvatarImage.src = dataUrl;
+              
+              // Timeout maior para mobile
+              setTimeout(() => {
+                if (!columnistAvatarLoaded) {
+                  console.warn('⏰ Timeout no carregamento do avatar (proxy)');
+                  columnistAvatarLoaded = true;
+                  checkIfReady();
+                }
+              }, 5000);
+              return;
+            }
+            throw new Error('Proxy retornou payload inválido para avatar');
+          } catch (e) {
+            console.warn('⚠️ Proxy de avatar indisponível, usando fallback com iniciais', e);
+            columnistAvatarLoaded = true;
+            checkIfReady();
+          }
+        };
+        tryAvatarProxy();
+      } else {
+        // Desktop ou URL local - carregamento direto
+        columnistAvatarImage.onload = () => {
+          console.log('✅ Avatar do colunista carregado com sucesso');
           columnistAvatarLoaded = true;
           checkIfReady();
-        }
-      }, 3000);
+        };
+        
+        columnistAvatarImage.onerror = () => {
+          console.warn('⚠️ Falha ao carregar avatar do colunista:', columnist.avatar);
+          columnistAvatarLoaded = true;
+          checkIfReady();
+        };
+        
+        columnistAvatarImage.src = columnist.avatar;
+        
+        setTimeout(() => {
+          if (!columnistAvatarLoaded) {
+            console.warn('⏰ Timeout no carregamento do avatar do colunista');
+            columnistAvatarLoaded = true;
+            checkIfReady();
+          }
+        }, 3000);
+      }
     } else {
+      console.log('👤 Sem avatar do colunista ou URL inválida');
       columnistAvatarLoaded = true;
     }
   });
