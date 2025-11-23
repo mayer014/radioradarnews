@@ -1,5 +1,5 @@
-import React from 'react';
-import { Share2, Download, Copy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Share2, Download, Copy, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { generateFeedImage, generateCaption, downloadBlob } from '@/utils/shareHelpers';
+import { generateCaption } from '@/utils/shareHelpers';
+import { SharePreviewDialog } from './SharePreviewDialog';
 
 interface ShareMenuProps {
   title: string;
@@ -42,6 +43,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
   columnist
 }) => {
   const { toast } = useToast();
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleNativeShare = async () => {
     const shareData = {
@@ -84,62 +86,42 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
     }
   };
 
-  const handleDownloadImage = async () => {
-    try {
-      // Se houver colunista, buscar dados atualizados do perfil
-      let updatedColumnist = columnist;
-      
-      if (columnistId) {
-        try {
-          const { supabase } = await import('@/integrations/supabase/client');
-          
-          // Buscar perfil atualizado pelo ID
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('id, name, avatar, bio, specialty')
-            .eq('id', columnistId)
-            .eq('is_active', true)
-            .single();
+  const handleOpenPreview = async () => {
+    // Buscar dados atualizados do colunista se necessário
+    if (columnistId) {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('id, name, avatar, bio, specialty')
+          .eq('id', columnistId)
+          .eq('is_active', true)
+          .single();
 
-          if (!error && profileData) {
-            updatedColumnist = {
-              name: profileData.name,
-              specialty: profileData.specialty || 'Colunista do Portal RRN',
-              bio: profileData.bio || 'Colunista especializado em conteúdo informativo.',
-              avatar: profileData.avatar ? `${profileData.avatar}?v=${Date.now()}` : undefined
-            };
-            console.log('✅ Perfil do colunista atualizado para geração da arte:', updatedColumnist);
-          } else {
-            console.warn('⚠️ Não foi possível buscar perfil atualizado, usando dados do artigo');
-          }
-        } catch (error) {
-          console.warn('⚠️ Erro ao buscar perfil atualizado do colunista, usando dados do artigo:', error);
+        if (!error && profileData) {
+          // Atualizar dados do colunista para o preview
+          const updatedColumnist = {
+            name: profileData.name,
+            specialty: profileData.specialty || 'Colunista do Portal RRN',
+            bio: profileData.bio || 'Colunista especializado em conteúdo informativo.',
+            avatar: profileData.avatar ? `${profileData.avatar}?v=${Date.now()}` : undefined
+          };
+          
+          console.log('✅ Perfil do colunista atualizado para preview:', updatedColumnist);
+          
+          // Abrir preview com dados atualizados
+          setShowPreview(true);
+        } else {
+          console.warn('⚠️ Não foi possível buscar perfil atualizado');
+          setShowPreview(true);
         }
+      } catch (error) {
+        console.warn('⚠️ Erro ao buscar perfil:', error);
+        setShowPreview(true);
       }
-      
-      const imageBlob = await generateFeedImage({ 
-        title, 
-        image, 
-        category, 
-        columnist: updatedColumnist,
-        summary: excerpt,
-        source,
-        sourceUrl
-      });
-      const fileName = `portal-news-${title.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 30)}.jpg`;
-      downloadBlob(fileName, imageBlob);
-      
-      toast({
-        title: "Imagem baixada!",
-        description: "A imagem para Feed foi salva em seus downloads com dados atualizados.",
-      });
-    } catch (error) {
-      console.error('Erro ao baixar imagem:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível baixar a imagem.",
-        variant: "destructive",
-      });
+    } else {
+      setShowPreview(true);
     }
   };
 
@@ -156,42 +138,57 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="hover:bg-primary/10 hover:border-primary/50"
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          Compartilhar
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 z-50 bg-popover border-border shadow-lg">
-        <DropdownMenuItem onClick={handleNativeShare} className="cursor-pointer">
-          <Share2 className="w-4 h-4 mr-2" />
-          Compartilhar
-        </DropdownMenuItem>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleDownloadImage} className="cursor-pointer">
-          <Download className="w-4 h-4 mr-2" />
-          Baixar imagem para Feed
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem onClick={handleCopyCaption} className="cursor-pointer">
-          <Copy className="w-4 h-4 mr-2" />
-          Copiar legenda
-        </DropdownMenuItem>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
-          <Copy className="w-4 h-4 mr-2" />
-          Copiar link
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="hover:bg-primary/10 hover:border-primary/50"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Compartilhar
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-64 z-50 bg-popover border-border shadow-lg">
+          <DropdownMenuItem onClick={handleNativeShare} className="cursor-pointer">
+            <Share2 className="w-4 h-4 mr-2" />
+            Compartilhar
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={handleOpenPreview} className="cursor-pointer">
+            <Eye className="w-4 h-4 mr-2" />
+            Gerar arte para Feed
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={handleCopyCaption} className="cursor-pointer">
+            <Copy className="w-4 h-4 mr-2" />
+            Copiar legenda
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
+            <Copy className="w-4 h-4 mr-2" />
+            Copiar link
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <SharePreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        title={title}
+        excerpt={excerpt}
+        image={image}
+        category={category}
+        author={author}
+        source={source}
+        sourceUrl={sourceUrl}
+        columnist={columnist}
+      />
+    </>
   );
 };
