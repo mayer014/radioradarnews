@@ -279,6 +279,7 @@ const ArticlePage = () => {
                 author={article.columnist_name}
                 source={article.source_domain}
                 sourceUrl={article.source_url}
+                columnistId={article.columnist_id || undefined}
                 columnist={article.columnist_id ? {
                   name: columnistProfile?.name || article.columnist_name || '',
                   specialty: columnistProfile?.specialty || article.columnist_specialty || 'Colunista do Portal RRN',
