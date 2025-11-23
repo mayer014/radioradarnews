@@ -51,6 +51,7 @@ const formatArticleContent = (content: string): string => {
 const ColumnistArticlePage = () => {
   const { id } = useParams<{ id: string }>();
   const { getArticleById, incrementViews, getArticlesByColumnist } = useSupabaseNews();
+  const [columnistProfile, setColumnistProfile] = React.useState<any>(null);
   
   // Params: { id }
   
@@ -58,6 +59,28 @@ const ColumnistArticlePage = () => {
   // Article found
   
   const relatedArticles = article?.columnist_id ? getArticlesByColumnist(article.columnist_id).filter(a => a.id !== article.id) : [];
+  
+  // Load columnist profile from Supabase to get updated data
+  React.useEffect(() => {
+    const loadColumnistProfile = async () => {
+      if (article?.columnist_id) {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data, error } = await supabase.rpc('get_columnist_info', { 
+            columnist_id: article.columnist_id 
+          });
+
+          if (!error && data && data.length > 0) {
+            setColumnistProfile(data[0]);
+          }
+        } catch (error) {
+          console.error('Error loading columnist profile:', error);
+        }
+      }
+    };
+
+    loadColumnistProfile();
+  }, [article?.columnist_id]);
   
   // Incrementar visualizações quando o artigo for encontrado
   React.useEffect(() => {
@@ -212,14 +235,12 @@ const ColumnistArticlePage = () => {
               category={article.category}
               author={article.columnist_name}
               columnist={article.columnist_name ? {
-                name: article.columnist_name,
-                specialty: article.columnist_specialty || 'Colunista do Portal RRN',
-                bio: article.columnist_bio || 'Colunista especializado em conteúdo informativo.',
-                avatar: article.columnist_avatar ? 
-                  (article._profile_updated_at ? 
-                    `${article.columnist_avatar}?v=${new Date(article._profile_updated_at).getTime()}` : 
-                    article.columnist_avatar
-                  ) : undefined,
+                name: columnistProfile?.name || article.columnist_name,
+                specialty: columnistProfile?.specialty || article.columnist_specialty || 'Colunista do Portal RRN',
+                bio: columnistProfile?.bio || article.columnist_bio || 'Colunista especializado em conteúdo informativo.',
+                avatar: (columnistProfile?.avatar || article.columnist_avatar)
+                  ? `${(columnistProfile?.avatar || article.columnist_avatar)}${article._profile_updated_at ? `?v=${new Date(article._profile_updated_at).getTime()}` : ''}`
+                  : undefined,
               } : undefined}
             />
           </div>

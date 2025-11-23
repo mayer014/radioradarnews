@@ -537,19 +537,51 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         ctx.font = '14px Arial, sans-serif';
         ctx.fillText(columnist.specialty, infoX, infoY + 22);
         
-        // Bio (limitada)
+        // Bio (múltiplas linhas para usar mais espaço)
         {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          ctx.font = '12px Arial, sans-serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.font = '13px Arial, sans-serif';
           const bioText = columnist.bio && columnist.bio.trim().length > 0 
             ? columnist.bio 
             : 'Colunista do Portal RRN';
-          const limitedBio = bioText.length > 60 ? bioText.substring(0, 57) + '...' : bioText;
-          ctx.fillText(limitedBio, infoX, infoY + 40);
+          
+          // Quebrar texto da bio em múltiplas linhas
+          const bioMaxWidth = canvas.width - infoX - 40; // Usar mais largura disponível
+          const bioLineHeight = 18;
+          const bioWords = bioText.split(' ');
+          const bioLines: string[] = [];
+          let currentBioLine = '';
+          
+          for (const word of bioWords) {
+            const testLine = currentBioLine + (currentBioLine ? ' ' : '') + word;
+            const metrics = ctx.measureText(testLine);
+            
+            if (metrics.width > bioMaxWidth && currentBioLine) {
+              bioLines.push(currentBioLine);
+              currentBioLine = word;
+            } else {
+              currentBioLine = testLine;
+            }
+          }
+          
+          if (currentBioLine) {
+            bioLines.push(currentBioLine);
+          }
+          
+          // Mostrar até 4 linhas da bio
+          const bioDisplayLines = bioLines.slice(0, 4);
+          if (bioLines.length > 4) {
+            bioDisplayLines[3] = bioDisplayLines[3].substring(0, bioDisplayLines[3].length - 3) + '...';
+          }
+          
+          // Desenhar linhas da bio
+          bioDisplayLines.forEach((line, index) => {
+            ctx.fillText(line, infoX, infoY + 40 + (index * bioLineHeight));
+          });
         }
         
-        // Altura da seção do colunista sem o label
-        columnistSectionHeight = profileHeight + 20; // 20 (espaçamento)
+        // Altura da seção do colunista sem o label (aumentada para acomodar bio maior)
+        columnistSectionHeight = profileHeight + 80; // Aumentado para acomodar até 4 linhas de bio
         console.log('✅ Perfil do colunista renderizado com sucesso');
         } catch (error) {
           console.error('❌ Erro ao renderizar perfil do colunista:', error);
