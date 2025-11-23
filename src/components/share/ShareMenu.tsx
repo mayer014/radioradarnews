@@ -86,43 +86,8 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
     }
   };
 
-  const handleOpenPreview = async () => {
-    // Buscar dados atualizados do colunista se necessário
-    if (columnistId) {
-      try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('id, name, avatar, bio, specialty')
-          .eq('id', columnistId)
-          .eq('is_active', true)
-          .single();
-
-        if (!error && profileData) {
-          // Atualizar dados do colunista para o preview
-          const updatedColumnist = {
-            name: profileData.name,
-            specialty: profileData.specialty || 'Colunista do Portal RRN',
-            bio: profileData.bio || 'Colunista especializado em conteúdo informativo.',
-            avatar: profileData.avatar ? `${profileData.avatar}?v=${Date.now()}` : undefined
-          };
-          
-          console.log('✅ Perfil do colunista atualizado para preview:', updatedColumnist);
-          
-          // Abrir preview com dados atualizados
-          setShowPreview(true);
-        } else {
-          console.warn('⚠️ Não foi possível buscar perfil atualizado');
-          setShowPreview(true);
-        }
-      } catch (error) {
-        console.warn('⚠️ Erro ao buscar perfil:', error);
-        setShowPreview(true);
-      }
-    } else {
-      setShowPreview(true);
-    }
+  const handleOpenPreview = () => {
+    setShowPreview(true);
   };
 
   const handleCopyLink = async () => {
@@ -187,6 +152,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
         author={author}
         source={source}
         sourceUrl={sourceUrl}
+        columnistId={columnistId}
         columnist={columnist}
       />
     </>

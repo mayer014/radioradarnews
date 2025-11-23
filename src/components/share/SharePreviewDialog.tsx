@@ -16,6 +16,7 @@ interface SharePreviewDialogProps {
   author?: string;
   source?: string;
   sourceUrl?: string;
+  columnistId?: string;
   columnist?: {
     name: string;
     specialty: string;
@@ -42,6 +43,7 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
   author,
   source,
   sourceUrl,
+  columnistId,
   columnist
 }) => {
   const { toast } = useToast();
@@ -50,10 +52,14 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
   const [currentBlob, setCurrentBlob] = useState<Blob | null>(null);
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
+  const [updatedColumnist, setUpdatedColumnist] = useState(columnist);
 
   useEffect(() => {
     if (open) {
-      generatePreview();
+      // Buscar dados atualizados e então gerar preview
+      fetchUpdatedData().then(() => {
+        generatePreview();
+      });
     } else {
       // Cleanup ao fechar
       if (previewUrl) {
@@ -63,12 +69,71 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
       setCurrentBlob(null);
       setDiagnostic(null);
       setAttemptCount(0);
+      setUpdatedColumnist(columnist);
     }
   }, [open]);
+
+  const fetchUpdatedData = async () => {
+    if (!columnist && !columnistId) return;
+    
+    try {
+      console.log('🔄 [PREVIEW] Buscando dados atualizados do perfil...');
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Buscar por ID se disponível, senão por nome
+      let query = supabase
+        .from('profiles')
+        .select('id, name, avatar, bio, specialty')
+        .eq('is_active', true);
+      
+      if (columnistId) {
+        query = query.eq('id', columnistId);
+        console.log('🔍 [PREVIEW] Buscando por ID:', columnistId);
+      } else if (columnist?.name) {
+        query = query.eq('name', columnist.name);
+        console.log('🔍 [PREVIEW] Buscando por nome:', columnist.name);
+      }
+      
+      const { data: profileData, error } = await query.single();
+
+      if (!error && profileData) {
+        const fresh = {
+          name: profileData.name,
+          specialty: profileData.specialty || 'Colunista do Portal RRN',
+          bio: profileData.bio || 'Colunista especializado em conteúdo informativo.',
+          avatar: profileData.avatar ? `${profileData.avatar}?v=${Date.now()}` : undefined
+        };
+        
+        setUpdatedColumnist(fresh);
+        console.log('✅ [PREVIEW] Dados atualizados do banco:', {
+          name: fresh.name,
+          bioLength: fresh.bio.length,
+          bioPreview: fresh.bio.substring(0, 100),
+          hasAvatar: !!fresh.avatar,
+          avatarUrl: fresh.avatar?.substring(0, 100)
+        });
+      } else {
+        console.warn('⚠️ [PREVIEW] Não foi possível buscar dados atualizados, usando props');
+        setUpdatedColumnist(columnist);
+      }
+    } catch (error) {
+      console.error('❌ [PREVIEW] Erro ao buscar dados:', error);
+      setUpdatedColumnist(columnist);
+    }
+  };
 
   const runDiagnostic = (): DiagnosticResult => {
     const issues: string[] = [];
     const warnings: string[] = [];
+    
+    const currentColumnist = updatedColumnist || columnist;
+    
+    console.log('🔍 [DIAGNOSTIC] Verificando dados:', {
+      image: image?.substring(0, 100),
+      columnistName: currentColumnist?.name,
+      columnistBioLength: currentColumnist?.bio?.length,
+      columnistAvatar: currentColumnist?.avatar?.substring(0, 100)
+    });
     
     // Verificar imagem do artigo
     const hasArticleImage = !!(image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/')));
@@ -82,21 +147,21 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
     let hasColumnistAvatar = true;
     let hasColumnistInfo = true;
     
-    if (columnist) {
-      hasColumnistAvatar = !!(columnist.avatar && columnist.avatar.length > 0);
-      hasColumnistInfo = !!(columnist.name && columnist.bio && columnist.specialty);
+    if (currentColumnist) {
+      hasColumnistAvatar = !!(currentColumnist.avatar && currentColumnist.avatar.length > 0);
+      hasColumnistInfo = !!(currentColumnist.name && currentColumnist.bio && currentColumnist.specialty);
       
       if (!hasColumnistAvatar) {
         warnings.push('Avatar do colunista não disponível - usando iniciais');
       }
       
-      if (!columnist.name) {
+      if (!currentColumnist.name) {
         issues.push('Nome do colunista ausente');
       }
-      if (!columnist.bio || columnist.bio.trim().length < 10) {
+      if (!currentColumnist.bio || currentColumnist.bio.trim().length < 10) {
         warnings.push('Biografia do colunista muito curta ou ausente');
       }
-      if (!columnist.specialty) {
+      if (!currentColumnist.specialty) {
         warnings.push('Especialidade do colunista ausente');
       }
     }
@@ -115,20 +180,30 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
     setAttemptCount(prev => prev + 1);
 
     try {
-      console.log(`🔍 [PREVIEW] Iniciando geração (tentativa ${attemptCount + 1})`);
+      const currentAttempt = attemptCount + 1;
+      console.log(`🔍 [PREVIEW] Iniciando geração (tentativa ${currentAttempt})`);
       
       // Executar diagnóstico antes de gerar
       const diagnosticResult = runDiagnostic();
       setDiagnostic(diagnosticResult);
       
       console.log('📊 [PREVIEW] Diagnóstico:', diagnosticResult);
+      
+      const currentColumnist = updatedColumnist || columnist;
+      console.log('📝 [PREVIEW] Usando dados do colunista:', {
+        name: currentColumnist?.name,
+        bioPreview: currentColumnist?.bio?.substring(0, 50),
+        specialty: currentColumnist?.specialty,
+        hasAvatar: !!currentColumnist?.avatar,
+        avatarUrl: currentColumnist?.avatar?.substring(0, 100)
+      });
 
-      // Gerar imagem
+      // Gerar imagem com dados atualizados
       const blob = await generateFeedImage({
         title,
         image,
         category,
-        columnist,
+        columnist: currentColumnist,
         summary: excerpt,
         source,
         sourceUrl
@@ -193,7 +268,7 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
     onOpenChange(false);
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     if (attemptCount >= 5) {
       toast({
         title: "Limite de tentativas",
@@ -202,7 +277,15 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
       });
       return;
     }
-    generatePreview();
+    
+    // Buscar dados frescos antes de regenerar
+    console.log('🔄 [PREVIEW] Buscando dados atualizados antes de regenerar...');
+    await fetchUpdatedData();
+    
+    // Aguardar um pouco para garantir que os dados foram atualizados
+    setTimeout(() => {
+      generatePreview();
+    }, 500);
   };
 
   return (
@@ -229,6 +312,16 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
           {/* Diagnóstico */}
           {diagnostic && (
             <div className="space-y-2">
+              {/* Informações sobre dados atuais */}
+              {updatedColumnist && (
+                <div className="text-xs bg-muted p-2 rounded space-y-1">
+                  <div><strong>Nome:</strong> {updatedColumnist.name}</div>
+                  <div><strong>Especialidade:</strong> {updatedColumnist.specialty}</div>
+                  <div><strong>Bio:</strong> {updatedColumnist.bio?.substring(0, 80)}...</div>
+                  <div><strong>Avatar:</strong> {updatedColumnist.avatar ? '✓ Disponível' : '✗ Não disponível'}</div>
+                </div>
+              )}
+              
               {/* Itens OK */}
               <div className="space-y-1">
                 {diagnostic.hasArticleImage && (
