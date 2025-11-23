@@ -751,14 +751,15 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     if (image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'))) {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // No celular, usar proxy para URLs externas (incluindo VPS e Supabase storage)
-      const needsProxy = isMobile && image.startsWith('http') && 
-        (!image.includes(window.location.host) || 
-         image.includes('media.radioradar.news') ||
-         image.includes('supabase.co/storage'));
+      // Usar proxy para URLs externas, VPS e Supabase storage (em qualquer dispositivo)
+      // VPS precisa de proxy por causa de CORS mesmo em desktop
+      const needsProxy = image.startsWith('http') && 
+        (image.includes('media.radioradar.news') ||
+         image.includes('supabase.co/storage') ||
+         (isMobile && !image.includes(window.location.host)));
 
       if (needsProxy) {
-        console.log('📱 Mobile detectado - usando proxy para imagem:', image);
+        console.log('🔒 [CORS] Usando proxy para contornar CORS:', image.substring(0, 100));
         const tryProxyFetch = async () => {
           try {
             const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
@@ -899,26 +900,22 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
             articleImageLoaded = true;
             articleImageSuccess = false;
             
-            // Tentar fallback
-            if (columnist) {
-              console.log('🔄 [DESKTOP] Carregando fallback para colunista');
-              const fallbackUrl = getCategoryFallbackImage(category);
-              fallbackImage.onload = () => {
-                console.log('✅ Fallback carregado');
-                fallbackImageLoaded = true;
-                fallbackImageSuccess = true;
-                checkIfReady();
-              };
-              fallbackImage.onerror = () => {
-                console.warn('⚠️ Falha ao carregar fallback');
-                fallbackImageLoaded = true;
-                fallbackImageSuccess = false;
-                checkIfReady();
-              };
-              fallbackImage.src = fallbackUrl;
-            } else {
+            // SEMPRE tentar fallback quando dimensões inválidas
+            console.log('🔄 [DESKTOP] Carregando fallback por dimensões inválidas');
+            const fallbackUrl = getCategoryFallbackImage(category);
+            fallbackImage.onload = () => {
+              console.log('✅ Fallback carregado');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = true;
               checkIfReady();
-            }
+            };
+            fallbackImage.onerror = () => {
+              console.warn('⚠️ Falha ao carregar fallback');
+              fallbackImageLoaded = true;
+              fallbackImageSuccess = false;
+              checkIfReady();
+            };
+            fallbackImage.src = fallbackUrl;
           }
         };
         
