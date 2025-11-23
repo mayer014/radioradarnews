@@ -53,6 +53,7 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
   const [updatedColumnist, setUpdatedColumnist] = useState(columnist);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -175,6 +176,7 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
   const generatePreview = async () => {
     setIsGenerating(true);
     setAttemptCount(prev => prev + 1);
+    setPreviewError(null);
 
     try {
       const currentAttempt = attemptCount + 1;
@@ -206,32 +208,58 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
         sourceUrl
       });
 
-      // Converter Blob para Data URL (funciona em produção/mobile)
-      const reader = new FileReader();
-      const dataUrlPromise = new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          if (reader.result && typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            reject(new Error('Falha ao converter blob para data URL'));
-          }
-        };
-        reader.onerror = reject;
-      });
-      
-      reader.readAsDataURL(blob);
-      const dataUrl = await dataUrlPromise;
-      
-      console.log('✅ [PREVIEW] Blob convertido para Data URL:', {
+      console.log('🖼️ [PREVIEW] Blob gerado:', {
         size: blob.size,
         type: blob.type,
-        dataUrlLength: dataUrl.length
+        sizeMB: (blob.size / 1024 / 1024).toFixed(2)
+      });
+
+      // Criar preview comprimido usando canvas para evitar problemas com Data URLs grandes
+      const img = new Image();
+      const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(new Error('Falha ao carregar imagem: ' + e));
       });
       
-      setPreviewUrl(dataUrl);
+      img.src = URL.createObjectURL(blob);
+      await imageLoadPromise;
+      
+      console.log('✅ [PREVIEW] Imagem carregada do blob, criando preview...');
+      
+      // Criar canvas com tamanho reduzido para preview (max 800px)
+      const maxSize = 800;
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const previewWidth = img.width * scale;
+      const previewHeight = img.height * scale;
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = previewWidth;
+      canvas.height = previewHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Falha ao criar contexto canvas');
+      }
+      
+      ctx.drawImage(img, 0, 0, previewWidth, previewHeight);
+      
+      // Converter canvas para Data URL com qualidade reduzida
+      const previewDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      
+      // Limpar objeto URL
+      URL.revokeObjectURL(img.src);
+      
+      console.log('✅ [PREVIEW] Preview criado:', {
+        originalSize: blob.size,
+        previewSize: previewDataUrl.length,
+        previewDimensions: `${previewWidth}x${previewHeight}`,
+        compression: ((1 - previewDataUrl.length / blob.size) * 100).toFixed(1) + '%'
+      });
+      
+      setPreviewUrl(previewDataUrl);
       setCurrentBlob(blob);
       
-      console.log('✅ [PREVIEW] Imagem gerada com sucesso');
+      console.log('✅ [PREVIEW] Preview configurado com sucesso');
       
       if (diagnosticResult.issues.length === 0) {
         toast({
@@ -248,9 +276,12 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
       
     } catch (error) {
       console.error('❌ [PREVIEW] Erro ao gerar preview:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setPreviewError(errorMessage);
+      
       toast({
         title: "Erro ao gerar preview",
-        description: "Tente novamente ou verifique os dados do artigo.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -399,11 +430,26 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
                   </p>
                 </div>
               </div>
+            ) : previewError ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
+                <AlertCircle className="w-12 h-12 text-destructive" />
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-destructive">Erro ao gerar preview</p>
+                  <p className="text-xs text-muted-foreground">{previewError}</p>
+                </div>
+              </div>
             ) : previewUrl ? (
               <img
                 src={previewUrl}
                 alt="Preview da arte para feed"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error('❌ [PREVIEW] Erro ao carregar imagem no <img>:', e);
+                  setPreviewError('Falha ao exibir preview. Tente regenerar.');
+                }}
+                onLoad={() => {
+                  console.log('✅ [PREVIEW] Imagem carregada com sucesso no <img>');
+                }}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
