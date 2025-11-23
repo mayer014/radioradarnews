@@ -61,10 +61,7 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
         generatePreview();
       });
     } else {
-      // Cleanup ao fechar
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      // Cleanup ao fechar (não precisa revogar Data URLs)
       setPreviewUrl(null);
       setCurrentBlob(null);
       setDiagnostic(null);
@@ -209,15 +206,29 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
         sourceUrl
       });
 
-      // Criar URL para preview
-      const url = URL.createObjectURL(blob);
+      // Converter Blob para Data URL (funciona em produção/mobile)
+      const reader = new FileReader();
+      const dataUrlPromise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          if (reader.result && typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Falha ao converter blob para data URL'));
+          }
+        };
+        reader.onerror = reject;
+      });
       
-      // Limpar preview anterior
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      reader.readAsDataURL(blob);
+      const dataUrl = await dataUrlPromise;
       
-      setPreviewUrl(url);
+      console.log('✅ [PREVIEW] Blob convertido para Data URL:', {
+        size: blob.size,
+        type: blob.type,
+        dataUrlLength: dataUrl.length
+      });
+      
+      setPreviewUrl(dataUrl);
       setCurrentBlob(blob);
       
       console.log('✅ [PREVIEW] Imagem gerada com sucesso');
