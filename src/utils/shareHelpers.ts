@@ -224,39 +224,82 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       
       let imageToUse = null;
       
+      // Log detalhado do estado das imagens
+      console.log('🔍 [DEBUG] Estado das imagens antes de desenhar:', {
+        articleImageLoaded,
+        articleImageSuccess,
+        articleImageComplete: articleImage.complete,
+        articleImageNaturalWidth: articleImage.naturalWidth,
+        articleImageNaturalHeight: articleImage.naturalHeight,
+        articleImageSrc: articleImage.src?.substring(0, 100),
+        fallbackImageLoaded,
+        fallbackImageSuccess,
+        fallbackImageComplete: fallbackImage.complete,
+        hasColumnist: !!columnist
+      });
+      
       // Para colunistas, sempre garantir que temos uma imagem
       if (columnist) {
         console.log('🎨 [COLUNISTA] Processando imagem para colunista:', columnist.name);
         
-        if (articleImageSuccess && articleImage.complete) {
+        // Verificar se a imagem do artigo está realmente disponível
+        const articleImageReady = articleImageSuccess && 
+                                   articleImage.complete && 
+                                   articleImage.naturalWidth > 0 && 
+                                   articleImage.naturalHeight > 0;
+        
+        const fallbackImageReady = fallbackImageSuccess && 
+                                    fallbackImage.complete && 
+                                    fallbackImage.naturalWidth > 0 && 
+                                    fallbackImage.naturalHeight > 0;
+        
+        console.log('🔍 [COLUNISTA] Imagens disponíveis:', {
+          articleImageReady,
+          articleImageDimensions: articleImageReady ? `${articleImage.naturalWidth}x${articleImage.naturalHeight}` : 'N/A',
+          fallbackImageReady,
+          fallbackImageDimensions: fallbackImageReady ? `${fallbackImage.naturalWidth}x${fallbackImage.naturalHeight}` : 'N/A'
+        });
+        
+        if (articleImageReady) {
           imageToUse = articleImage;
           console.log('✅ [COLUNISTA] Usando imagem original do artigo');
-        } else if (fallbackImageSuccess && fallbackImage.complete) {
+        } else if (fallbackImageReady) {
           imageToUse = fallbackImage;
           console.log('✅ [COLUNISTA] Usando imagem fallback de categoria');
-        } else if (!fallbackImageLoaded) {
-          // Último recurso: tentar carregar fallback sincronamente
-          console.log('🔄 [COLUNISTA] Tentativa de último recurso para fallback');
-          const emergencyFallback = new Image();
-          emergencyFallback.crossOrigin = 'anonymous';
-          emergencyFallback.src = getCategoryFallbackImage(category);
+        } else {
+          // Último recurso: carregar fallback imediatamente
+          console.warn('⚠️ [COLUNISTA] Nenhuma imagem disponível, carregando fallback de emergência');
+          const fallbackUrl = getCategoryFallbackImage(category);
+          fallbackImage.crossOrigin = 'anonymous';
+          fallbackImage.src = fallbackUrl;
           
-          // Para colunistas, nunca deixar sem imagem
-          if (!imageToUse) {
-            console.warn('⚠️ [COLUNISTA] CRÍTICO: Tentando último fallback genérico');
-            const genericFallback = new Image();
-            genericFallback.crossOrigin = 'anonymous';
-            genericFallback.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&h=600&fit=crop&q=80';
-            imageToUse = genericFallback;
+          // Aguardar o carregamento do fallback (síncrono, mas necessário)
+          if (fallbackImage.complete && fallbackImage.naturalWidth > 0) {
+            imageToUse = fallbackImage;
+            console.log('✅ [COLUNISTA] Fallback de emergência carregado');
+          } else {
+            console.error('❌ [COLUNISTA] CRÍTICO: Não foi possível carregar nenhuma imagem!');
           }
         }
         
         if (!imageToUse) {
-          console.error('❌ [COLUNISTA] ERRO CRÍTICO: Nenhuma imagem disponível para colunista!');
+          console.error('❌ [COLUNISTA] ERRO CRÍTICO: Nenhuma imagem disponível para colunista!', {
+            articleImageSrc: articleImage.src,
+            articleImageComplete: articleImage.complete,
+            articleImageNaturalWidth: articleImage.naturalWidth,
+            fallbackImageSrc: fallbackImage.src,
+            fallbackImageComplete: fallbackImage.complete,
+            fallbackImageNaturalWidth: fallbackImage.naturalWidth
+          });
         }
       } else {
         // Para não-colunistas, comportamento normal
-        if (articleImageLoaded && articleImage.complete && articleImageSuccess) {
+        const articleImageReady = articleImageLoaded && 
+                                   articleImage.complete && 
+                                   articleImageSuccess &&
+                                   articleImage.naturalWidth > 0;
+        
+        if (articleImageReady) {
           imageToUse = articleImage;
           console.log('✅ Usando imagem original do artigo para não-colunista');
         }
@@ -275,6 +318,13 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       }
       
       if (imageToUse) {
+        console.log('✅ [DRAW] Iniciando desenho da imagem:', {
+          src: imageToUse.src?.substring(0, 100),
+          naturalWidth: imageToUse.naturalWidth,
+          naturalHeight: imageToUse.naturalHeight,
+          complete: imageToUse.complete
+        });
+        
         const imgAspect = imageToUse.naturalWidth / imageToUse.naturalHeight;
         const containerAspect = (canvas.width - 160) / imageHeight;
         
@@ -292,17 +342,27 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           drawY = imageY;
         }
         
+        console.log('📐 [DRAW] Dimensões de desenho:', {
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight,
+          imgAspect,
+          containerAspect
+        });
+        
         ctx.save();
         ctx.beginPath();
         ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 20);
         ctx.clip();
         ctx.drawImage(imageToUse, drawX, drawY, drawWidth, drawHeight);
         ctx.restore();
-        console.log('✅ Imagem posicionada com sucesso');
+        console.log('✅ [DRAW] Imagem desenhada com sucesso no canvas');
       } else if (columnist) {
         console.error('❌ [COLUNISTA] CRÍTICO: Nenhuma imagem renderizada para colunista!', {
           articleId: title.substring(0, 50),
-          columnistName: columnist.name
+          columnistName: columnist.name,
+          imageUrl: image?.substring(0, 100)
         });
       }
 
@@ -702,23 +762,65 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         const tryProxyFetch = async () => {
           try {
             const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
+            console.log('🔄 [PROXY] Iniciando requisição ao proxy...');
+            
             const resp = await fetch(proxyUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: image })
             });
+            
+            console.log(`📡 [PROXY] Resposta recebida - Status: ${resp.status}`);
+            
             if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
             const data = await resp.json();
+            
+            console.log('📦 [PROXY] Dados recebidos:', {
+              success: data?.success,
+              hasBase64: !!data?.base64,
+              base64Length: data?.base64?.length,
+              mimeType: data?.mime_type
+            });
+            
             if (data?.success && data?.base64 && data?.mime_type?.startsWith('image/')) {
               const dataUrl = `data:${data.mime_type};base64,${data.base64}`;
+              console.log('🖼️ [PROXY] DataURL criada, tamanho:', dataUrl.length);
+              
               articleImage.onload = () => {
-                console.log('✅ Imagem do artigo (proxy) carregada com sucesso');
-                articleImageLoaded = true;
-                articleImageSuccess = true;
-                checkIfReady();
+                console.log('✅ [PROXY] Imagem do artigo (proxy) carregada com sucesso:', {
+                  naturalWidth: articleImage.naturalWidth,
+                  naturalHeight: articleImage.naturalHeight,
+                  complete: articleImage.complete
+                });
+                
+                // Verificar se a imagem tem dimensões válidas
+                if (articleImage.naturalWidth > 0 && articleImage.naturalHeight > 0) {
+                  articleImageLoaded = true;
+                  articleImageSuccess = true;
+                  checkIfReady();
+                } else {
+                  console.error('❌ [PROXY] Imagem sem dimensões válidas!');
+                  articleImageLoaded = true;
+                  articleImageSuccess = false;
+                  // Tentar fallback
+                  const fallbackUrl = getCategoryFallbackImage(category);
+                  fallbackImage.onload = () => {
+                    console.log('✅ Imagem fallback carregada');
+                    fallbackImageLoaded = true;
+                    fallbackImageSuccess = true;
+                    checkIfReady();
+                  };
+                  fallbackImage.onerror = () => {
+                    console.warn('⚠️ Falha ao carregar fallback');
+                    fallbackImageLoaded = true;
+                    fallbackImageSuccess = false;
+                    checkIfReady();
+                  };
+                  fallbackImage.src = fallbackUrl;
+                }
               };
-              articleImage.onerror = () => {
-                console.warn('⚠️ Falha ao carregar imagem via proxy, aplicando fallback');
+              articleImage.onerror = (err) => {
+                console.error('❌ [PROXY] Falha ao carregar dataURL da imagem via proxy:', err);
                 articleImageLoaded = true;
                 articleImageSuccess = false;
                 // Tentar fallback por categoria em qualquer modo
@@ -737,12 +839,25 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
                 };
                 fallbackImage.src = fallbackUrl;
               };
+              
+              console.log('🔄 [PROXY] Setando src da imagem com dataURL...');
               articleImage.src = dataUrl;
+              
+              // Timeout de segurança
+              setTimeout(() => {
+                if (!articleImageLoaded) {
+                  console.warn('⏰ [PROXY] Timeout no carregamento da dataURL');
+                  articleImageLoaded = true;
+                  articleImageSuccess = false;
+                  checkIfReady();
+                }
+              }, 8000);
+              
               return;
             }
             throw new Error('Proxy retornou payload inválido');
           } catch (e) {
-            console.warn('⚠️ Proxy indisponível/erro, aplicando fallback direto', e);
+            console.error('❌ [PROXY] Proxy indisponível/erro:', e);
             articleImageLoaded = true;
             articleImageSuccess = false;
             const fallbackUrl = getCategoryFallbackImage(category);
