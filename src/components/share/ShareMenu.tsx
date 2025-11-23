@@ -20,6 +20,7 @@ interface ShareMenuProps {
   author?: string;
   source?: string;
   sourceUrl?: string;
+  columnistId?: string; // ID do colunista para buscar dados atualizados
   columnist?: {
     name: string;
     specialty: string;
@@ -37,6 +38,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
   author,
   source,
   sourceUrl,
+  columnistId,
   columnist
 }) => {
   const { toast } = useToast();
@@ -84,11 +86,42 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
 
   const handleDownloadImage = async () => {
     try {
+      // Se houver colunista, buscar dados atualizados do perfil
+      let updatedColumnist = columnist;
+      
+      if (columnistId) {
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          
+          // Buscar perfil atualizado pelo ID
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select('id, name, avatar, bio, specialty')
+            .eq('id', columnistId)
+            .eq('is_active', true)
+            .single();
+
+          if (!error && profileData) {
+            updatedColumnist = {
+              name: profileData.name,
+              specialty: profileData.specialty || 'Colunista do Portal RRN',
+              bio: profileData.bio || 'Colunista especializado em conteúdo informativo.',
+              avatar: profileData.avatar ? `${profileData.avatar}?v=${Date.now()}` : undefined
+            };
+            console.log('✅ Perfil do colunista atualizado para geração da arte:', updatedColumnist);
+          } else {
+            console.warn('⚠️ Não foi possível buscar perfil atualizado, usando dados do artigo');
+          }
+        } catch (error) {
+          console.warn('⚠️ Erro ao buscar perfil atualizado do colunista, usando dados do artigo:', error);
+        }
+      }
+      
       const imageBlob = await generateFeedImage({ 
         title, 
         image, 
         category, 
-        columnist,
+        columnist: updatedColumnist,
         summary: excerpt,
         source,
         sourceUrl
@@ -98,7 +131,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
       
       toast({
         title: "Imagem baixada!",
-        description: "A imagem para Feed foi salva em seus downloads.",
+        description: "A imagem para Feed foi salva em seus downloads com dados atualizados.",
       });
     } catch (error) {
       console.error('Erro ao baixar imagem:', error);

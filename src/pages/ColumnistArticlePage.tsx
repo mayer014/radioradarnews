@@ -234,6 +234,7 @@ const ColumnistArticlePage = () => {
               image={article.featured_image}
               category={article.category}
               author={article.columnist_name}
+              columnistId={article.columnist_id || undefined}
               columnist={article.columnist_name ? {
                 name: columnistProfile?.name || article.columnist_name,
                 specialty: columnistProfile?.specialty || article.columnist_specialty || 'Colunista do Portal RRN',
