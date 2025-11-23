@@ -84,7 +84,7 @@ export const ShareCardColumnist: React.FC<ShareCardColumnistProps> = ({
             <p className="text-sm text-primary font-medium mb-1">
               {author.specialty}
             </p>
-            <p className="text-xs text-muted-foreground line-clamp-2">
+            <p className="text-xs text-muted-foreground line-clamp-4">
               {author.bio}
             </p>
           </div>
