@@ -59,7 +59,8 @@ import {
   PenTool,
   Hash,
   Palette,
-  RotateCcw
+  RotateCcw,
+  TrendingUp
 } from 'lucide-react';
 import NewsEditor from '@/components/NewsEditor';
 import SuperAdminUsersManager from '@/components/SuperAdminUsersManager';
@@ -74,6 +75,7 @@ import SystemSettingsManager from '@/components/SystemSettingsManager';
 import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
 import VPSMigrationPanel from '@/components/VPSMigrationPanel';
 import RadioManager from '@/components/RadioManager';
+import ColumnistActivityDashboard from '@/components/ColumnistActivityDashboard';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -96,7 +98,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -413,6 +415,16 @@ const AdminPanel = () => {
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Artigos por Colunista</span>
                 <span className="sm:hidden">Col</span>
+              </Button>
+              <Button
+                variant={activeTab === 'activity' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('activity')}
+                className={`${activeTab === 'activity' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Atividade Colunistas</span>
+                <span className="sm:hidden">Ativ</span>
               </Button>
               <Button
                 variant={activeTab === 'users' ? 'default' : 'ghost'}
@@ -777,6 +789,19 @@ const AdminPanel = () => {
         {/* Artigos por colunista - apenas para admin */}
         {activeTab === 'columnists' && isAdmin && (
           <ColumnistArticlesManager />
+        )}
+
+        {/* Atividade dos Colunistas - apenas para admin */}
+        {activeTab === 'activity' && isAdmin && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold flex items-center gap-2">
+                <TrendingUp className="h-6 w-6 text-primary" />
+                Atividade dos Colunistas
+              </h2>
+            </div>
+            <ColumnistActivityDashboard />
+          </div>
         )}
 
         {/* Usuários - apenas para admin */}
