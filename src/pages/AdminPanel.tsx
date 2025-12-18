@@ -403,9 +403,6 @@ const AdminPanel = () => {
                   </Badge>
                 )}
               </Button>
-            </div>
-            {/* Segunda linha de navegação */}
-            <div className="flex flex-wrap gap-1">
               <Button
                 variant={activeTab === 'columnists' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('columnists')}
@@ -413,7 +410,7 @@ const AdminPanel = () => {
                 size="sm"
               >
                 <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Artigos por Colunista</span>
+                <span className="hidden sm:inline">Colunistas</span>
                 <span className="sm:hidden">Col</span>
               </Button>
               <Button
@@ -423,7 +420,7 @@ const AdminPanel = () => {
                 size="sm"
               >
                 <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Atividade Colunistas</span>
+                <span className="hidden sm:inline">Atividade</span>
                 <span className="sm:hidden">Ativ</span>
               </Button>
               <Button
@@ -439,6 +436,9 @@ const AdminPanel = () => {
                   {users.length}
                 </Badge>
               </Button>
+            </div>
+            {/* Segunda linha de navegação */}
+            <div className="flex flex-wrap gap-1">
               <Button
                 variant={activeTab === 'contact' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('contact')}
@@ -446,7 +446,7 @@ const AdminPanel = () => {
                 size="sm"
               >
                 <Contact className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Página Contato</span>
+                <span className="hidden sm:inline">Contato</span>
                 <span className="sm:hidden">Cont</span>
               </Button>
               <Button
@@ -476,7 +476,7 @@ const AdminPanel = () => {
                 size="sm"
               >
                 <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Informações Legais</span>
+                <span className="hidden sm:inline">Legal</span>
                 <span className="sm:hidden">Legal</span>
               </Button>
               <Button
