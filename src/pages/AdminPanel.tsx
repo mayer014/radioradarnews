@@ -16,7 +16,6 @@ import {
   Trash2, 
   Eye,
   Calendar,
-  BarChart3,
   FileText,
   Settings,
   Mail,
@@ -97,7 +96,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'stats' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -284,12 +283,6 @@ const AdminPanel = () => {
         (searchTitle === '' || article.title.toLowerCase().includes(searchTitle.toLowerCase()))
       );
 
-  const statsData = {
-    totalArticles: userFilteredArticles.length,
-    totalViews: userFilteredArticles.reduce((sum, article) => sum + article.views, 0),
-    totalComments: userFilteredArticles.reduce((sum, article) => sum + article.comments_count, 0),
-    featuredArticles: userFilteredArticles.filter(article => article.featured).length
-  };
 
   if (showEditor) {
     return (
@@ -392,16 +385,6 @@ const AdminPanel = () => {
                 <Image className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Banners</span>
                 <span className="sm:hidden">Ban</span>
-              </Button>
-              <Button
-                variant={activeTab === 'stats' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('stats')}
-                className={`${activeTab === 'stats' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
-                size="sm"
-              >
-                <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Estatísticas</span>
-                <span className="sm:hidden">Stats</span>
               </Button>
               <Button
                 variant={activeTab === 'messages' ? 'default' : 'ghost'}
@@ -522,62 +505,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {activeTab === 'stats' && isAdmin && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-card border-primary/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Total de Artigos</p>
-                  <p className="text-2xl font-bold">{statsData.totalArticles}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-card border-secondary/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-secondary/20 rounded-lg">
-                  <Eye className="h-6 w-6 text-secondary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Total de Visualizações</p>
-                  <p className="text-2xl font-bold">{statsData.totalViews.toLocaleString()}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-card border-accent/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-accent/20 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-accent" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Artigos em Destaque</p>
-                  <p className="text-2xl font-bold">{statsData.featuredArticles}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-gradient-card border-primary/30 p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <Calendar className="h-6 w-6 text-primary" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm text-muted-foreground">Última Atualização</p>
-                  <p className="text-sm font-medium">
-                    {articles.length > 0 
-                      ? new Date(Math.max(...articles.map(a => new Date(a.updated_at).getTime()))).toLocaleDateString('pt-BR')
-                      : 'Nenhuma'
-                    }
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
 
         {/* Lista de Artigos */}
         {(activeTab === 'articles' || isColunista) && (
