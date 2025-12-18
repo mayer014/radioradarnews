@@ -339,55 +339,6 @@ const ContactPage = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="py-16 px-6 bg-muted/20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-8 text-foreground">
-              Outras Formas de Participar
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-gradient-card backdrop-blur-sm border-primary/20 p-6 hover:scale-105 transition-all duration-300">
-                <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Phone className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Participe do Programa</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ligue durante os programas ao vivo e participe das discussões
-                </p>
-                <Button variant="outline" size="sm">
-                  Ver Horários
-                </Button>
-              </Card>
-
-              <Card className="bg-gradient-card backdrop-blur-sm border-secondary/20 p-6 hover:scale-105 transition-all duration-300">
-                <div className="w-16 h-16 bg-secondary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-secondary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Denúncias</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Envie denúncias e sugestões de pautas para nossa redação
-                </p>
-                <Button variant="outline" size="sm">
-                  Enviar Denúncia
-                </Button>
-              </Card>
-
-              <Card className="bg-gradient-card backdrop-blur-sm border-accent/20 p-6 hover:scale-105 transition-all duration-300">
-                <div className="w-16 h-16 bg-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Send className="w-8 h-8 text-accent" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Sugestões Musicais</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Sugira músicas para tocar em nossos programas
-                </p>
-                <Button variant="outline" size="sm">
-                  Enviar Sugestão
-                </Button>
-              </Card>
-            </div>
-          </div>
-        </div>
       </main>
       
       <Footer />
