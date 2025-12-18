@@ -214,23 +214,50 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
         sizeMB: (blob.size / 1024 / 1024).toFixed(2)
       });
 
-      // Criar preview comprimido usando canvas para evitar problemas com Data URLs grandes
-      const img = new Image();
-      const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-        img.onload = () => resolve(img);
-        img.onerror = (e) => reject(new Error('Falha ao carregar imagem: ' + e));
+      // Converter blob diretamente para Data URL usando FileReader (mais confiável em produção)
+      console.log('🔄 [PREVIEW] Convertendo blob para Data URL via FileReader...');
+      
+      const blobToDataUrl = (blob: Blob): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result);
+            } else {
+              reject(new Error('FileReader retornou resultado inválido'));
+            }
+          };
+          reader.onerror = () => reject(new Error('Falha ao ler blob com FileReader'));
+          reader.readAsDataURL(blob);
+        });
+      };
+      
+      // Primeiro converter o blob original para Data URL
+      const originalDataUrl = await blobToDataUrl(blob);
+      console.log('✅ [PREVIEW] Blob convertido para Data URL:', {
+        length: originalDataUrl.length,
+        prefix: originalDataUrl.substring(0, 50)
       });
       
-      img.src = URL.createObjectURL(blob);
+      // Criar imagem a partir do Data URL para gerar preview comprimido
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Falha ao carregar imagem do Data URL para compressão'));
+      });
+      
+      img.src = originalDataUrl;
       await imageLoadPromise;
       
-      console.log('✅ [PREVIEW] Imagem carregada do blob, criando preview...');
+      console.log('✅ [PREVIEW] Imagem carregada, criando preview comprimido...');
       
       // Criar canvas com tamanho reduzido para preview (max 800px)
       const maxSize = 800;
       const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-      const previewWidth = img.width * scale;
-      const previewHeight = img.height * scale;
+      const previewWidth = Math.round(img.width * scale);
+      const previewHeight = Math.round(img.height * scale);
       
       const canvas = document.createElement('canvas');
       canvas.width = previewWidth;
@@ -246,14 +273,11 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
       // Converter canvas para Data URL com qualidade reduzida
       const previewDataUrl = canvas.toDataURL('image/jpeg', 0.85);
       
-      // Limpar objeto URL
-      URL.revokeObjectURL(img.src);
-      
-      console.log('✅ [PREVIEW] Preview criado:', {
-        originalSize: blob.size,
+      console.log('✅ [PREVIEW] Preview comprimido criado:', {
+        originalSize: originalDataUrl.length,
         previewSize: previewDataUrl.length,
         previewDimensions: `${previewWidth}x${previewHeight}`,
-        compression: ((1 - previewDataUrl.length / blob.size) * 100).toFixed(1) + '%'
+        savings: ((1 - previewDataUrl.length / originalDataUrl.length) * 100).toFixed(1) + '%'
       });
       
       setPreviewUrl(previewDataUrl);
