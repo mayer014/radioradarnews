@@ -59,14 +59,15 @@ serve(async (req) => {
       throw new Error('Invalid authentication');
     }
 
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
+    // Check if user is admin using user_roles table
+    const { data: userRole } = await supabase
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
-      .single();
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
       
-    if (profile?.role !== 'admin') {
+    if (!userRole) {
       throw new Error('Admin access required');
     }
 
