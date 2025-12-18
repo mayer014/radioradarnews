@@ -214,7 +214,7 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
         sizeMB: (blob.size / 1024 / 1024).toFixed(2)
       });
 
-      // Converter blob diretamente para Data URL usando FileReader (mais confiável em produção)
+      // Converter blob diretamente para Data URL usando FileReader (mais confiável em produção/mobile)
       console.log('🔄 [PREVIEW] Convertendo blob para Data URL via FileReader...');
       
       const blobToDataUrl = (blob: Blob): Promise<string> => {
@@ -232,58 +232,88 @@ export const SharePreviewDialog: React.FC<SharePreviewDialogProps> = ({
         });
       };
       
-      // Primeiro converter o blob original para Data URL
+      // Converter o blob original para Data URL
       const originalDataUrl = await blobToDataUrl(blob);
       console.log('✅ [PREVIEW] Blob convertido para Data URL:', {
         length: originalDataUrl.length,
         prefix: originalDataUrl.substring(0, 50)
       });
       
-      // Criar imagem a partir do Data URL para gerar preview comprimido
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Detectar mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('Falha ao carregar imagem do Data URL para compressão'));
-      });
-      
-      img.src = originalDataUrl;
-      await imageLoadPromise;
-      
-      console.log('✅ [PREVIEW] Imagem carregada, criando preview comprimido...');
-      
-      // Criar canvas com tamanho reduzido para preview (max 800px)
-      const maxSize = 800;
-      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-      const previewWidth = Math.round(img.width * scale);
-      const previewHeight = Math.round(img.height * scale);
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = previewWidth;
-      canvas.height = previewHeight;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Falha ao criar contexto canvas');
+      // Em mobile, usar diretamente o Data URL sem recompressão para evitar problemas de CORS
+      if (isMobile) {
+        console.log('📱 [PREVIEW] Mobile detectado - usando Data URL diretamente sem recompressão');
+        setPreviewUrl(originalDataUrl);
+        setCurrentBlob(blob);
+        console.log('✅ [PREVIEW] Preview configurado com sucesso (mobile)');
+      } else {
+        // Em desktop, tentar comprimir para preview menor
+        try {
+          console.log('🖥️ [PREVIEW] Desktop - tentando comprimir preview...');
+          
+          // Criar imagem a partir do Data URL para gerar preview comprimido
+          const img = new Image();
+          
+          const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Timeout ao carregar imagem para compressão'));
+            }, 5000);
+            
+            img.onload = () => {
+              clearTimeout(timeout);
+              resolve(img);
+            };
+            img.onerror = (e) => {
+              clearTimeout(timeout);
+              console.warn('⚠️ [PREVIEW] Erro ao carregar imagem para compressão, usando original');
+              reject(e);
+            };
+          });
+          
+          img.src = originalDataUrl;
+          
+          const loadedImg = await imageLoadPromise;
+          
+          // Criar canvas com tamanho reduzido para preview (max 800px)
+          const maxSize = 800;
+          const scale = Math.min(1, maxSize / Math.max(loadedImg.width, loadedImg.height));
+          const previewWidth = Math.round(loadedImg.width * scale);
+          const previewHeight = Math.round(loadedImg.height * scale);
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = previewWidth;
+          canvas.height = previewHeight;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            throw new Error('Falha ao criar contexto canvas');
+          }
+          
+          ctx.drawImage(loadedImg, 0, 0, previewWidth, previewHeight);
+          
+          // Converter canvas para Data URL com qualidade reduzida
+          const previewDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          
+          console.log('✅ [PREVIEW] Preview comprimido criado:', {
+            originalSize: originalDataUrl.length,
+            previewSize: previewDataUrl.length,
+            previewDimensions: `${previewWidth}x${previewHeight}`,
+            savings: ((1 - previewDataUrl.length / originalDataUrl.length) * 100).toFixed(1) + '%'
+          });
+          
+          setPreviewUrl(previewDataUrl);
+          setCurrentBlob(blob);
+          console.log('✅ [PREVIEW] Preview configurado com sucesso (desktop comprimido)');
+        } catch (compressionError) {
+          // Fallback: usar Data URL original sem compressão
+          console.warn('⚠️ [PREVIEW] Compressão falhou, usando original:', compressionError);
+          setPreviewUrl(originalDataUrl);
+          setCurrentBlob(blob);
+          console.log('✅ [PREVIEW] Preview configurado com sucesso (fallback para original)');
+        }
       }
-      
-      ctx.drawImage(img, 0, 0, previewWidth, previewHeight);
-      
-      // Converter canvas para Data URL com qualidade reduzida
-      const previewDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      
-      console.log('✅ [PREVIEW] Preview comprimido criado:', {
-        originalSize: originalDataUrl.length,
-        previewSize: previewDataUrl.length,
-        previewDimensions: `${previewWidth}x${previewHeight}`,
-        savings: ((1 - previewDataUrl.length / originalDataUrl.length) * 100).toFixed(1) + '%'
-      });
-      
-      setPreviewUrl(previewDataUrl);
-      setCurrentBlob(blob);
-      
-      console.log('✅ [PREVIEW] Preview configurado com sucesso');
       
       if (diagnosticResult.issues.length === 0) {
         toast({
