@@ -13,6 +13,7 @@ import { ShareMenu } from '@/components/share/ShareMenu';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { getArticleLink } from '@/lib/utils';
 import { getProductionUrl } from '@/utils/shareHelpers';
+import { useUniqueViews } from '@/hooks/useUniqueViews';
 
 import { sanitizeHtml } from '@/utils/contentSanitizer';
 
@@ -51,6 +52,7 @@ const formatArticleContent = (content: string): string => {
 const ColumnistArticlePage = () => {
   const { id } = useParams<{ id: string }>();
   const { getArticleById, incrementViews, getArticlesByColumnist } = useSupabaseNews();
+  const { shouldIncrementViews } = useUniqueViews();
   const [columnistProfile, setColumnistProfile] = React.useState<any>(null);
   
   // Params: { id }
@@ -82,13 +84,12 @@ const ColumnistArticlePage = () => {
     loadColumnistProfile();
   }, [article?.columnist_id]);
   
-  // Incrementar visualizações quando o artigo for encontrado
+  // Incrementar visualizações apenas na primeira visita da sessão
   React.useEffect(() => {
-    if (article) {
-      // Incrementing views for article
+    if (article && shouldIncrementViews(article.id)) {
       incrementViews(article.id);
     }
-  }, [article, incrementViews]);
+  }, [article, incrementViews, shouldIncrementViews]);
 
   // Scroll para o topo quando mudar de artigo
   React.useEffect(() => {
