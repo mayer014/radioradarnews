@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,9 +17,13 @@ import {
   TrendingUp,
   AlertTriangle,
   ExternalLink,
-  Share2
+  Share2,
+  BarChart3,
+  Users,
+  CalendarDays,
+  Activity
 } from 'lucide-react';
-import { formatDistanceToNow, differenceInDays, differenceInHours } from 'date-fns';
+import { formatDistanceToNow, differenceInDays, differenceInHours, startOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
@@ -41,12 +46,75 @@ interface ColumnistStats {
   isInactive: boolean; // No posts in 7+ days
 }
 
+interface SiteAnalytics {
+  totalVisits: number;
+  uniqueVisitors: number;
+  monthlyVisits: number;
+  todayVisits: number;
+  isLoading: boolean;
+}
+
 const ColumnistActivityDashboard: React.FC = () => {
   const { articles } = useSupabaseNews();
   const { users } = useUsers();
   const navigate = useNavigate();
   const [selectedColumnist, setSelectedColumnist] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'new'>('all');
+  const [siteAnalytics, setSiteAnalytics] = useState<SiteAnalytics>({
+    totalVisits: 0,
+    uniqueVisitors: 0,
+    monthlyVisits: 0,
+    todayVisits: 0,
+    isLoading: true
+  });
+
+  // Fetch site analytics data
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const now = new Date();
+        const startOfCurrentMonth = startOfMonth(now);
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // Fetch total visits and unique visitors
+        const { count: totalVisits } = await supabase
+          .from('site_analytics')
+          .select('*', { count: 'exact', head: true });
+
+        // Fetch unique visitors (distinct visitor_hash)
+        const { data: uniqueData } = await supabase
+          .from('site_analytics')
+          .select('visitor_hash');
+        
+        const uniqueVisitors = new Set(uniqueData?.map(v => v.visitor_hash) || []).size;
+
+        // Fetch monthly visits
+        const { count: monthlyVisits } = await supabase
+          .from('site_analytics')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', startOfCurrentMonth.toISOString());
+
+        // Fetch today visits
+        const { count: todayVisits } = await supabase
+          .from('site_analytics')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', todayStart.toISOString());
+
+        setSiteAnalytics({
+          totalVisits: totalVisits || 0,
+          uniqueVisitors: uniqueVisitors,
+          monthlyVisits: monthlyVisits || 0,
+          todayVisits: todayVisits || 0,
+          isLoading: false
+        });
+      } catch (error) {
+        console.error('Erro ao buscar analytics:', error);
+        setSiteAnalytics(prev => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
 
   // Get all columnists from users
   const columnists = useMemo(() => {
@@ -186,7 +254,72 @@ const ColumnistActivityDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com resumo */}
+      {/* Analytics do Site */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          Estatísticas de Visitas do Site
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <Activity className="h-5 w-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total de Visitas</p>
+                <p className="text-xl font-bold">
+                  {siteAnalytics.isLoading ? '...' : siteAnalytics.totalVisits.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-500/20 rounded-lg">
+                <Users className="h-5 w-5 text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                <p className="text-xl font-bold">
+                  {siteAnalytics.isLoading ? '...' : siteAnalytics.uniqueVisitors.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-500/20 rounded-lg">
+                <CalendarDays className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Visitas do Mês ({format(new Date(), 'MMM', { locale: ptBR })})</p>
+                <p className="text-xl font-bold">
+                  {siteAnalytics.isLoading ? '...' : siteAnalytics.monthlyVisits.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <Calendar className="h-5 w-5 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Visitas Hoje</p>
+                <p className="text-xl font-bold">
+                  {siteAnalytics.isLoading ? '...' : siteAnalytics.todayVisits.toLocaleString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Header com resumo dos colunistas */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-gradient-card border-primary/30 p-4">
           <div className="flex items-center gap-3">
