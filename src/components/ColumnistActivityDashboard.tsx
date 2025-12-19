@@ -6,6 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
   User, 
   Clock, 
   AlertCircle, 
@@ -21,9 +28,12 @@ import {
   BarChart3,
   Users,
   CalendarDays,
-  Activity
+  Activity,
+  History,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
-import { formatDistanceToNow, differenceInDays, differenceInHours, startOfMonth, format } from 'date-fns';
+import { formatDistanceToNow, differenceInDays, differenceInHours, startOfMonth, format, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
@@ -42,8 +52,8 @@ interface ColumnistStats {
     created_at: string;
     category: string;
   }>;
-  hasNewPosts: boolean; // Posts in last 48 hours
-  isInactive: boolean; // No posts in 7+ days
+  hasNewPosts: boolean;
+  isInactive: boolean;
 }
 
 interface SiteAnalytics {
@@ -54,12 +64,26 @@ interface SiteAnalytics {
   isLoading: boolean;
 }
 
+interface MonthlyHistory {
+  month: string;
+  label: string;
+  totalVisits: number;
+  uniqueVisitors: number;
+  homeVisits: number;
+  articleVisits: number;
+  mobileVisits: number;
+  desktopVisits: number;
+}
+
 const ColumnistActivityDashboard: React.FC = () => {
   const { articles } = useSupabaseNews();
   const { users } = useUsers();
   const navigate = useNavigate();
   const [selectedColumnist, setSelectedColumnist] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'new'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('current');
+  const [monthlyHistory, setMonthlyHistory] = useState<MonthlyHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [siteAnalytics, setSiteAnalytics] = useState<SiteAnalytics>({
     totalVisits: 0,
     uniqueVisitors: 0,
@@ -115,6 +139,99 @@ const ColumnistActivityDashboard: React.FC = () => {
 
     fetchAnalytics();
   }, []);
+
+  // Fetch monthly history from site_analytics_summary
+  useEffect(() => {
+    const fetchMonthlyHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        
+        // Fetch all summary data
+        const { data: summaryData, error } = await supabase
+          .from('site_analytics_summary')
+          .select('*')
+          .order('date', { ascending: false });
+
+        if (error) {
+          console.error('Erro ao buscar histórico:', error);
+          return;
+        }
+
+        // Group by month
+        const monthlyData = new Map<string, MonthlyHistory>();
+        
+        summaryData?.forEach(day => {
+          const date = parseISO(day.date);
+          const monthKey = format(date, 'yyyy-MM');
+          const monthLabel = format(date, 'MMMM yyyy', { locale: ptBR });
+          
+          if (!monthlyData.has(monthKey)) {
+            monthlyData.set(monthKey, {
+              month: monthKey,
+              label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+              totalVisits: 0,
+              uniqueVisitors: 0,
+              homeVisits: 0,
+              articleVisits: 0,
+              mobileVisits: 0,
+              desktopVisits: 0
+            });
+          }
+          
+          const existing = monthlyData.get(monthKey)!;
+          existing.totalVisits += day.total_visits || 0;
+          existing.uniqueVisitors += day.unique_visitors || 0;
+          existing.homeVisits += day.home_visits || 0;
+          existing.articleVisits += day.article_visits || 0;
+          existing.mobileVisits += day.mobile_visits || 0;
+          existing.desktopVisits += day.desktop_visits || 0;
+        });
+
+        setMonthlyHistory(Array.from(monthlyData.values()));
+      } catch (error) {
+        console.error('Erro ao buscar histórico mensal:', error);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    fetchMonthlyHistory();
+  }, []);
+
+  // Get selected month data
+  const selectedMonthData = useMemo(() => {
+    if (selectedMonth === 'current') {
+      return null; // Use current live data
+    }
+    return monthlyHistory.find(m => m.month === selectedMonth) || null;
+  }, [selectedMonth, monthlyHistory]);
+
+  // Calculate comparison with previous month
+  const monthComparison = useMemo(() => {
+    if (monthlyHistory.length < 2) return null;
+    
+    const currentMonthKey = format(new Date(), 'yyyy-MM');
+    const currentIdx = monthlyHistory.findIndex(m => m.month === currentMonthKey);
+    
+    if (currentIdx === -1 || currentIdx >= monthlyHistory.length - 1) return null;
+    
+    const current = monthlyHistory[currentIdx];
+    const previous = monthlyHistory[currentIdx + 1];
+    
+    if (!current || !previous) return null;
+    
+    const visitsDiff = current.totalVisits - previous.totalVisits;
+    const visitsPercent = previous.totalVisits > 0 
+      ? Math.round((visitsDiff / previous.totalVisits) * 100) 
+      : 0;
+    
+    return {
+      previousMonth: previous.label,
+      visitsDiff,
+      visitsPercent,
+      isPositive: visitsDiff >= 0
+    };
+  }, [monthlyHistory]);
 
   // Get all columnists from users
   const columnists = useMemo(() => {
@@ -256,67 +373,201 @@ const ColumnistActivityDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Analytics do Site */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          Estatísticas de Visitas do Site
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Activity className="h-5 w-5 text-purple-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total de Visitas</p>
-                <p className="text-xl font-bold">
-                  {siteAnalytics.isLoading ? '...' : siteAnalytics.totalVisits.toLocaleString('pt-BR')}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-cyan-500/20 rounded-lg">
-                <Users className="h-5 w-5 text-cyan-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
-                <p className="text-xl font-bold">
-                  {siteAnalytics.isLoading ? '...' : siteAnalytics.uniqueVisitors.toLocaleString('pt-BR')}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
-                <CalendarDays className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Visitas do Mês ({format(new Date(), 'MMM', { locale: ptBR })})</p>
-                <p className="text-xl font-bold">
-                  {siteAnalytics.isLoading ? '...' : siteAnalytics.monthlyVisits.toLocaleString('pt-BR')}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30 p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500/20 rounded-lg">
-                <Calendar className="h-5 w-5 text-amber-400" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Visitas Hoje</p>
-                <p className="text-xl font-bold">
-                  {siteAnalytics.isLoading ? '...' : siteAnalytics.todayVisits.toLocaleString('pt-BR')}
-                </p>
-              </div>
-            </div>
-          </Card>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Estatísticas de Visitas do Site
+          </h2>
+          
+          {/* Seletor de Mês */}
+          <div className="flex items-center gap-2">
+            <History className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione o período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current">
+                  <span className="flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Tempo Real
+                  </span>
+                </SelectItem>
+                {monthlyHistory.map(month => (
+                  <SelectItem key={month.month} value={month.month}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {/* Cards de Estatísticas */}
+        {selectedMonth === 'current' ? (
+          // Dados em tempo real
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <Activity className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total de Visitas</p>
+                  <p className="text-xl font-bold">
+                    {siteAnalytics.isLoading ? '...' : siteAnalytics.totalVisits.toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-cyan-500/20 rounded-lg">
+                  <Users className="h-5 w-5 text-cyan-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                  <p className="text-xl font-bold">
+                    {siteAnalytics.isLoading ? '...' : siteAnalytics.uniqueVisitors.toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                  <CalendarDays className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Visitas do Mês ({format(new Date(), 'MMM', { locale: ptBR })})</p>
+                  <p className="text-xl font-bold">
+                    {siteAnalytics.isLoading ? '...' : siteAnalytics.monthlyVisits.toLocaleString('pt-BR')}
+                  </p>
+                  {monthComparison && (
+                    <p className={`text-xs flex items-center gap-1 mt-1 ${monthComparison.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {monthComparison.isPositive ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {Math.abs(monthComparison.visitsPercent)}% vs {monthComparison.previousMonth}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <Calendar className="h-5 w-5 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Visitas Hoje</p>
+                  <p className="text-xl font-bold">
+                    {siteAnalytics.isLoading ? '...' : siteAnalytics.todayVisits.toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        ) : selectedMonthData ? (
+          // Dados históricos do mês selecionado
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <History className="h-4 w-4" />
+              Histórico de {selectedMonthData.label}
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Activity className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total de Visitas</p>
+                    <p className="text-xl font-bold">
+                      {selectedMonthData.totalVisits.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-500/20 rounded-lg">
+                    <Users className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                    <p className="text-xl font-bold">
+                      {selectedMonthData.uniqueVisitors.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/20 rounded-lg">
+                    <FileText className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Visitas em Artigos</p>
+                    <p className="text-xl font-bold">
+                      {selectedMonthData.articleVisits.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/20 rounded-lg">
+                    <Users className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Mobile / Desktop</p>
+                    <p className="text-xl font-bold">
+                      {selectedMonthData.mobileVisits} / {selectedMonthData.desktopVisits}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          <Card className="bg-gradient-card border-muted/30 p-8 text-center">
+            <p className="text-muted-foreground">
+              {historyLoading ? 'Carregando histórico...' : 'Nenhum dado disponível para este período.'}
+            </p>
+          </Card>
+        )}
+
+        {/* Lista de meses disponíveis */}
+        {monthlyHistory.length > 0 && selectedMonth === 'current' && (
+          <div className="mt-4 pt-4 border-t border-muted/30">
+            <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-muted-foreground" />
+              Histórico Mensal Disponível
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {monthlyHistory.map(month => (
+                <Button
+                  key={month.month}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedMonth(month.month)}
+                  className="border-primary/30 hover:bg-primary/10"
+                >
+                  {month.label}
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {month.totalVisits.toLocaleString('pt-BR')} visitas
+                  </Badge>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Header com resumo dos colunistas */}
