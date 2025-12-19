@@ -17,6 +17,7 @@ import { ArticleStructuredData, BreadcrumbStructuredData } from '@/components/se
 import { LoadingState, ArticleSkeleton } from '@/components/accessibility/LoadingState';
 import { generateMetaDescription, generatePageTitle, generateKeywordsFromContent, optimizeImageAlt, generateBreadcrumbData } from '@/utils/seoUtils';
 import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibility';
+import { useUniqueViews } from '@/hooks/useUniqueViews';
 import { supabase } from '@/integrations/supabase/client';
 import { getProductionUrl } from '@/utils/shareHelpers';
 
@@ -59,6 +60,7 @@ const ArticlePage = () => {
   const { getArticleById, incrementViews, articles } = useSupabaseNews();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
+  const { shouldIncrementViews } = useUniqueViews();
   const [isLoading, setIsLoading] = React.useState(true);
   const [columnistProfile, setColumnistProfile] = React.useState<any>(null);
   
@@ -105,15 +107,15 @@ const ArticlePage = () => {
     }
   }, [article]);
 
-  // Incrementar visualizações quando o loading terminar
+  // Incrementar visualizações apenas na primeira visita da sessão
   React.useEffect(() => {
     if (!isLoading && id) {
       const currentArticle = getArticleById(id);
-      if (currentArticle) {
+      if (currentArticle && shouldIncrementViews(currentArticle.id)) {
         incrementViews(currentArticle.id);
       }
     }
-  }, [isLoading, id, getArticleById, incrementViews]);
+  }, [isLoading, id, getArticleById, incrementViews, shouldIncrementViews]);
 
   // Scroll para o topo quando mudar de artigo
   React.useEffect(() => {
