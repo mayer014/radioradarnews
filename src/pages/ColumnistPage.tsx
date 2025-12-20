@@ -254,7 +254,6 @@ const ColumnistPage = () => {
             <BannerCarousel 
               banners={columnistBanners} 
               position="columnist"
-              rotationInterval={5000}
             />
           </div>
         )}

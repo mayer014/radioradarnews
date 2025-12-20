@@ -25,6 +25,7 @@ interface Banner {
   status: string;
   sort_order: number;
   is_pilot: boolean;
+  display_duration: number;
   created_at: string;
   updated_at: string;
 }
@@ -55,7 +56,8 @@ const BannerManager: React.FC = () => {
     end_date: '',
     status: 'draft',
     sort_order: 0,
-    is_pilot: false
+    is_pilot: false,
+    display_duration: 5
   });
 
   // Get columnists
@@ -72,7 +74,8 @@ const BannerManager: React.FC = () => {
       end_date: '',
       status: 'draft',
       sort_order: 0,
-      is_pilot: false
+      is_pilot: false,
+      display_duration: 5
     });
     setEditingBanner(null);
   };
@@ -89,7 +92,8 @@ const BannerManager: React.FC = () => {
       end_date: banner.end_date ? banner.end_date.split('T')[0] : '',
       status: banner.status,
       sort_order: banner.sort_order,
-      is_pilot: banner.is_pilot
+      is_pilot: banner.is_pilot,
+      display_duration: banner.display_duration || 5
     });
     setDialogOpen(true);
   };
@@ -112,7 +116,8 @@ const BannerManager: React.FC = () => {
         end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
         status: formData.status,
         sort_order: formData.sort_order,
-        is_pilot: formData.is_pilot
+        is_pilot: formData.is_pilot,
+        display_duration: formData.display_duration
       };
 
       if (editingBanner) {
@@ -305,7 +310,7 @@ const BannerManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="status">Status</Label>
                   <Select
@@ -333,6 +338,20 @@ const BannerManager: React.FC = () => {
                     onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
                     min="0"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="display_duration">Duração (segundos)</Label>
+                  <Input
+                    id="display_duration"
+                    type="number"
+                    value={formData.display_duration}
+                    onChange={(e) => setFormData(prev => ({ ...prev, display_duration: parseInt(e.target.value) || 5 }))}
+                    min="1"
+                    max="300"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tempo que o banner ficará visível antes de trocar
+                  </p>
                 </div>
               </div>
 
@@ -396,8 +415,8 @@ const BannerManager: React.FC = () => {
                           Fim: {new Date(banner.end_date).toLocaleDateString('pt-BR')}
                         </span>
                       )}
-                      
                       <span>Ordem: {banner.sort_order}</span>
+                      <span>Duração: {banner.display_duration}s</span>
                     </div>
                   </div>
 

@@ -173,7 +173,6 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
               banners={categoryBanners} 
               position="category"
               className="animate-slide-up delay-300"
-              rotationInterval={5000}
             />
           </div>
         )}

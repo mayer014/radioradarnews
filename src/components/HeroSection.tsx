@@ -71,7 +71,6 @@ const HeroSection = () => {
               banners={heroBanners} 
               position="hero"
               className="animate-slide-up delay-300"
-              rotationInterval={5000}
             />
           </div>
         )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 interface Banner {
   id: string;
@@ -7,23 +7,25 @@ interface Banner {
   banner_type: string;
   is_pilot: boolean;
   sort_order?: number;
+  display_duration?: number; // Duration in seconds
 }
 
 interface BannerCarouselProps {
   banners: Banner[];
   position: 'hero' | 'category' | 'columnist';
   className?: string;
-  rotationInterval?: number; // milliseconds
+  defaultDuration?: number; // Default duration in seconds if banner doesn't have one
 }
 
 const BannerCarousel: React.FC<BannerCarouselProps> = ({ 
   banners, 
   position, 
   className = '',
-  rotationInterval = 5000 // 5 seconds default
+  defaultDuration = 5 // 5 seconds default
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sort banners by sort_order
   const sortedBanners = [...banners].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -38,13 +40,32 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
     }, 300);
   }, [sortedBanners.length]);
 
-  // Auto-rotate banners
+  // Get current banner's duration
+  const getCurrentDuration = useCallback(() => {
+    const currentBanner = sortedBanners[currentIndex];
+    if (!currentBanner) return defaultDuration * 1000;
+    return (currentBanner.display_duration || defaultDuration) * 1000;
+  }, [sortedBanners, currentIndex, defaultDuration]);
+
+  // Auto-rotate banners with individual duration
   useEffect(() => {
     if (sortedBanners.length <= 1) return;
 
-    const interval = setInterval(goToNext, rotationInterval);
-    return () => clearInterval(interval);
-  }, [sortedBanners.length, rotationInterval, goToNext]);
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    // Set timer for current banner's duration
+    const duration = getCurrentDuration();
+    timerRef.current = setTimeout(goToNext, duration);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [sortedBanners.length, currentIndex, goToNext, getCurrentDuration]);
 
   // Reset index when banners change
   useEffect(() => {
