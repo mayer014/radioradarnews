@@ -32,6 +32,7 @@ interface ActiveBanner {
   image_url: string;
   banner_type: string;
   is_pilot: boolean;
+  sort_order?: number;
 }
 
 export const useBanners = () => {
@@ -64,17 +65,17 @@ export const useBanners = () => {
     }
   }, [toast]);
 
-  // Get active banner for specific area - prioritize specific banners over pilot
-  const getActiveBanner = useCallback(async (
+  // Get ALL active banners for specific area - returns array for carousel rotation
+  const getActiveBanners = useCallback(async (
     bannerType: 'hero' | 'category' | 'columnist',
     targetCategory?: string,
     targetColumnistId?: string
-  ): Promise<ActiveBanner | null> => {
+  ): Promise<ActiveBanner[]> => {
     try {
-      // First try to get specific banner (non-pilot) - CASE INSENSITIVE comparison
+      // First try to get specific banners (non-pilot) - CASE INSENSITIVE comparison
       let query = supabase
         .from('banners')
-        .select('id, title, image_url, banner_type, is_pilot, target_category')
+        .select('id, title, image_url, banner_type, is_pilot, target_category, sort_order')
         .eq('banner_type', bannerType)
         .eq('status', 'active')
         .eq('is_pilot', false);
@@ -88,37 +89,46 @@ export const useBanners = () => {
         query = query.eq('target_columnist_id', targetColumnistId);
       }
 
-      const { data, error } = await query.order('sort_order', { ascending: true }).limit(1);
+      const { data, error } = await query.order('sort_order', { ascending: true });
 
       if (error) {
-        console.error('Error in specific banner query:', error);
+        console.error('Error in specific banners query:', error);
       }
 
-      // If we found a specific banner, return it (priority over pilot)
+      // If we found specific banners, return them (priority over pilot)
       if (data && data.length > 0) {
-        return data[0];
+        return data;
       }
 
-      // Only use pilot banner if no specific banner exists for this area
+      // Only use pilot banner if no specific banners exist for this area
       const { data: pilotData, error: pilotError } = await supabase
         .from('banners')
-        .select('id, title, image_url, banner_type, is_pilot')
+        .select('id, title, image_url, banner_type, is_pilot, sort_order')
         .eq('is_pilot', true)
         .eq('status', 'active')
-        .limit(1)
-        .single();
+        .order('sort_order', { ascending: true });
         
       if (pilotError) {
-        console.error('Error getting pilot banner:', pilotError);
-        return null;
+        console.error('Error getting pilot banners:', pilotError);
+        return [];
       }
       
-      return pilotData || null;
+      return pilotData || [];
     } catch (error) {
-      console.error('Error getting active banner:', error);
-      return null;
+      console.error('Error getting active banners:', error);
+      return [];
     }
   }, []);
+
+  // Get single active banner (legacy support) - prioritize specific banners over pilot
+  const getActiveBanner = useCallback(async (
+    bannerType: 'hero' | 'category' | 'columnist',
+    targetCategory?: string,
+    targetColumnistId?: string
+  ): Promise<ActiveBanner | null> => {
+    const banners = await getActiveBanners(bannerType, targetCategory, targetColumnistId);
+    return banners.length > 0 ? banners[0] : null;
+  }, [getActiveBanners]);
 
   // Create new banner
   const createBanner = useCallback(async (bannerData: Partial<Banner>) => {
@@ -215,6 +225,7 @@ export const useBanners = () => {
     loading,
     fetchBanners,
     getActiveBanner,
+    getActiveBanners,
     createBanner,
     updateBanner,
     deleteBanner
