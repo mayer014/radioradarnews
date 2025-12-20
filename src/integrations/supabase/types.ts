@@ -339,6 +339,7 @@ export type Database = {
           banner_type: string
           created_at: string
           created_by: string | null
+          display_duration: number
           end_date: string | null
           id: string
           image_url: string
@@ -355,6 +356,7 @@ export type Database = {
           banner_type?: string
           created_at?: string
           created_by?: string | null
+          display_duration?: number
           end_date?: string | null
           id?: string
           image_url: string
@@ -371,6 +373,7 @@ export type Database = {
           banner_type?: string
           created_at?: string
           created_by?: string | null
+          display_duration?: number
           end_date?: string | null
           id?: string
           image_url?: string

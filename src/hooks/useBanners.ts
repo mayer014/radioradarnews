@@ -21,6 +21,7 @@ interface Banner {
   status: string;
   sort_order: number;
   is_pilot: boolean;
+  display_duration: number;
   created_at: string;
   updated_at: string;
   created_by?: string;
@@ -33,6 +34,7 @@ interface ActiveBanner {
   banner_type: string;
   is_pilot: boolean;
   sort_order?: number;
+  display_duration?: number;
 }
 
 export const useBanners = () => {
@@ -75,7 +77,7 @@ export const useBanners = () => {
       // First try to get specific banners (non-pilot) - CASE INSENSITIVE comparison
       let query = supabase
         .from('banners')
-        .select('id, title, image_url, banner_type, is_pilot, target_category, sort_order')
+        .select('id, title, image_url, banner_type, is_pilot, target_category, sort_order, display_duration')
         .eq('banner_type', bannerType)
         .eq('status', 'active')
         .eq('is_pilot', false);
@@ -103,7 +105,7 @@ export const useBanners = () => {
       // Only use pilot banner if no specific banners exist for this area
       const { data: pilotData, error: pilotError } = await supabase
         .from('banners')
-        .select('id, title, image_url, banner_type, is_pilot, sort_order')
+        .select('id, title, image_url, banner_type, is_pilot, sort_order, display_duration')
         .eq('is_pilot', true)
         .eq('status', 'active')
         .order('sort_order', { ascending: true });
