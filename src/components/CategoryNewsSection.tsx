@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getArticleLink } from '@/lib/utils';
 import { useCategoryColors } from '@/utils/categoryColors';
-import BannerDisplay from '@/components/BannerDisplay';
+import BannerCarousel from '@/components/BannerCarousel';
 import { useBanners } from '@/hooks/useBanners';
 
 interface Article {
@@ -32,9 +32,9 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
   onViewMore
 }) => {
   const getCategoryColors = useCategoryColors();
-  const { getActiveBanner } = useBanners();
+  const { getActiveBanners } = useBanners();
   const colors = getCategoryColors(category);
-  const [categoryBanner, setCategoryBanner] = useState<any>(null);
+  const [categoryBanners, setCategoryBanners] = useState<any[]>([]);
 
   // Skip banner for special categories
   const skipBanner = ['Últimas Notícias', 'Últimas Notícias dos Colunistas'].includes(category);
@@ -42,13 +42,13 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
   useEffect(() => {
     if (skipBanner) return;
     
-    const loadCategoryBanner = async () => {
-      const banner = await getActiveBanner('category', category);
-      setCategoryBanner(banner);
+    const loadCategoryBanners = async () => {
+      const banners = await getActiveBanners('category', category);
+      setCategoryBanners(banners);
     };
     
-    loadCategoryBanner();
-  }, [category, getActiveBanner, skipBanner]);
+    loadCategoryBanners();
+  }, [category, getActiveBanners, skipBanner]);
 
   // Separate featured and regular articles
   const featuredArticle = articles.find(article => article.featured);
@@ -166,13 +166,14 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
           </div>
         </div>
 
-        {/* Category Banner */}
-        {!skipBanner && categoryBanner && (
+        {/* Category Banner Carousel */}
+        {!skipBanner && categoryBanners.length > 0 && (
           <div className="mt-6 sm:mt-8 px-2 sm:px-0">
-            <BannerDisplay 
-              banner={categoryBanner} 
+            <BannerCarousel 
+              banners={categoryBanners} 
               position="category"
               className="animate-slide-up delay-300"
+              rotationInterval={5000}
             />
           </div>
         )}

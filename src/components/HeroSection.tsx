@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import heroBackground from '@/assets/hero-background.jpg';
-import BannerDisplay from '@/components/BannerDisplay';
+import BannerCarousel from '@/components/BannerCarousel';
 import { useBanners } from '@/hooks/useBanners';
 
 const HeroSection = () => {
   const { theme } = useTheme();
-  const { getActiveBanner } = useBanners();
+  const { getActiveBanners } = useBanners();
   const logoUrl = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
-  const [heroBanner, setHeroBanner] = useState<any>(null);
+  const [heroBanners, setHeroBanners] = useState<any[]>([]);
 
   useEffect(() => {
-    const loadHeroBanner = async () => {
-      const banner = await getActiveBanner('hero');
-      setHeroBanner(banner);
+    const loadHeroBanners = async () => {
+      const banners = await getActiveBanners('hero');
+      setHeroBanners(banners);
     };
     
-    loadHeroBanner();
-  }, [getActiveBanner]);
+    loadHeroBanners();
+  }, [getActiveBanners]);
   
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28">
@@ -64,13 +64,14 @@ const HeroSection = () => {
 
         </div>
 
-        {/* Hero Banner */}
-        {heroBanner && (
+        {/* Hero Banner Carousel */}
+        {heroBanners.length > 0 && (
           <div className="mt-6 sm:mt-8 px-2 sm:px-0">
-            <BannerDisplay 
-              banner={heroBanner} 
+            <BannerCarousel 
+              banners={heroBanners} 
               position="hero"
-              className="animate-slide-up delay-300" 
+              className="animate-slide-up delay-300"
+              rotationInterval={5000}
             />
           </div>
         )}

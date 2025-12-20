@@ -16,7 +16,7 @@ import { ColumnistStructuredData, BreadcrumbStructuredData } from '@/components/
 import { LoadingState, ColumnistSkeleton } from '@/components/accessibility/LoadingState';
 import { generatePageTitle, generateBreadcrumbData, optimizeImageAlt } from '@/utils/seoUtils';
 import useAccessibility, { useLoadingAnnouncement } from '@/hooks/useAccessibility';
-import BannerDisplay from '@/components/BannerDisplay';
+import BannerCarousel from '@/components/BannerCarousel';
 import { useBanners } from '@/hooks/useBanners';
 
 const ColumnistPage = () => {
@@ -25,9 +25,9 @@ const ColumnistPage = () => {
   const { users, isLoading: usersLoading } = useUsers();
   const { announcePageChange } = useAccessibility();
   const { announceLoadingState } = useLoadingAnnouncement();
-  const { getActiveBanner } = useBanners();
+  const { getActiveBanners } = useBanners();
   const [isLoading, setIsLoading] = React.useState(true);
-  const [columnistBanner, setColumnistBanner] = useState<any>(null);
+  const [columnistBanners, setColumnistBanners] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   
@@ -46,8 +46,8 @@ const ColumnistPage = () => {
       try {
         announceLoadingState?.(true, 'perfil do colunista');
         if (columnistId) {
-          const banner = await getActiveBanner('columnist', undefined, columnistId);
-          if (mounted) setColumnistBanner(banner);
+          const banners = await getActiveBanners('columnist', undefined, columnistId);
+          if (mounted) setColumnistBanners(banners);
         }
       } catch (err) {
         console.error('Erro ao carregar banner do colunista:', err);
@@ -58,7 +58,7 @@ const ColumnistPage = () => {
       }
     })();
     return () => { mounted = false; };
-  }, [columnistId, getActiveBanner]);
+  }, [columnistId, getActiveBanners]);
   
   // Organizar artigos por data (mais recentes primeiro) - excluir cópias automáticas
   const sortedArticles = [...articles]
@@ -248,12 +248,13 @@ const ColumnistPage = () => {
           </p>
         </div>
 
-        {/* Columnist Banner */}
-        {columnistBanner && (
+        {/* Columnist Banner Carousel */}
+        {columnistBanners.length > 0 && (
           <div className="mb-8">
-            <BannerDisplay 
-              banner={columnistBanner} 
+            <BannerCarousel 
+              banners={columnistBanners} 
               position="columnist"
+              rotationInterval={5000}
             />
           </div>
         )}
