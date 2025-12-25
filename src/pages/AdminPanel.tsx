@@ -76,6 +76,7 @@ import StorageOptimizationPanel from '@/components/StorageOptimizationPanel';
 import VPSMigrationPanel from '@/components/VPSMigrationPanel';
 import RadioManager from '@/components/RadioManager';
 import ColumnistActivityDashboard from '@/components/ColumnistActivityDashboard';
+import DailySummaryGenerator from '@/components/DailySummaryGenerator';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -98,7 +99,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -499,6 +500,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Rádio</span>
                 <span className="sm:hidden">Rádio</span>
               </Button>
+              <Button
+                variant={activeTab === 'daily-summary' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('daily-summary')}
+                className={`${activeTab === 'daily-summary' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Newspaper className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Resumo do Dia</span>
+                <span className="sm:hidden">Resumo</span>
+              </Button>
             </div>
           </div>
         )}
@@ -851,9 +862,9 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Rádio Online - apenas para admin */}
-        {activeTab === 'radio' && isAdmin && (
-          <RadioManager />
+        {/* Resumo do Dia - apenas para admin */}
+        {activeTab === 'daily-summary' && isAdmin && (
+          <DailySummaryGenerator />
         )}
       </div>
       
