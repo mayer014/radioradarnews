@@ -61,31 +61,116 @@ Deno.serve(async (req) => {
 async function extractContentFromUrl(url: string): Promise<ExtractedContent> {
   console.log('Starting content extraction for:', url);
   
+  // Headers que simulam um navegador real para evitar bloqueio 403
+  const browserHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"Windows"',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+    'Referer': 'https://www.google.com/',
+  };
+
+  // Estratégia 1: Fetch direto com headers de navegador real
   try {
-    console.log('Fetching HTML directly...');
+    console.log('Fetching with browser-like headers...');
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Content-Extractor/1.0)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-      },
+      headers: browserHeaders,
+      redirect: 'follow',
     });
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (response.ok) {
+      const html = await response.text();
+      console.log('HTML fetched successfully, length:', html.length);
+      return extractContentFromHTML(html, url);
     }
     
-    const html = await response.text();
-    console.log('HTML fetched successfully, length:', html.length);
-    
-    return extractContentFromHTML(html, url);
+    console.log('First attempt failed with status:', response.status);
   } catch (error) {
-    console.error('Direct fetch failed:', error);
-    throw new Error(`Failed to extract content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('First fetch attempt failed:', error);
   }
+
+  // Estratégia 2: Tentar com User-Agent de mobile (alguns sites são mais permissivos)
+  try {
+    console.log('Trying mobile User-Agent...');
+    const mobileHeaders = {
+      ...browserHeaders,
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      'Sec-Ch-Ua-Mobile': '?1',
+      'Sec-Ch-Ua-Platform': '"Android"',
+    };
+    
+    const response = await fetch(url, {
+      headers: mobileHeaders,
+      redirect: 'follow',
+    });
+    
+    if (response.ok) {
+      const html = await response.text();
+      console.log('Mobile fetch successful, length:', html.length);
+      return extractContentFromHTML(html, url);
+    }
+    
+    console.log('Mobile attempt failed with status:', response.status);
+  } catch (error) {
+    console.error('Mobile fetch failed:', error);
+  }
+
+  // Estratégia 3: Tentar com bot amigável (Googlebot - muitos sites permitem)
+  try {
+    console.log('Trying Googlebot User-Agent...');
+    const googleBotHeaders = {
+      'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+    };
+    
+    const response = await fetch(url, {
+      headers: googleBotHeaders,
+      redirect: 'follow',
+    });
+    
+    if (response.ok) {
+      const html = await response.text();
+      console.log('Googlebot fetch successful, length:', html.length);
+      return extractContentFromHTML(html, url);
+    }
+    
+    console.log('Googlebot attempt failed with status:', response.status);
+  } catch (error) {
+    console.error('Googlebot fetch failed:', error);
+  }
+
+  // Estratégia 4: Tentar URL AMP ou versão simplificada
+  try {
+    const ampUrl = url.includes('/amp') ? url : url.replace(/\/?$/, '/amp');
+    if (ampUrl !== url) {
+      console.log('Trying AMP version:', ampUrl);
+      const response = await fetch(ampUrl, {
+        headers: browserHeaders,
+        redirect: 'follow',
+      });
+      
+      if (response.ok) {
+        const html = await response.text();
+        console.log('AMP fetch successful, length:', html.length);
+        return extractContentFromHTML(html, url);
+      }
+    }
+  } catch (error) {
+    console.error('AMP fetch failed:', error);
+  }
+
+  throw new Error(`Não foi possível acessar o site. O site pode estar bloqueando requisições automáticas. Tente copiar e colar o conteúdo manualmente.`);
 }
 
 async function fetchWithJsoup(url: string): Promise<string> {
