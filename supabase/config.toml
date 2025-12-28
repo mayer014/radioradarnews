@@ -83,3 +83,6 @@ verify_jwt = true
 
 [functions.daily-summary-generator]
 verify_jwt = true
+
+[functions.sitemap-generator]
+verify_jwt = false
