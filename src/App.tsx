@@ -19,6 +19,7 @@ import { ContactProvider } from "@/contexts/ContactContext";
 import { LegalContentProvider } from "@/contexts/LegalContentContext";
 import { SupabaseAIConfigProvider } from "@/contexts/SupabaseAIConfigContext";
 import { RadioProvider } from "@/contexts/RadioContext";
+import { usePageTracking } from "@/hooks/usePageTracking";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ArticlePage from "./pages/ArticlePage";
@@ -38,6 +39,12 @@ import SecurityProvider from "./components/SecurityProvider";
 
 const queryClient = new QueryClient();
 
+// Componente para tracking de páginas (deve estar dentro do BrowserRouter)
+const PageTracker = () => {
+  usePageTracking();
+  return null;
+};
+
 // Componente interno para usar o hook de sincronização
 const AppContent = () => {
   return (
@@ -45,6 +52,7 @@ const AppContent = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <PageTracker />
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
