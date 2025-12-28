@@ -16,8 +16,8 @@ interface SEOHeadProps {
 }
 
 export const SEOHead: React.FC<SEOHeadProps> = ({
-  title = "Portal News - O Futuro do Jornalismo Digital",
-  description = "Portal de notícias inovador com rádio integrada. Notícias policiais, política, música e entretenimento com experiência imersiva e design futurista.",
+  title = "Radio Radar News - Portal de Notícias com Rádio Online",
+  description = "Radio Radar News - Portal de notícias inovador com rádio integrada. Notícias policiais, política, esportes, entretenimento e tecnologia do Brasil.",
   keywords = [],
   image = "https://lovable.dev/opengraph-image-p98pqg.png",
   url = window.location.href,
@@ -29,7 +29,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
   canonical
 }) => {
   const defaultKeywords = [
-    "portal news",
+    "radio radar news",
     "notícias",
     "jornalismo",
     "rádio online",
@@ -38,7 +38,8 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
     "entretenimento",
     "esportes",
     "tecnologia",
-    "brasil"
+    "brasil",
+    "portal de notícias"
   ];
 
   const allKeywords = [...defaultKeywords, ...keywords].join(', ');
@@ -59,9 +60,9 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
       <meta name="keywords" content={allKeywords} />
       <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
       <meta name="language" content="pt-BR" />
-      <meta name="author" content={author || "Portal News"} />
-      <meta name="copyright" content="Portal News" />
-      <meta name="generator" content="Portal News CMS" />
+      <meta name="author" content={author || "Radio Radar News"} />
+      <meta name="copyright" content="Radio Radar News" />
+      <meta name="generator" content="Radio Radar News CMS" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       
       {/* Canonical URL */}
@@ -76,7 +77,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content={optimizedTitle} />
       <meta property="og:url" content={url} />
-      <meta property="og:site_name" content="Portal News" />
+      <meta property="og:site_name" content="Radio Radar News" />
       <meta property="og:locale" content="pt_BR" />
       
       {/* Article-specific Open Graph */}
@@ -94,8 +95,8 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
       
       {/* Twitter Cards */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:site" content="@portalnews" />
-      <meta name="twitter:creator" content={author ? `@${author.replace(/\s+/g, '').toLowerCase()}` : "@portalnews"} />
+      <meta name="twitter:site" content="@radioradarnews" />
+      <meta name="twitter:creator" content={author ? `@${author.replace(/\s+/g, '').toLowerCase()}` : "@radioradarnews"} />
       <meta name="twitter:title" content={optimizedTitle} />
       <meta name="twitter:description" content={optimizedDescription} />
       <meta name="twitter:image" content={image} />
@@ -106,7 +107,7 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
       <meta name="msapplication-TileColor" content="#8b5cf6" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      <meta name="apple-mobile-web-app-title" content="Portal News" />
+      <meta name="apple-mobile-web-app-title" content="Radio Radar News" />
       
       {/* DNS Prefetch for performance */}
       <link rel="dns-prefetch" href="//fonts.googleapis.com" />
