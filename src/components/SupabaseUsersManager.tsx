@@ -111,34 +111,32 @@ const SupabaseUsersManager = () => {
     setLoading(true);
 
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: newUser.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            username: newUser.username,
-            name: newUser.name,
-            role: newUser.role
-          }
+      // Use the enhanced-user-service Edge Function for proper user creation
+      const { data, error } = await supabase.functions.invoke('enhanced-user-service', {
+        body: {
+          action: 'create_user',
+          email: newUser.email,
+          password: newUser.password,
+          username: newUser.username,
+          name: newUser.name,
+          role: newUser.role
         }
       });
 
-      if (authError) throw authError;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Erro ao criar usuário');
+      }
 
-      if (authData.user) {
-        // Add role to user_roles table
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: authData.user.id, role: newUser.role });
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-        if (roleError) throw roleError;
-
+      if (data?.user) {
         // Store password temporarily for display
         setVisiblePasswords(prev => ({
           ...prev,
-          [authData.user.id]: newUser.password
+          [data.user.id]: newUser.password
         }));
       }
 
@@ -173,12 +171,17 @@ const SupabaseUsersManager = () => {
     if (!newPassword) return;
 
     try {
-      // Update password in Supabase Auth
-      const { error } = await supabase.auth.admin.updateUserById(profileId, {
-        password: newPassword
+      // Use the enhanced-user-service Edge Function for password reset
+      const { data, error } = await supabase.functions.invoke('enhanced-user-service', {
+        body: {
+          action: 'update_password',
+          user_id: profileId,
+          new_password: newPassword
+        }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       // Store temporarily for display
       setVisiblePasswords(prev => ({
@@ -204,7 +207,7 @@ const SupabaseUsersManager = () => {
       console.error('Error resetting password:', error);
       toast({
         title: "Erro",
-        description: "Erro ao redefinir senha",
+        description: error.message || "Erro ao redefinir senha",
         variant: "destructive",
       });
     }
@@ -258,10 +261,16 @@ const SupabaseUsersManager = () => {
     if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
 
     try {
-      // Delete from auth (this will cascade to profiles due to FK constraint)
-      const { error } = await supabase.auth.admin.deleteUser(profileId);
+      // Use the enhanced-user-service Edge Function for deletion
+      const { data, error } = await supabase.functions.invoke('enhanced-user-service', {
+        body: {
+          action: 'delete_user',
+          user_id: profileId
+        }
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Usuário deletado",
@@ -273,7 +282,7 @@ const SupabaseUsersManager = () => {
       console.error('Error deleting user:', error);
       toast({
         title: "Erro",
-        description: "Erro ao deletar usuário",
+        description: error.message || "Erro ao deletar usuário",
         variant: "destructive",
       });
     }

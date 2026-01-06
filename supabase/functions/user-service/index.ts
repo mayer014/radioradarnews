@@ -1,6 +1,7 @@
 // Supabase Edge Function: user-service
 // - Creates users in Supabase Auth (admin only)
 // - Upserts corresponding public.profiles row
+// - Creates user_roles entry for role management
 // - Creates authors row (id = user id) for columnists, enabling article ownership
 // CORS enabled
 
@@ -45,14 +46,18 @@ Deno.serve(async (req) => {
       return jsonResponse(401, { ok: false, error: 'Not authenticated' });
     }
 
-    // Authorize admin
-    const { data: profile, error: profileErr } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', caller.id)
+    console.log('User authenticated:', caller.id, caller.email);
+
+    // Authorize admin using user_roles table (NOT profiles.role)
+    const { data: userRole, error: roleErr } = await admin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', caller.id)
       .single();
 
-    if (profileErr || !profile || profile.role !== 'admin') {
+    console.log('Role check:', userRole, roleErr);
+
+    if (roleErr || !userRole || userRole.role !== 'admin') {
       return jsonResponse(403, { ok: false, error: 'Forbidden: admin only' });
     }
 
@@ -76,6 +81,8 @@ Deno.serve(async (req) => {
       return jsonResponse(400, { ok: false, error: 'Invalid role' });
     }
 
+    console.log('Creating user:', { email, username, name, role });
+
     // 1) Try to create Auth user OR find existing user
     let newUserId: string;
     let userExists = false;
@@ -83,8 +90,8 @@ Deno.serve(async (req) => {
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Automaticamente confirma o email
-      phone_confirm: true, // Automaticamente confirma o telefone se houver
+      email_confirm: true,
+      phone_confirm: true,
       user_metadata: { name, username, role },
     });
 
@@ -110,7 +117,7 @@ Deno.serve(async (req) => {
         // Update existing user's metadata
         const { error: updateErr } = await admin.auth.admin.updateUserById(newUserId, {
           password,
-          email_confirm: true, // Garante que email está confirmado
+          email_confirm: true,
           user_metadata: { name, username, role },
         });
         
@@ -118,33 +125,51 @@ Deno.serve(async (req) => {
           return jsonResponse(400, { ok: false, error: `Failed to update existing user: ${updateErr.message}` });
         }
       } else {
+        console.error('Auth create error:', createErr);
         return jsonResponse(400, { ok: false, error: createErr.message || 'Failed to create auth user' });
       }
     } else if (created?.user) {
       newUserId = created.user.id;
+      console.log('Auth user created:', newUserId);
     } else {
       return jsonResponse(400, { ok: false, error: 'Failed to create auth user' });
     }
 
-    // 2) Upsert profile row
-    const profileRow: any = {
+    // 2) Upsert profile row (NO role column in profiles table)
+    const profileRow = {
       id: newUserId,
       username,
       name,
-      role,
-      is_active: role === 'colunista' ? true : true,
+      is_active: true,
       updated_at: new Date().toISOString(),
     };
 
     const { error: upsertProfileErr } = await admin.from('profiles').upsert(profileRow);
     if (upsertProfileErr) {
+      console.error('Profile upsert error:', upsertProfileErr);
       return jsonResponse(400, { ok: false, error: upsertProfileErr.message || 'Failed to upsert profile' });
     }
 
-    // 3) Ensure an authors row exists and matches the user id (important for articles_normalized policies)
+    console.log('Profile upserted');
+
+    // 3) Upsert user role in user_roles table
+    const { error: upsertRoleErr } = await admin.from('user_roles').upsert({
+      user_id: newUserId,
+      role: role,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (upsertRoleErr) {
+      console.error('Role upsert error:', upsertRoleErr);
+      return jsonResponse(400, { ok: false, error: upsertRoleErr.message || 'Failed to upsert role' });
+    }
+
+    console.log('Role assigned:', role);
+
+    // 4) Ensure an authors row exists and matches the user id (important for articles_normalized policies)
     if (role === 'colunista') {
-      const authorRow: any = {
-        id: newUserId, // Critical: match profile/user id
+      const authorRow = {
+        id: newUserId,
         name,
         is_active: true,
         social_jsonb: {},
@@ -153,8 +178,10 @@ Deno.serve(async (req) => {
       };
       const { error: upsertAuthorErr } = await admin.from('authors').upsert(authorRow);
       if (upsertAuthorErr) {
+        console.error('Author upsert error:', upsertAuthorErr);
         return jsonResponse(400, { ok: false, error: upsertAuthorErr.message || 'Failed to upsert author' });
       }
+      console.log('Author record created');
     }
 
     return jsonResponse(200, {
