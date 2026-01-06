@@ -1056,15 +1056,20 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       console.log('🖼️ Tentando carregar avatar do colunista:', columnist.avatar);
       columnistAvatarImage.crossOrigin = 'anonymous';
       
-      // Detectar se precisa de proxy (imagens externas ou Supabase storage)
-      const avatarNeedsProxy = columnist.avatar.startsWith('http') && 
-        (!columnist.avatar.includes(window.location.host) || 
-         columnist.avatar.includes('supabase.co/storage'));
+      // Detectar se precisa de proxy (imagens externas, Supabase storage ou VPS media)
+      const isVPSImage = columnist.avatar.includes('media.radioradar.news');
+      const isSupabaseStorage = columnist.avatar.includes('supabase.co/storage');
+      const isExternalImage = columnist.avatar.startsWith('http') && 
+        !columnist.avatar.includes(window.location.host);
+      
+      // VPS e Supabase storage SEMPRE precisam de proxy por CORS
+      const avatarNeedsProxy = isVPSImage || isSupabaseStorage || isExternalImage;
       
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // No celular, sempre usar proxy para URLs externas
-      if (avatarNeedsProxy && isMobile) {
+      // SEMPRE usar proxy para imagens do VPS (CORS) ou mobile
+      if (avatarNeedsProxy) {
+        console.log('🔄 Usando proxy para avatar:', { isVPSImage, isSupabaseStorage, isExternalImage, isMobile });
         console.log('📱 Mobile detectado - usando proxy para avatar:', columnist.avatar);
         
         const tryAvatarProxy = async () => {
@@ -1112,7 +1117,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         };
         tryAvatarProxy();
       } else {
-        // Desktop ou URL local - carregamento direto
+        // URL local ou data URL - carregamento direto sem proxy
+        console.log('📷 Avatar local/data URL - carregamento direto');
         columnistAvatarImage.onload = () => {
           console.log('✅ Avatar do colunista carregado com sucesso');
           columnistAvatarLoaded = true;
