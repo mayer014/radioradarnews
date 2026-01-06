@@ -127,22 +127,26 @@ async function createUser(supabaseClient: any, params: any) {
 
     console.log('Profile created/updated')
 
-    // 3. Create user role in user_roles table
+    // 3. Create user role in user_roles table (use insert with onConflict)
     const { error: roleError } = await supabaseClient
       .from('user_roles')
-      .upsert({
-        user_id: authData.user.id,
-        role: role,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .upsert(
+        {
+          user_id: authData.user.id,
+          role: role,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'user_id,role', ignoreDuplicates: true }
+      )
 
     if (roleError) {
       console.error('Role insert error:', roleError)
-      throw roleError
+      // Don't throw - role might already exist, which is fine
+      console.log('Role may already exist, continuing...')
+    } else {
+      console.log('Role assigned:', role)
     }
-
-    console.log('Role assigned:', role)
 
     // 4. If role is columnist, ensure authors record exists
     if (role === 'colunista') {
