@@ -1,3 +1,8 @@
+import { ENV } from '@/config/environment';
+
+// Helper para obter URL do proxy dinamicamente
+const getImageProxyUrl = () => `${ENV.SUPABASE_URL}/functions/v1/image-proxy`;
+
 interface ArticleData {
   title: string;
   image: string;
@@ -762,8 +767,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         console.log('🔒 [CORS] Usando proxy para contornar CORS:', image.substring(0, 100));
         const tryProxyFetch = async () => {
           try {
-            const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
-            console.log('🔄 [PROXY] Iniciando requisição ao proxy...');
+            const proxyUrl = getImageProxyUrl();
+            console.log('🔄 [PROXY] Iniciando requisição ao proxy:', proxyUrl);
             
             const resp = await fetch(proxyUrl, {
               method: 'POST',
@@ -1074,7 +1079,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         
         const tryAvatarProxy = async () => {
           try {
-            const proxyUrl = 'https://bwxbhircezyhwekdngdk.supabase.co/functions/v1/image-proxy';
+            const proxyUrl = getImageProxyUrl();
+            console.log('🔄 [PROXY] Usando proxy dinâmico para avatar:', proxyUrl);
             const resp = await fetch(proxyUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
