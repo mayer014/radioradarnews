@@ -1,6 +1,7 @@
 import React from 'react';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
+import WeatherWidget from '@/components/WeatherWidget';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -34,6 +35,9 @@ const Index = () => {
       {/* Hero Section com Parallax */}
       <main id="main-content" tabIndex={-1}>
         <HeroSection />
+      
+      {/* Previsão do Tempo */}
+      <WeatherWidget />
       
       {/* Últimas Notícias */}
       <LatestNews />
