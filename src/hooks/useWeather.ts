@@ -88,8 +88,10 @@ export const useWeather = () => {
 
   const getCityKey = (city: City) => `${city.lat},${city.lon}`;
 
-  const fetchWeather = useCallback(async (city: City) => {
+  const fetchWeather = useCallback(async (city: City, retryCount = 0) => {
     const cityKey = getCityKey(city);
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 segundo entre tentativas
     
     // Verificar cache
     const cached = localStorage.getItem(CACHE_KEY);
@@ -102,6 +104,7 @@ export const useWeather = () => {
         ) {
           setWeather(cacheData.data);
           setLoading(false);
+          setError(null);
           return;
         }
       } catch {
@@ -110,15 +113,23 @@ export const useWeather = () => {
     }
 
     setLoading(true);
-    setError(null);
+    if (retryCount === 0) {
+      setError(null);
+    }
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=America/Sao_Paulo`
+        `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=America/Sao_Paulo`,
+        { signal: controller.signal }
       );
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Falha ao buscar previsão do tempo');
+        throw new Error(`HTTP ${response.status}: Falha ao buscar previsão`);
       }
 
       const data = await response.json();
@@ -142,10 +153,36 @@ export const useWeather = () => {
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
 
       setWeather(weatherData);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      // Retry automático em caso de erro de rede
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[Weather] Tentativa ${retryCount + 1}/${MAX_RETRIES} falhou, tentando novamente...`);
+        setTimeout(() => {
+          fetchWeather(city, retryCount + 1);
+        }, RETRY_DELAY * (retryCount + 1)); // Backoff exponencial
+        return;
+      }
+      
+      console.error('[Weather] Todas as tentativas falharam:', err);
+      setError(err instanceof Error ? err.message : 'Erro de conexão');
+      
+      // Tentar usar cache expirado como fallback
+      if (cached) {
+        try {
+          const cacheData: CacheData = JSON.parse(cached);
+          if (cacheData.cityKey === cityKey) {
+            console.log('[Weather] Usando cache expirado como fallback');
+            setWeather(cacheData.data);
+          }
+        } catch {
+          // Cache inválido
+        }
+      }
     } finally {
-      setLoading(false);
+      if (retryCount >= MAX_RETRIES || retryCount === 0) {
+        setLoading(false);
+      }
     }
   }, []);
 
