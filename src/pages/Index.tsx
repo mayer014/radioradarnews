@@ -2,6 +2,7 @@ import React from 'react';
 import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import WeatherWidget from '@/components/WeatherWidget';
+import CurrencyWidget from '@/components/CurrencyWidget';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -38,6 +39,9 @@ const Index = () => {
       
       {/* Previsão do Tempo */}
       <WeatherWidget />
+      
+      {/* Cotações */}
+      <CurrencyWidget />
       
       {/* Últimas Notícias */}
       <LatestNews />
