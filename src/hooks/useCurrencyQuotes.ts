@@ -1,6 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
 
-interface DollarQuote {
+// Moedas Fiduciárias (AwesomeAPI)
+export const FIAT_CURRENCIES = [
+  { code: 'USD', name: 'Dólar', symbol: '$', flag: '🇺🇸' },
+  { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
+  { code: 'GBP', name: 'Libra', symbol: '£', flag: '🇬🇧' },
+  { code: 'ARS', name: 'Peso Argentino', symbol: '$', flag: '🇦🇷' },
+  { code: 'JPY', name: 'Iene', symbol: '¥', flag: '🇯🇵' },
+  { code: 'CAD', name: 'Dólar Canadense', symbol: 'C$', flag: '🇨🇦' },
+] as const;
+
+// Criptomoedas (CoinGecko)
+export const CRYPTO_CURRENCIES = [
+  { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC' },
+  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH' },
+  { id: 'solana', name: 'Solana', symbol: 'SOL' },
+  { id: 'binancecoin', name: 'BNB', symbol: 'BNB' },
+  { id: 'ripple', name: 'XRP', symbol: 'XRP' },
+  { id: 'cardano', name: 'Cardano', symbol: 'ADA' },
+] as const;
+
+export type FiatCode = typeof FIAT_CURRENCIES[number]['code'];
+export type CryptoId = typeof CRYPTO_CURRENCIES[number]['id'];
+
+export interface FiatQuote {
+  code: string;
+  name: string;
   buy: number;
   sell: number;
   variation: number;
@@ -8,27 +33,42 @@ interface DollarQuote {
   low: number;
 }
 
-interface BitcoinQuote {
+export interface CryptoQuote {
+  id: string;
+  name: string;
+  symbol: string;
   priceBRL: number;
   priceUSD: number;
   variation24h: number;
 }
 
 export interface CurrencyQuotes {
-  dollar: DollarQuote | null;
-  bitcoin: BitcoinQuote | null;
+  fiat: FiatQuote | null;
+  crypto: CryptoQuote | null;
 }
 
 interface CacheData {
+  fiatCode: string;
+  cryptoId: string;
   data: CurrencyQuotes;
   timestamp: number;
 }
 
-const CACHE_KEY = 'currency_quotes_cache';
+const CACHE_KEY = 'currency_quotes_cache_v2';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 export const useCurrencyQuotes = () => {
-  const [quotes, setQuotes] = useState<CurrencyQuotes>({ dollar: null, bitcoin: null });
+  const [selectedFiat, setSelectedFiat] = useState<FiatCode>(() => {
+    const saved = localStorage.getItem('selected_fiat');
+    return (saved as FiatCode) || 'USD';
+  });
+  
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoId>(() => {
+    const saved = localStorage.getItem('selected_crypto');
+    return (saved as CryptoId) || 'bitcoin';
+  });
+
+  const [quotes, setQuotes] = useState<CurrencyQuotes>({ fiat: null, crypto: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,13 +91,19 @@ export const useCurrencyQuotes = () => {
     throw new Error('Max retries reached');
   };
 
-  const fetchQuotes = useCallback(async () => {
+  const fetchQuotes = useCallback(async (fiatCode: FiatCode, cryptoId: CryptoId) => {
+    const cacheKey = `${fiatCode}-${cryptoId}`;
+    
     // Verificar cache
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
       try {
         const cacheData: CacheData = JSON.parse(cached);
-        if (Date.now() - cacheData.timestamp < CACHE_DURATION) {
+        if (
+          cacheData.fiatCode === fiatCode && 
+          cacheData.cryptoId === cryptoId &&
+          Date.now() - cacheData.timestamp < CACHE_DURATION
+        ) {
           setQuotes(cacheData.data);
           setLoading(false);
           setError(null);
@@ -71,39 +117,55 @@ export const useCurrencyQuotes = () => {
     setLoading(true);
 
     try {
-      const [dollarRes, bitcoinRes] = await Promise.allSettled([
-        fetchWithRetry('https://economia.awesomeapi.com.br/json/last/USD-BRL'),
-        fetchWithRetry('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl,usd&include_24hr_change=true')
+      const fiatInfo = FIAT_CURRENCIES.find(f => f.code === fiatCode);
+      const cryptoInfo = CRYPTO_CURRENCIES.find(c => c.id === cryptoId);
+      
+      const [fiatRes, cryptoRes] = await Promise.allSettled([
+        fetchWithRetry(`https://economia.awesomeapi.com.br/json/last/${fiatCode}-BRL`),
+        fetchWithRetry(`https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=brl,usd&include_24hr_change=true`)
       ]);
 
-      let dollar: DollarQuote | null = null;
-      let bitcoin: BitcoinQuote | null = null;
+      let fiat: FiatQuote | null = null;
+      let crypto: CryptoQuote | null = null;
 
-      if (dollarRes.status === 'fulfilled') {
-        const data = await dollarRes.value.json();
-        const usd = data.USDBRL;
-        dollar = {
-          buy: parseFloat(usd.bid),
-          sell: parseFloat(usd.ask),
-          variation: parseFloat(usd.pctChange),
-          high: parseFloat(usd.high),
-          low: parseFloat(usd.low)
-        };
+      if (fiatRes.status === 'fulfilled') {
+        const data = await fiatRes.value.json();
+        const key = `${fiatCode}BRL`;
+        const quote = data[key];
+        if (quote) {
+          fiat = {
+            code: fiatCode,
+            name: fiatInfo?.name || fiatCode,
+            buy: parseFloat(quote.bid),
+            sell: parseFloat(quote.ask),
+            variation: parseFloat(quote.pctChange),
+            high: parseFloat(quote.high),
+            low: parseFloat(quote.low)
+          };
+        }
       }
 
-      if (bitcoinRes.status === 'fulfilled') {
-        const data = await bitcoinRes.value.json();
-        bitcoin = {
-          priceBRL: data.bitcoin.brl,
-          priceUSD: data.bitcoin.usd,
-          variation24h: data.bitcoin.brl_24h_change
-        };
+      if (cryptoRes.status === 'fulfilled') {
+        const data = await cryptoRes.value.json();
+        const coinData = data[cryptoId];
+        if (coinData) {
+          crypto = {
+            id: cryptoId,
+            name: cryptoInfo?.name || cryptoId,
+            symbol: cryptoInfo?.symbol || cryptoId.toUpperCase(),
+            priceBRL: coinData.brl,
+            priceUSD: coinData.usd,
+            variation24h: coinData.brl_24h_change || 0
+          };
+        }
       }
 
-      const newQuotes: CurrencyQuotes = { dollar, bitcoin };
+      const newQuotes: CurrencyQuotes = { fiat, crypto };
       
       // Salvar cache
       const cacheData: CacheData = {
+        fiatCode,
+        cryptoId,
         data: newQuotes,
         timestamp: Date.now()
       };
@@ -129,9 +191,28 @@ export const useCurrencyQuotes = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchQuotes();
-  }, [fetchQuotes]);
+  const changeFiat = useCallback((code: FiatCode) => {
+    setSelectedFiat(code);
+    localStorage.setItem('selected_fiat', code);
+  }, []);
 
-  return { quotes, loading, error, refetch: fetchQuotes };
+  const changeCrypto = useCallback((id: CryptoId) => {
+    setSelectedCrypto(id);
+    localStorage.setItem('selected_crypto', id);
+  }, []);
+
+  useEffect(() => {
+    fetchQuotes(selectedFiat, selectedCrypto);
+  }, [selectedFiat, selectedCrypto, fetchQuotes]);
+
+  return { 
+    quotes, 
+    loading, 
+    error, 
+    selectedFiat,
+    selectedCrypto,
+    changeFiat,
+    changeCrypto,
+    refetch: () => fetchQuotes(selectedFiat, selectedCrypto)
+  };
 };
