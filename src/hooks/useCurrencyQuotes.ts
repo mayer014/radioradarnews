@@ -88,14 +88,18 @@ export const useCurrencyQuotes = () => {
   
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchFiat = useCallback(async (code: FiatCode) => {
+  const fetchFiat = useCallback(async (code: FiatCode, forceRefresh = false) => {
     // Verificar cache primeiro
     const cache = getFromStorage<FiatCacheData>(FIAT_CACHE_KEY, {});
     const cached = cache[code];
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setFiatQuote(cached.data);
       return;
     }
+
+    // Limpar dados antigos ANTES de buscar (evita mostrar valor errado)
+    setFiatQuote(null);
 
     setLoadingFiat(true);
     const fiatInfo = FIAT_CURRENCIES.find(f => f.code === code);
@@ -144,14 +148,18 @@ export const useCurrencyQuotes = () => {
     }
   }, []);
 
-  const fetchCrypto = useCallback(async (id: CryptoId) => {
+  const fetchCrypto = useCallback(async (id: CryptoId, forceRefresh = false) => {
     // Verificar cache primeiro
     const cache = getFromStorage<CryptoCacheData>(CRYPTO_CACHE_KEY, {});
     const cached = cache[id];
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setCryptoQuote(cached.data);
       return;
     }
+
+    // Limpar dados antigos ANTES de buscar (evita mostrar valor errado)
+    setCryptoQuote(null);
 
     setLoadingCrypto(true);
     const cryptoInfo = CRYPTO_CURRENCIES.find(c => c.id === id);
@@ -199,14 +207,18 @@ export const useCurrencyQuotes = () => {
   }, []);
 
   const changeFiat = useCallback((code: FiatCode) => {
+    if (code === selectedFiat) return; // Evita re-fetch desnecessário
+    setFiatQuote(null); // Limpa imediatamente para mostrar loading
     setSelectedFiat(code);
     setToStorage('selected_fiat', code);
-  }, []);
+  }, [selectedFiat]);
 
   const changeCrypto = useCallback((id: CryptoId) => {
+    if (id === selectedCrypto) return; // Evita re-fetch desnecessário
+    setCryptoQuote(null); // Limpa imediatamente para mostrar loading
     setSelectedCrypto(id);
     setToStorage('selected_crypto', id);
-  }, []);
+  }, [selectedCrypto]);
 
   // Fetch fiat quando muda
   useEffect(() => {
