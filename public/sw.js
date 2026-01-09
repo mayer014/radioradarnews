@@ -1,26 +1,25 @@
-const CACHE_NAME = 'portal-news-v1.0.2';
-const STATIC_CACHE = 'static-v1.0.1';
-const DYNAMIC_CACHE = 'dynamic-v1.0.1';
+const CACHE_NAME = 'portal-news-v2.0.0';
+const STATIC_CACHE = 'static-v2.0.0';
+const DYNAMIC_CACHE = 'dynamic-v2.0.0';
 
-// Recursos essenciais para cache
+// APIs externas que NUNCA devem ser cacheadas
+const EXTERNAL_APIS = [
+  'api.coingecko.com',
+  'economia.awesomeapi.com.br',
+  'api.open-meteo.com',
+  'supabase.co',
+  'supabase.in'
+];
+
+// Recursos essenciais para cache (apenas shell da app)
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.ico'
 ];
 
-// Recursos que devem ser atualizados com frequência
-const DYNAMIC_ASSETS = [
-  '/noticias',
-  '/ao-vivo',
-  '/contato',
-  '/colunistas'
-];
-
-// Instalar Service Worker
+// Instalar Service Worker - força atualização imediata
 self.addEventListener('install', (event) => {
-  console.log('SW: Installing...');
+  console.log('SW: Installing v2.0.0...');
   
   event.waitUntil(
     caches.open(STATIC_CACHE)
@@ -29,6 +28,7 @@ self.addEventListener('install', (event) => {
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
+        // Força ativação imediata sem esperar
         return self.skipWaiting();
       })
   );
@@ -62,18 +62,60 @@ self.addEventListener('fetch', (event) => {
   // Apenas interceptar requisições HTTP/HTTPS
   if (!request.url.startsWith('http')) return;
 
-  // Bypass total de cache para streams de áudio (não armazenar)
+  // BYPASS TOTAL para APIs externas - NUNCA cachear
+  if (EXTERNAL_APIS.some(api => url.hostname.includes(api))) {
+    return; // Deixa o navegador fazer a requisição normalmente
+  }
+
+  // Bypass para streams de áudio
   if (request.destination === 'audio' || url.pathname.startsWith('/radio') || url.hostname.includes('streammaximum.com')) {
-    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return; // Deixa o navegador fazer a requisição normalmente
+  }
+
+  // Para navegação (páginas HTML), sempre buscar da rede primeiro
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          return response;
+        })
+        .catch(() => {
+          // Só usa cache se a rede falhar completamente
+          return caches.match(request).then((cached) => {
+            return cached || new Response(
+              '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Offline</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>Você está offline</h1><p>Verifique sua conexão e tente novamente.</p><button onclick="location.reload()">Tentar novamente</button></body></html>',
+              { headers: { 'Content-Type': 'text/html' } }
+            );
+          });
+        })
+    );
     return;
   }
 
-  // Estratégia: Cache First para assets estáticos
-  if (request.destination === 'script' || 
-      request.destination === 'style' || 
-      request.destination === 'image' ||
-      request.url.includes('/assets/')) {
-    
+  // Para scripts e styles com hash (Vite gera com hash único), usar Network First
+  // Isso garante que novas versões sejam sempre carregadas
+  if (request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cachear para fallback offline
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // Para imagens, usar Cache First (são estáticas)
+  if (request.destination === 'image' || request.url.includes('/assets/')) {
     event.respondWith(
       caches.match(request)
         .then((response) => {
@@ -85,60 +127,18 @@ self.addEventListener('fetch', (event) => {
             .then((response) => {
               if (response.status === 200) {
                 const responseClone = response.clone();
-                caches.open(STATIC_CACHE)
-                  .then((cache) => {
-                    cache.put(request, responseClone);
-                  });
+                caches.open(STATIC_CACHE).then((cache) => {
+                  cache.put(request, responseClone);
+                });
               }
               return response;
             });
         })
         .catch(() => {
-          // Fallback para imagens
-          if (request.destination === 'image') {
-            return new Response(
-              '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f3f4f6"/><text x="100" y="100" text-anchor="middle" fill="#9ca3af">Imagem indisponível</text></svg>',
-              { headers: { 'Content-Type': 'image/svg+xml' } }
-            );
-          }
-        })
-    );
-    return;
-  }
-
-  // Estratégia: Network First para páginas dinâmicas
-  if (request.mode === 'navigate' || 
-      request.destination === 'document' ||
-      DYNAMIC_ASSETS.some(asset => request.url.includes(asset))) {
-    
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE)
-              .then((cache) => {
-                cache.put(request, responseClone);
-              });
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request)
-            .then((response) => {
-              if (response) {
-                return response;
-              }
-              
-              // Página offline fallback
-              return caches.match('/')
-                .then((fallback) => {
-                  return fallback || new Response(
-                    '<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>Você está offline</h1><p>Esta página não está disponível offline.</p></body></html>',
-                    { headers: { 'Content-Type': 'text/html' } }
-                  );
-                });
-            });
+          return new Response(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f3f4f6"/><text x="100" y="100" text-anchor="middle" fill="#9ca3af">Imagem indisponível</text></svg>',
+            { headers: { 'Content-Type': 'image/svg+xml' } }
+          );
         })
     );
     return;
