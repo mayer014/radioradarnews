@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { TrendingUp, TrendingDown, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
 import { useCurrencyQuotes, FIAT_CURRENCIES, CRYPTO_CURRENCIES, FiatCode, CryptoId } from '@/hooks/useCurrencyQuotes';
 import {
@@ -8,22 +8,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const CryptoIcon = ({ symbol }: { symbol: string }) => {
-  const icons: Record<string, JSX.Element> = {
-    BTC: (
+const CryptoIcon = memo(({ symbol }: { symbol: string }) => {
+  if (symbol === 'BTC') {
+    return (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm.31 11.14c1.77-.45 2.34-1.94 2.19-3.28-.12-1.11-.77-1.83-1.92-2.08V5h-1.16v.76c-.31 0-.62 0-.93.01V5H9.33v.76H7.5v1.15h.81c.45 0 .67.2.67.6v4.9c0 .4-.22.59-.67.59H7.5v1.15h1.83v.77h1.16v-.77c.33 0 .65 0 .97-.01v.78h1.16v-.77c1.97-.1 3.38-1.1 3.18-2.95-.14-1.33-.94-2.06-2.49-2.33zm-2.3-3.3c.9-.01 1.81-.02 1.81.84 0 .87-.9.87-1.81.87v-1.71zm0 5.4v-1.89c1.08 0 2.16-.01 2.16.93 0 .96-1.08.96-2.16.96z"/>
       </svg>
-    ),
-    ETH: (
+    );
+  }
+  if (symbol === 'ETH') {
+    return (
       <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
         <path d="M12 1.75l-6.25 10.5L12 16l6.25-3.75L12 1.75zM5.75 13.5L12 22.25l6.25-8.75L12 17.25l-6.25-3.75z"/>
       </svg>
-    ),
-  };
-  
-  return icons[symbol] || <span className="text-sm font-bold">{symbol.slice(0, 2)}</span>;
-};
+    );
+  }
+  return <span className="text-sm font-bold">{symbol.slice(0, 2)}</span>;
+});
+
+CryptoIcon.displayName = 'CryptoIcon';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -46,11 +49,22 @@ const formatCrypto = (value: number) => {
   return formatCurrency(value);
 };
 
+const LoadingSkeleton = () => (
+  <div className="flex items-center gap-3">
+    <div className="w-10 h-10 bg-muted/50 rounded-full animate-pulse" />
+    <div className="space-y-1.5">
+      <div className="h-4 w-16 bg-muted/50 rounded animate-pulse" />
+      <div className="h-5 w-20 bg-muted/50 rounded animate-pulse" />
+    </div>
+  </div>
+);
+
 const CurrencyWidget: React.FC = () => {
   const { 
     quotes, 
-    loading, 
-    error, 
+    loading,
+    loadingFiat,
+    loadingCrypto,
     selectedFiat,
     selectedCrypto,
     changeFiat,
@@ -61,27 +75,7 @@ const CurrencyWidget: React.FC = () => {
   const currentFiat = FIAT_CURRENCIES.find(f => f.code === selectedFiat);
   const currentCrypto = CRYPTO_CURRENCIES.find(c => c.id === selectedCrypto);
 
-  if (error && !quotes.fiat && !quotes.crypto) {
-    return (
-      <section className="py-4 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-center gap-3 text-muted-foreground">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm">Cotações indisponíveis</span>
-              <button
-                onClick={refetch}
-                className="p-1.5 hover:bg-accent rounded-full transition-colors"
-                aria-label="Tentar novamente"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const hasSomeData = quotes.fiat || quotes.crypto;
 
   return (
     <section className="py-4 px-4" aria-label="Cotações do dia">
@@ -89,15 +83,9 @@ const CurrencyWidget: React.FC = () => {
         <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-sm relative">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-8">
             {/* Moeda Fiduciária */}
-            <div className="flex items-center gap-3 flex-1 justify-center sm:justify-end">
-              {loading && !quotes.fiat ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-muted/50 rounded-full animate-pulse" />
-                  <div className="space-y-1.5">
-                    <div className="h-4 w-16 bg-muted/50 rounded animate-pulse" />
-                    <div className="h-5 w-20 bg-muted/50 rounded animate-pulse" />
-                  </div>
-                </div>
+            <div className="flex items-center gap-3 flex-1 justify-center sm:justify-end min-h-[52px]">
+              {loadingFiat && !quotes.fiat ? (
+                <LoadingSkeleton />
               ) : quotes.fiat ? (
                 <>
                   <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-lg">
@@ -141,7 +129,12 @@ const CurrencyWidget: React.FC = () => {
                     </div>
                   </div>
                 </>
-              ) : null}
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Indisponível</span>
+                </div>
+              )}
             </div>
 
             {/* Separador */}
@@ -149,15 +142,9 @@ const CurrencyWidget: React.FC = () => {
             <div className="sm:hidden h-px w-full bg-border/50" />
 
             {/* Criptomoeda */}
-            <div className="flex items-center gap-3 flex-1 justify-center sm:justify-start">
-              {loading && !quotes.crypto ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-muted/50 rounded-full animate-pulse" />
-                  <div className="space-y-1.5">
-                    <div className="h-4 w-16 bg-muted/50 rounded animate-pulse" />
-                    <div className="h-5 w-24 bg-muted/50 rounded animate-pulse" />
-                  </div>
-                </div>
+            <div className="flex items-center gap-3 flex-1 justify-center sm:justify-start min-h-[52px]">
+              {loadingCrypto && !quotes.crypto ? (
+                <LoadingSkeleton />
               ) : quotes.crypto ? (
                 <>
                   <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
@@ -201,7 +188,12 @@ const CurrencyWidget: React.FC = () => {
                     </div>
                   </div>
                 </>
-              ) : null}
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Indisponível</span>
+                </div>
+              )}
             </div>
 
             {/* Botão Refresh */}
@@ -220,4 +212,4 @@ const CurrencyWidget: React.FC = () => {
   );
 };
 
-export default CurrencyWidget;
+export default memo(CurrencyWidget);
