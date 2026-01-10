@@ -84,11 +84,11 @@ const CurrencyWidget: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-8">
             {/* Moeda Fiduciária */}
             <div className="flex items-center gap-3 flex-1 justify-center sm:justify-end min-h-[52px]">
-              {loadingFiat && !quotes.fiat ? (
+              {!quotes.fiat && loadingFiat ? (
                 <LoadingSkeleton />
               ) : quotes.fiat ? (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-lg">
+                  <div className={`w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-lg transition-opacity ${loadingFiat ? 'opacity-50' : ''}`}>
                     {currentFiat?.flag}
                   </div>
                   <div className="text-left">
@@ -110,7 +110,7 @@ const CurrencyWidget: React.FC = () => {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 transition-opacity ${loadingFiat ? 'opacity-50' : ''}`}>
                       <span className="text-lg font-bold text-foreground">
                         {formatCurrency(quotes.fiat.buy)}
                       </span>
@@ -126,14 +126,12 @@ const CurrencyWidget: React.FC = () => {
                         )}
                         {quotes.fiat.variation >= 0 ? '+' : ''}{quotes.fiat.variation.toFixed(2)}%
                       </span>
+                      {loadingFiat && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>Indisponível</span>
-                </div>
+                <LoadingSkeleton />
               )}
             </div>
 
@@ -143,11 +141,11 @@ const CurrencyWidget: React.FC = () => {
 
             {/* Criptomoeda */}
             <div className="flex items-center gap-3 flex-1 justify-center sm:justify-start min-h-[52px]">
-              {loadingCrypto && !quotes.crypto ? (
+              {!quotes.crypto && loadingCrypto ? (
                 <LoadingSkeleton />
               ) : quotes.crypto ? (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
+                  <div className={`w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 transition-opacity ${loadingCrypto ? 'opacity-50' : ''}`}>
                     <CryptoIcon symbol={quotes.crypto.symbol} />
                   </div>
                   <div className="text-left">
@@ -169,7 +167,7 @@ const CurrencyWidget: React.FC = () => {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 transition-opacity ${loadingCrypto ? 'opacity-50' : ''}`}>
                       <span className="text-lg font-bold text-foreground">
                         {formatCrypto(quotes.crypto.priceBRL)}
                       </span>
@@ -185,14 +183,12 @@ const CurrencyWidget: React.FC = () => {
                         )}
                         {quotes.crypto.variation24h >= 0 ? '+' : ''}{quotes.crypto.variation24h.toFixed(1)}%
                       </span>
+                      {loadingCrypto && <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />}
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>Indisponível</span>
-                </div>
+                <LoadingSkeleton />
               )}
             </div>
 
