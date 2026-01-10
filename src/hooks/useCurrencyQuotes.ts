@@ -93,13 +93,16 @@ export const useCurrencyQuotes = () => {
     const cache = getFromStorage<FiatCacheData>(FIAT_CACHE_KEY, {});
     const cached = cache[code];
     
+    // Se tem cache válido, usar imediatamente
     if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setFiatQuote(cached.data);
       return;
     }
 
-    // Limpar dados antigos ANTES de buscar (evita mostrar valor errado)
-    setFiatQuote(null);
+    // Se tem cache (mesmo expirado), mostrar enquanto carrega
+    if (cached) {
+      setFiatQuote(cached.data);
+    }
 
     setLoadingFiat(true);
     const fiatInfo = FIAT_CURRENCIES.find(f => f.code === code);
@@ -138,28 +141,31 @@ export const useCurrencyQuotes = () => {
         setToStorage(FIAT_CACHE_KEY, cache);
       }
     } catch (err) {
-      // Usar cache expirado como fallback
-      if (cached) {
+      // Manter cache se já estiver mostrando, senão usar expirado
+      if (!fiatQuote && cached) {
         setFiatQuote(cached.data);
       }
       console.warn('[Fiat] Erro:', err);
     } finally {
       setLoadingFiat(false);
     }
-  }, []);
+  }, [fiatQuote]);
 
   const fetchCrypto = useCallback(async (id: CryptoId, forceRefresh = false) => {
     // Verificar cache primeiro
     const cache = getFromStorage<CryptoCacheData>(CRYPTO_CACHE_KEY, {});
     const cached = cache[id];
     
+    // Se tem cache válido, usar imediatamente
     if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setCryptoQuote(cached.data);
       return;
     }
 
-    // Limpar dados antigos ANTES de buscar (evita mostrar valor errado)
-    setCryptoQuote(null);
+    // Se tem cache (mesmo expirado), mostrar enquanto carrega
+    if (cached) {
+      setCryptoQuote(cached.data);
+    }
 
     setLoadingCrypto(true);
     const cryptoInfo = CRYPTO_CURRENCIES.find(c => c.id === id);
@@ -196,26 +202,26 @@ export const useCurrencyQuotes = () => {
         setToStorage(CRYPTO_CACHE_KEY, cache);
       }
     } catch (err) {
-      // Usar cache expirado como fallback
-      if (cached) {
+      // Manter cache se já estiver mostrando, senão usar expirado
+      if (!cryptoQuote && cached) {
         setCryptoQuote(cached.data);
       }
       console.warn('[Crypto] Erro:', err);
     } finally {
       setLoadingCrypto(false);
     }
-  }, []);
+  }, [cryptoQuote]);
 
   const changeFiat = useCallback((code: FiatCode) => {
-    if (code === selectedFiat) return; // Evita re-fetch desnecessário
-    setFiatQuote(null); // Limpa imediatamente para mostrar loading
+    if (code === selectedFiat) return;
+    // NÃO limpar - manter valor anterior até novo carregar
     setSelectedFiat(code);
     setToStorage('selected_fiat', code);
   }, [selectedFiat]);
 
   const changeCrypto = useCallback((id: CryptoId) => {
-    if (id === selectedCrypto) return; // Evita re-fetch desnecessário
-    setCryptoQuote(null); // Limpa imediatamente para mostrar loading
+    if (id === selectedCrypto) return;
+    // NÃO limpar - manter valor anterior até novo carregar
     setSelectedCrypto(id);
     setToStorage('selected_crypto', id);
   }, [selectedCrypto]);
