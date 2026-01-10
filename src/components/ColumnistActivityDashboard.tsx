@@ -198,10 +198,29 @@ const ColumnistActivityDashboard: React.FC = () => {
     fetchMonthlyHistory();
   }, []);
 
+  // Calculate total stats across all history
+  const allTimeStats = useMemo(() => {
+    return monthlyHistory.reduce((acc, month) => ({
+      totalVisits: acc.totalVisits + month.totalVisits,
+      uniqueVisitors: acc.uniqueVisitors + month.uniqueVisitors,
+      homeVisits: acc.homeVisits + month.homeVisits,
+      articleVisits: acc.articleVisits + month.articleVisits,
+      mobileVisits: acc.mobileVisits + month.mobileVisits,
+      desktopVisits: acc.desktopVisits + month.desktopVisits,
+    }), {
+      totalVisits: 0,
+      uniqueVisitors: 0,
+      homeVisits: 0,
+      articleVisits: 0,
+      mobileVisits: 0,
+      desktopVisits: 0,
+    });
+  }, [monthlyHistory]);
+
   // Get selected month data
   const selectedMonthData = useMemo(() => {
-    if (selectedMonth === 'current') {
-      return null; // Use current live data
+    if (selectedMonth === 'current' || selectedMonth === 'all') {
+      return null; // Use current live data or all-time
     }
     return monthlyHistory.find(m => m.month === selectedMonth) || null;
   }, [selectedMonth, monthlyHistory]);
@@ -390,12 +409,23 @@ const ColumnistActivityDashboard: React.FC = () => {
                 <SelectItem value="current">
                   <span className="flex items-center gap-2">
                     <Activity className="h-4 w-4" />
-                    Tempo Real
+                    Mês Atual (Tempo Real)
+                  </span>
+                </SelectItem>
+                <SelectItem value="all">
+                  <span className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Total Geral (Todos os Meses)
                   </span>
                 </SelectItem>
                 {monthlyHistory.map(month => (
                   <SelectItem key={month.month} value={month.month}>
-                    {month.label}
+                    <span className="flex items-center justify-between w-full">
+                      {month.label}
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({month.totalVisits.toLocaleString('pt-BR')})
+                      </span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -468,6 +498,99 @@ const ColumnistActivityDashboard: React.FC = () => {
                 </div>
               </div>
             </Card>
+          </div>
+        ) : selectedMonth === 'all' ? (
+          // Total Geral - todos os meses
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <BarChart3 className="h-4 w-4" />
+              Total Geral - Desde {monthlyHistory.length > 0 ? monthlyHistory[monthlyHistory.length - 1]?.label : 'o início'}
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Activity className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total de Visitas</p>
+                    <p className="text-xl font-bold">
+                      {allTimeStats.totalVisits.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-500/20 rounded-lg">
+                    <Users className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                    <p className="text-xl font-bold">
+                      {allTimeStats.uniqueVisitors.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/20 rounded-lg">
+                    <FileText className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Visitas em Artigos</p>
+                    <p className="text-xl font-bold">
+                      {allTimeStats.articleVisits.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-500/20 rounded-lg">
+                    <Users className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Mobile / Desktop</p>
+                    <p className="text-xl font-bold">
+                      {allTimeStats.mobileVisits.toLocaleString('pt-BR')} / {allTimeStats.desktopVisits.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Breakdown por mês quando vendo total geral */}
+            <div className="mt-4 pt-4 border-t border-muted/30">
+              <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <History className="h-4 w-4 text-muted-foreground" />
+                Detalhamento por Mês
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {monthlyHistory.map(month => (
+                  <Card 
+                    key={month.month} 
+                    className="p-3 cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => setSelectedMonth(month.month)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{month.label}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {month.totalVisits.toLocaleString('pt-BR')} visitas
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {month.uniqueVisitors} únicos • {month.articleVisits} artigos
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
         ) : selectedMonthData ? (
           // Dados históricos do mês selecionado
