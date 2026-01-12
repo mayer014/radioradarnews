@@ -19,10 +19,10 @@ const Footer = () => {
   const displayCity = contactInfo?.city || publicContactInfo?.city || '';
   const displayState = contactInfo?.state || publicContactInfo?.state || '';
   const displayAddress = contactInfo?.address || '';
-  const facebookUrl = contactInfo?.facebook_url || '';
-  const instagramUrl = contactInfo?.instagram_url || '';
-  const twitterUrl = contactInfo?.twitter_url || '';
-  const youtubeUrl = contactInfo?.youtube_url || '';
+  const facebookUrl = contactInfo?.facebook_url || publicContactInfo?.facebook_url || '';
+  const instagramUrl = contactInfo?.instagram_url || publicContactInfo?.instagram_url || '';
+  const twitterUrl = contactInfo?.twitter_url || publicContactInfo?.twitter_url || '';
+  const youtubeUrl = contactInfo?.youtube_url || publicContactInfo?.youtube_url || '';
 
   // Pegar as 6 notícias mais recentes diretamente do Supabase
   const recentNews = articles

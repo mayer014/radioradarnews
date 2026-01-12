@@ -11,6 +11,10 @@ export interface PublicContactInfo {
   weekdays_hours: string;
   saturday_hours: string;
   sunday_hours: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  twitter_url?: string;
+  youtube_url?: string;
 }
 
 // Full contact info (requires authentication)
