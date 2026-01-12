@@ -1,15 +1,28 @@
-import { Mail, Phone, MapPin, Facebook, Instagram, Clock, Users, Newspaper } from 'lucide-react';
+import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, Youtube, Clock, Users, Newspaper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
+import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 import { getArticleLink } from '@/lib/utils';
 
 const Footer = () => {
   const navigate = useNavigate();
   const { articles } = useSupabaseNews();
   const { columnists } = useUsers();
+  const { contactInfo, publicContactInfo } = useSupabaseContactInfo();
+
+  // Use full contactInfo if available, otherwise fall back to publicContactInfo
+  const displayPhone = contactInfo?.phone1 || publicContactInfo?.phone1 || '';
+  const displayEmail = contactInfo?.email1 || publicContactInfo?.email1 || '';
+  const displayCity = contactInfo?.city || publicContactInfo?.city || '';
+  const displayState = contactInfo?.state || publicContactInfo?.state || '';
+  const displayAddress = contactInfo?.address || '';
+  const facebookUrl = contactInfo?.facebook_url || '';
+  const instagramUrl = contactInfo?.instagram_url || '';
+  const twitterUrl = contactInfo?.twitter_url || '';
+  const youtubeUrl = contactInfo?.youtube_url || '';
 
   // Pegar as 6 notícias mais recentes diretamente do Supabase
   const recentNews = articles
@@ -32,6 +45,12 @@ const Footer = () => {
     { name: 'Tecnologia / Economia', href: '/noticias?categoria=Tecnologia' },
     { name: 'Ciência / Saúde', href: '/noticias?categoria=Ciência / Saúde' }
   ];
+
+  const handleSocialClick = (url: string) => {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   return (
     <footer className="bg-gradient-to-b from-background to-muted/20 border-t border-primary/20 py-16">
@@ -153,13 +172,49 @@ const Footer = () => {
               O futuro do jornalismo digital está aqui. Notícias, música e entretenimento 
               em uma experiência única e imersiva.
             </p>
-            <div className="flex space-x-2">
-              <Button variant="ghost" size="sm" className="hover:bg-primary/10 hover:text-primary">
-                <Facebook className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="hover:bg-primary/10 hover:text-primary">
-                <Instagram className="w-4 h-4" />
-              </Button>
+            
+            {/* Social Media Buttons - Highlighted */}
+            <div className="flex flex-wrap gap-2">
+              {instagramUrl && (
+                <Button 
+                  onClick={() => handleSocialClick(instagramUrl)}
+                  size="sm" 
+                  className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 hover:from-purple-600 hover:via-pink-600 hover:to-orange-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                >
+                  <Instagram className="w-4 h-4 mr-2" />
+                  Instagram
+                </Button>
+              )}
+              {facebookUrl && (
+                <Button 
+                  onClick={() => handleSocialClick(facebookUrl)}
+                  size="sm" 
+                  className="bg-[#1877F2] hover:bg-[#166FE5] text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                >
+                  <Facebook className="w-4 h-4 mr-2" />
+                  Facebook
+                </Button>
+              )}
+              {twitterUrl && (
+                <Button 
+                  onClick={() => handleSocialClick(twitterUrl)}
+                  variant="outline" 
+                  size="sm" 
+                  className="hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                >
+                  <Twitter className="w-4 h-4" />
+                </Button>
+              )}
+              {youtubeUrl && (
+                <Button 
+                  onClick={() => handleSocialClick(youtubeUrl)}
+                  variant="outline" 
+                  size="sm" 
+                  className="hover:bg-red-500/10 hover:text-red-500 transition-all duration-300"
+                >
+                  <Youtube className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
 
@@ -197,22 +252,41 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contato */}
+          {/* Contato - Now using dynamic data */}
           <div className="space-y-4 animate-slide-up delay-150">
             <h4 className="text-lg font-semibold text-foreground">Contato</h4>
             <div className="space-y-3">
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <Phone className="w-4 h-4 text-primary" />
-                <span>(11) 9999-9999</span>
-              </div>
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <Mail className="w-4 h-4 text-primary" />
-                <span>contato@portalnews.com</span>
-              </div>
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <MapPin className="w-4 h-4 text-primary" />
-                <span>São Paulo, SP - Brasil</span>
-              </div>
+              {displayPhone && (
+                <a 
+                  href={`tel:${displayPhone.replace(/\D/g, '')}`}
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors duration-200"
+                >
+                  <Phone className="w-4 h-4 text-primary" />
+                  <span>{displayPhone}</span>
+                </a>
+              )}
+              {displayEmail && (
+                <a 
+                  href={`mailto:${displayEmail}`}
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors duration-200"
+                >
+                  <Mail className="w-4 h-4 text-primary" />
+                  <span>{displayEmail}</span>
+                </a>
+              )}
+              {(displayCity || displayState || displayAddress) && (
+                <div className="flex items-start space-x-2 text-muted-foreground">
+                  <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex flex-col">
+                    {displayAddress && <span>{displayAddress}</span>}
+                    {(displayCity || displayState) && (
+                      <span>
+                        {displayCity}{displayCity && displayState ? ', ' : ''}{displayState}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
