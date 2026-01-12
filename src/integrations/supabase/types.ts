@@ -1229,29 +1229,41 @@ export type Database = {
         Row: {
           city: string | null
           email1: string | null
+          facebook_url: string | null
+          instagram_url: string | null
           phone1: string | null
           saturday_hours: string | null
           state: string | null
           sunday_hours: string | null
+          twitter_url: string | null
           weekdays_hours: string | null
+          youtube_url: string | null
         }
         Insert: {
           city?: string | null
           email1?: string | null
+          facebook_url?: string | null
+          instagram_url?: string | null
           phone1?: string | null
           saturday_hours?: string | null
           state?: string | null
           sunday_hours?: string | null
+          twitter_url?: string | null
           weekdays_hours?: string | null
+          youtube_url?: string | null
         }
         Update: {
           city?: string | null
           email1?: string | null
+          facebook_url?: string | null
+          instagram_url?: string | null
           phone1?: string | null
           saturday_hours?: string | null
           state?: string | null
           sunday_hours?: string | null
+          twitter_url?: string | null
           weekdays_hours?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -1319,11 +1331,15 @@ export type Database = {
         Returns: {
           city: string
           email1: string
+          facebook_url: string
+          instagram_url: string
           phone1: string
           saturday_hours: string
           state: string
           sunday_hours: string
+          twitter_url: string
           weekdays_hours: string
+          youtube_url: string
         }[]
       }
       get_storage_usage: {
