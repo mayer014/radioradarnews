@@ -5,13 +5,21 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate } from 'react-router-dom';
 import { useUsers } from '@/contexts/UsersContext';
 import ThemeToggle from '@/components/ThemeToggle';
-
+import SocialMediaButtons from '@/components/SocialMediaButtons';
+import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { columnists } = useUsers();
+  const { contactInfo, publicContactInfo } = useSupabaseContactInfo();
   const logoUrl = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
+  
+  // Social media URLs
+  const facebookUrl = contactInfo?.facebook_url || publicContactInfo?.facebook_url || '';
+  const instagramUrl = contactInfo?.instagram_url || publicContactInfo?.instagram_url || '';
+  const twitterUrl = contactInfo?.twitter_url || publicContactInfo?.twitter_url || '';
+  const youtubeUrl = contactInfo?.youtube_url || publicContactInfo?.youtube_url || '';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,8 +68,16 @@ const Navigation = () => {
               />
             </div>
 
-            {/* Theme Toggle e Mobile Menu */}
+            {/* Social Media, Theme Toggle e Mobile Menu */}
             <div className="flex items-center space-x-2">
+              <SocialMediaButtons
+                facebookUrl={facebookUrl}
+                instagramUrl={instagramUrl}
+                twitterUrl={twitterUrl}
+                youtubeUrl={youtubeUrl}
+                size="sm"
+                className="hidden sm:flex"
+              />
               <ThemeToggle />
               <Button
                 variant="ghost"
@@ -219,6 +235,16 @@ const Navigation = () => {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-gradient-card/95 backdrop-blur-md border border-primary/20 rounded-2xl mt-2 p-4 animate-slide-up max-h-[70vh] overflow-y-auto">
+            {/* Social Media no Mobile */}
+            <div className="flex justify-center mb-4 pb-3 border-b border-primary/20">
+              <SocialMediaButtons
+                facebookUrl={facebookUrl}
+                instagramUrl={instagramUrl}
+                twitterUrl={twitterUrl}
+                youtubeUrl={youtubeUrl}
+                size="md"
+              />
+            </div>
             <div className="space-y-2">
               {navItems.map((item) => (
                 <Button
