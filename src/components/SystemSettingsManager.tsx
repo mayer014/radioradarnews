@@ -22,6 +22,7 @@ import {
 import { ENV } from '@/config/environment';
 import { supabase } from '@/integrations/supabase/client';
 import AIPromptEditor from '@/components/AIPromptEditor';
+import TokenUsageDashboard from '@/components/TokenUsageDashboard';
 
 const SystemSettingsManager = () => {
   const { toast } = useToast();
@@ -200,6 +201,9 @@ const SystemSettingsManager = () => {
 
         {/* AI Configuration */}
         <TabsContent value="ai" className="space-y-4">
+          {/* Token Usage Dashboard */}
+          <TokenUsageDashboard />
+          
           <Card className="bg-gradient-card border-primary/30 p-6">
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">

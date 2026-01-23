@@ -118,6 +118,22 @@ const ALLOWED_GROQ_MODELS = [
   'gemma2-9b-it'
 ];
 
+// Tabela de custos por modelo Groq (USD por 1M tokens)
+const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+  'llama-3.1-8b-instant': { input: 0.05, output: 0.08 },
+  'llama-3.1-70b-versatile': { input: 0.59, output: 0.79 },
+  'llama-3.2-1b-preview': { input: 0.04, output: 0.04 },
+  'llama-3.2-3b-preview': { input: 0.06, output: 0.06 },
+  'mixtral-8x7b-32768': { input: 0.24, output: 0.24 },
+  'gemma2-9b-it': { input: 0.20, output: 0.20 },
+};
+
+// Calcula custo estimado em USD
+function calculateCost(inputTokens: number, outputTokens: number, model: string): number {
+  const costs = MODEL_COSTS[model] || MODEL_COSTS['llama-3.1-8b-instant'];
+  return (inputTokens * costs.input / 1000000) + (outputTokens * costs.output / 1000000);
+}
+
 // ==== CENTRALIZAÇÃO DE API KEY ====
 // Busca a API key diretamente do banco de dados (tabela ai_configurations)
 // Isso permite gerenciamento 100% pelo Painel Admin, sem depender de secrets
@@ -364,11 +380,33 @@ Conteúdo: ${cleanedContent}
 
     const data = await response.json();
     const aiContent = data.choices[0]?.message?.content;
+    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+    
     console.log(`✅ [${requestId}] Groq response received - Content length: ${aiContent?.length || 0} chars`);
+    console.log(`📊 [${requestId}] Token usage:`, usage);
     
     if (!aiContent) {
       console.error(`❌ [${requestId}] No content returned from Groq`);
       throw new Error('No content returned from Groq');
+    }
+
+    // Log usage to database
+    try {
+      const costUsd = calculateCost(usage.prompt_tokens, usage.completion_tokens, selectedModel);
+      await supabase.from('llm_usage_logs').insert({
+        provider: 'groq',
+        model: selectedModel,
+        function_name: 'ai-rewriter-service',
+        input_tokens: usage.prompt_tokens,
+        output_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens,
+        cost_usd: costUsd,
+        request_id: requestId,
+        metadata: { source_url: url }
+      });
+      console.log(`💾 [${requestId}] Usage logged to database`);
+    } catch (logError) {
+      console.warn(`⚠️ [${requestId}] Failed to log usage:`, logError);
     }
 
     console.log(`📊 [${requestId}] Parsing AI JSON response...`);
@@ -385,6 +423,7 @@ Conteúdo: ${cleanedContent}
         provider: 'Groq',
         model: selectedModel,
         timestamp: new Date().toISOString(),
+        usage: usage,
         note: 'Gerado usando LLM externa configurada pelo usuário (sem consumir créditos Lovable)'
       }
     }), {
