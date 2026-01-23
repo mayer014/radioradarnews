@@ -18,11 +18,42 @@ interface ArticleSummary {
   summary: string;
 }
 
+// Modelos Groq permitidos
+const ALLOWED_GROQ_MODELS = [
+  'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it'
+];
+
+// Função para buscar modelo preferido do banco
+async function getPreferredGroqModel(supabaseClient: any): Promise<string> {
+  try {
+    const { data } = await supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('category', 'ai')
+      .eq('key', 'groq_preferred_model')
+      .maybeSingle();
+      
+    const model = data?.value?.model as string | undefined;
+    if (model && ALLOWED_GROQ_MODELS.includes(model)) {
+      return model;
+    }
+  } catch (error) {
+    console.warn('Error fetching preferred Groq model:', error);
+  }
+  return 'llama-3.1-8b-instant'; // Default Groq model
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const requestId = `SUMMARY_${Date.now()}`;
+  console.log(`🔵 [${requestId}] Daily Summary Generator called at ${new Date().toISOString()}`);
 
   try {
     const { articles } = await req.json() as { articles: ArticleInput[] };
@@ -34,12 +65,44 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY não configurada');
+    // PRIORIDADE: GROQ_API_KEY (LLM externa do usuário)
+    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    
+    console.log(`🔑 [${requestId}] API Keys status:`, {
+      groqConfigured: !!GROQ_API_KEY,
+      provider: GROQ_API_KEY ? 'GROQ (sem consumir créditos Lovable)' : 'NONE'
+    });
+
+    if (!GROQ_API_KEY) {
+      console.error(`❌ [${requestId}] GROQ_API_KEY não configurada. Configure no Painel Admin → Configurações.`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'LLM externa não configurada',
+          message: 'Configure GROQ_API_KEY no Supabase Secrets para usar esta funcionalidade.',
+          details: 'Nenhuma LLM externa está configurada. Configure sua chave API no Painel Admin → Configurações.'
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`[daily-summary] Gerando resumos para ${articles.length} artigos`);
+    // Buscar modelo preferido do banco
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    let selectedModel = 'llama-3.1-8b-instant';
+    
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        selectedModel = await getPreferredGroqModel(supabase);
+      } catch (configError) {
+        console.warn('Could not load Groq model preference, using default:', configError);
+      }
+    }
+
+    console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
+    console.log(`📰 [${requestId}] Gerando resumos para ${articles.length} artigos usando GROQ (sem consumir créditos Lovable)`);
 
     // Preparar prompt para a IA
     const articlesText = articles.map((a, i) => 
@@ -70,49 +133,46 @@ FORMATO DE RESPOSTA (JSON):
 
     const userPrompt = `Crie resumos para leitura em rádio das seguintes matérias publicadas hoje:\n\n${articlesText}`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Usar exclusivamente Groq API
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: selectedModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        temperature: 0.7,
+        max_tokens: 4096
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[daily-summary] Erro da API:', response.status, errorText);
+      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente em alguns minutos.' }),
+          JSON.stringify({ error: 'Limite de requisições da Groq excedido. Tente novamente em alguns minutos.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos à sua conta Lovable.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       
-      throw new Error(`Erro da API: ${response.status}`);
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      throw new Error('Resposta vazia da IA');
+      throw new Error('Resposta vazia da Groq');
     }
 
-    console.log('[daily-summary] Resposta da IA:', content.substring(0, 200));
+    console.log(`✅ [${requestId}] Resposta da Groq recebida - Length: ${content.length} chars`);
 
     // Extrair JSON da resposta
     let summaries: ArticleSummary[] = [];
@@ -124,9 +184,9 @@ FORMATO DE RESPOSTA (JSON):
         summaries = parsed.summaries || [];
       }
     } catch (parseError) {
-      console.error('[daily-summary] Erro ao parsear resposta:', parseError);
+      console.error(`⚠️ [${requestId}] Erro ao parsear resposta:`, parseError);
       
-      // Fallback: criar resumos simples se a IA falhar
+      // Fallback: criar resumos simples se a IA falhar no parse
       summaries = articles.map(a => ({
         title: a.title,
         category: a.category,
@@ -134,15 +194,23 @@ FORMATO DE RESPOSTA (JSON):
       }));
     }
 
-    console.log(`[daily-summary] ${summaries.length} resumos gerados com sucesso`);
+    console.log(`✅ [${requestId}] ${summaries.length} resumos gerados com sucesso usando Groq (sem créditos Lovable)`);
 
     return new Response(
-      JSON.stringify({ summaries }),
+      JSON.stringify({ 
+        summaries,
+        _meta: {
+          provider: 'Groq',
+          model: selectedModel,
+          timestamp: new Date().toISOString(),
+          note: 'Gerado usando LLM externa configurada pelo usuário (sem consumir créditos Lovable)'
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[daily-summary] Erro:', error);
+    console.error(`❌ [${requestId}] Erro:`, error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
