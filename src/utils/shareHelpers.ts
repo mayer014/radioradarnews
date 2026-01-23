@@ -702,29 +702,23 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
               ctx.restore();
             }
             
-            // Nome e especialidade em área separada (na parte escura abaixo do título)
-            const infoY = columnistY + 10;
+            // Nome e especialidade como TEXTO SIMPLES (sem fundo) - conforme template configurado
+            const infoY = columnistY + 15;
             
-            // Desenhar fundo sutil para nome e especialidade
-            const infoHeight = 60;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-            ctx.beginPath();
-            ctx.roundRect(40, infoY, canvas.width - 80, infoHeight, 15);
-            ctx.fill();
-            
-            // Nome do colunista
+            // Nome do colunista - texto simples centralizado
             ctx.fillStyle = '#ffffff';
             ctx.font = `bold ${nameSize}px Arial, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
-            ctx.fillText(columnist.name, canvas.width / 2, infoY + 10);
+            ctx.fillText(columnist.name, canvas.width / 2, infoY);
             
-            // Especialidade
+            // Especialidade - texto simples centralizado
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.font = `${specialtySize}px Arial, sans-serif`;
-            ctx.fillText(columnist.specialty, canvas.width / 2, infoY + 10 + nameSize + 5);
+            ctx.fillText(columnist.specialty, canvas.width / 2, infoY + nameSize + 8);
             
-            columnistSectionHeight = infoHeight + 30;
+            // Altura mínima da seção (apenas texto, sem fundo)
+            columnistSectionHeight = nameSize + specialtySize + 30;
             
           } else {
             // Layout tradicional: avatar ao lado do nome
@@ -848,16 +842,17 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         }
       }
       
-      // 8. Resumo da matéria NA PARTE ESCURA (apenas para matérias sem fonte - colunistas)
-      if (summary && !source) {
+      // 8. Resumo da matéria NA PARTE ESCURA (APENAS para matérias normais sem fonte - NÃO para colunistas)
+      // Colunistas com avatarSeparate não mostram resumo para manter layout limpo
+      if (summary && !source && !columnist) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.font = '20px Arial, sans-serif'; // Fonte menor
+        ctx.font = '20px Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         
         // Quebrar texto do resumo
         const summaryMaxWidth = canvas.width - 80;
-        const summaryLineHeight = 26; // Menor
+        const summaryLineHeight = 26;
         const summaryWords = summary.split(' ');
         const summaryLines: string[] = [];
         let currentSummaryLine = '';
@@ -884,13 +879,12 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           summaryDisplayLines[1] = summaryDisplayLines[1] + '...';
         }
         
-        // Desenhar linhas do resumo - posicionamento diferente para colunistas vs matérias normais
-        const summaryStartY = titleStartY + (displayLines.length * titleLineHeight) + columnistSectionHeight + (columnist ? 15 : 25);
+        const summaryStartY = titleStartY + (displayLines.length * titleLineHeight) + columnistSectionHeight + 25;
         summaryDisplayLines.forEach((line, index) => {
           ctx.fillText(line, canvas.width / 2, summaryStartY + (index * summaryLineHeight));
         });
         
-        console.log('✅ Resumo posicionado na parte escura');
+        console.log('✅ Resumo posicionado na parte escura (matéria normal)');
       }
       
       // 9. LOGO - Renderizar logo em posição livre (pode sobrepor imagem)
