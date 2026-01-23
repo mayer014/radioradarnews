@@ -651,7 +651,7 @@ const ArtTemplateManager: React.FC = () => {
                           value={[regularTemplate.logo.size]}
                           onValueChange={([value]) => updateRegularField('logo', { ...regularTemplate.logo, size: value })}
                           min={80}
-                          max={200}
+                          max={400}
                           step={10}
                         />
                       </div>
@@ -843,7 +843,7 @@ const ArtTemplateManager: React.FC = () => {
                           value={[columnistTemplate.logo.size]}
                           onValueChange={([value]) => updateColumnistField('logo', { ...columnistTemplate.logo, size: value })}
                           min={80}
-                          max={200}
+                          max={400}
                           step={10}
                         />
                       </div>
