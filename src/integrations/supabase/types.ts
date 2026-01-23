@@ -707,6 +707,48 @@ export type Database = {
         }
         Relationships: []
       }
+      llm_usage_logs: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          function_name: string
+          id: string
+          input_tokens: number
+          metadata: Json | null
+          model: string
+          output_tokens: number
+          provider: string
+          request_id: string | null
+          total_tokens: number
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          function_name: string
+          id?: string
+          input_tokens?: number
+          metadata?: Json | null
+          model: string
+          output_tokens?: number
+          provider?: string
+          request_id?: string | null
+          total_tokens?: number
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          function_name?: string
+          id?: string
+          input_tokens?: number
+          metadata?: Json | null
+          model?: string
+          output_tokens?: number
+          provider?: string
+          request_id?: string | null
+          total_tokens?: number
+        }
+        Relationships: []
+      }
       local_storage_backup: {
         Row: {
           id: string
@@ -1316,6 +1358,15 @@ export type Database = {
           id: string
           name: string
           specialty: string
+        }[]
+      }
+      get_llm_usage_stats: {
+        Args: { days_back?: number }
+        Returns: {
+          period: string
+          request_count: number
+          total_cost_usd: number
+          total_tokens: number
         }[]
       }
       get_orphaned_files: {
