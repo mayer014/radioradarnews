@@ -353,7 +353,16 @@ const ArtTemplateManager: React.FC = () => {
           const drawX = (template.canvas.width * template.logo.position.x / 100) - (logoWidth / 2);
           const drawY = (template.canvas.height * template.logo.position.y / 100) - (logoHeight / 2);
           
+          // Aplicar sombra sutil para destacar logo em fundos claros
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 15;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+          
           ctx.drawImage(logoImage, drawX, drawY, logoWidth, logoHeight);
+          
+          ctx.restore(); // Restaurar para remover sombra
         } else if (template.logo.imageUrl) {
           // Placeholder quando logo está carregando
           const drawX = (template.canvas.width * template.logo.position.x / 100) - (logoSize / 2);
