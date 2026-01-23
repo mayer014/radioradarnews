@@ -185,36 +185,70 @@ FORMATO DE RESPOSTA (JSON):
 
     const userPrompt = `Crie resumos para leitura em rádio das seguintes matérias publicadas hoje:\n\n${articlesText}`;
 
-    // Usar exclusivamente Groq API
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4096
-      }),
-    });
+    // Usar exclusivamente Groq API com retry automático para rate limits
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    let response: Response | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`🔄 [${requestId}] Tentativa ${attempt}/${maxRetries}...`);
       
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 4096
+        }),
+      });
+
+      if (response.ok) {
+        break; // Sucesso, sair do loop
+      }
+
       if (response.status === 429) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.error?.message || '';
+        
+        // Extrair tempo de espera sugerido da mensagem de erro
+        const waitMatch = errorMessage.match(/try again in (\d+\.?\d*)s/i);
+        const waitTime = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) : (attempt * 10000);
+        
+        console.warn(`⚠️ [${requestId}] Rate limit atingido. Aguardando ${waitTime/1000}s antes de tentar novamente...`);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        // Última tentativa falhou
         return new Response(
-          JSON.stringify({ error: 'Limite de requisições da Groq excedido. Tente novamente em alguns minutos.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            error: 'Limite de requisições da Groq excedido.',
+            message: 'O limite de tokens por minuto foi atingido. Aguarde alguns segundos e tente novamente.',
+            retryAfter: Math.ceil(waitTime / 1000)
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil(waitTime / 1000)) } }
         );
       }
-      
-      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+
+      // Outros erros
+      const errorText = await response.text();
+      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
+      lastError = new Error(`Groq API error: ${response.status} - ${errorText}`);
+      break;
+    }
+
+    if (!response || !response.ok) {
+      throw lastError || new Error('Falha na comunicação com Groq API');
     }
 
     const data = await response.json();
