@@ -100,20 +100,22 @@ CRÍTICO: O conteúdo deve ter 3-5 parágrafos bem separados, nunca texto corrid
   }
 
   static async rewriteContent(extractedContent: ExtractedContent): Promise<RewrittenContent> {
-    console.log('🔄 Starting content rewriting with AI providers...');
+    console.log('🔄 Starting content rewriting with external LLM (Groq)...');
     
     // Fetch the latest prompt every time (no caching)
     const SYSTEM_PROMPT = await this.getSystemPrompt();
     console.log(`📝 Prompt loaded, starting rewrite process for: "${extractedContent.title}"`);
 
     try {
-      // First try: Use Supabase Edge Function (Groq from secrets)
-      const primary = await this.callSupabaseAIRewriter(extractedContent);
-      return this.ensureRewrittenTitle(primary, extractedContent.title);
+      // EXCLUSIVO: Usar Supabase Edge Function que usa GROQ_API_KEY
+      // Não há fallback para Lovable AI
+      const result = await this.callSupabaseAIRewriter(extractedContent);
+      return this.ensureRewrittenTitle(result, extractedContent.title);
     } catch (error) {
-      console.error('Supabase AI rewriter failed:', error);
+      console.error('❌ Supabase AI rewriter (Groq) failed:', error);
       
-      // Fallback: Try localStorage configured providers
+      // Tentar provedores configurados no localStorage (OpenAI, Anthropic, etc.)
+      // NÃO inclui Lovable AI
       const userPrompt = `
 TAREFA: Reescreva o conteúdo abaixo em formato jornalístico, retornando APENAS o JSON conforme instruções do sistema.
 
@@ -124,28 +126,37 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
 `;
 
       try {
-        const result = await this.tryAIProviders(userPrompt, SYSTEM_PROMPT);
+        const result = await this.tryExternalAIProviders(userPrompt, SYSTEM_PROMPT);
         return this.ensureRewrittenTitle(result, extractedContent.title);
       } catch (fallbackError) {
-        console.error('All AI providers failed:', fallbackError);
-        throw new Error(`Falha na reescrita por IA: ${fallbackError instanceof Error ? fallbackError.message : 'Erro desconhecido'}`);
+        console.error('❌ All external AI providers failed:', fallbackError);
+        // Retornar erro claro - NÃO fazer fallback silencioso
+        throw new Error(`Falha na reescrita: Configure uma LLM externa (Groq, OpenAI, etc.) no Painel Admin → Configurações. Erro: ${fallbackError instanceof Error ? fallbackError.message : 'Erro desconhecido'}`);
       }
     }
   }
 
-  private static async tryAIProviders(userPrompt: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
+  /**
+   * Tenta apenas provedores externos configurados pelo usuário
+   * NÃO inclui Lovable AI em nenhuma circunstância
+   */
+  private static async tryExternalAIProviders(userPrompt: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
     // Get configured providers from localStorage
     const configuredProviders = this.getConfiguredProviders();
     
     if (configuredProviders.length === 0) {
-      // No AI providers configured, using fallback
-      return await this.createFallbackContent(userPrompt);
+      throw new Error('Nenhuma LLM externa configurada. Configure Groq, OpenAI ou outro provedor no Painel Admin.');
     }
 
-    // Try each configured provider
-    for (const provider of configuredProviders) {
+    // Priorizar Groq, depois outros provedores
+    const orderedProviders = [...configuredProviders].sort((a, b) => 
+      a.id === 'groq' ? -1 : b.id === 'groq' ? 1 : 0
+    );
+
+    // Try each configured provider (APENAS provedores externos)
+    for (const provider of orderedProviders) {
       try {
-        // Trying provider with model
+        console.log(`🔄 Tentando provedor externo: ${provider.name} (${provider.model})`);
         
         if (provider.id === 'openai') {
           return await this.callOpenAI(userPrompt, provider.model, SYSTEM_PROMPT);
@@ -157,14 +168,20 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
           return await this.callGroq(userPrompt, provider.model, SYSTEM_PROMPT);
         }
       } catch (error) {
-        // Provider failed
+        console.warn(`⚠️ Provedor ${provider.id} falhou:`, error);
         continue;
       }
     }
 
-    // Fallback: use local processing when all AI providers fail
-    // All configured providers failed, using fallback
-    return await this.createFallbackContent(userPrompt);
+    throw new Error('Todos os provedores de LLM externa falharam. Verifique suas chaves API.');
+  }
+
+  /**
+   * @deprecated - Este método foi substituído por tryExternalAIProviders
+   * Mantido apenas para compatibilidade - NÃO usar Lovable AI
+   */
+  private static async tryAIProviders(userPrompt: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {
+    return this.tryExternalAIProviders(userPrompt, SYSTEM_PROMPT);
   }
 
   private static async createFallbackContent(userPrompt: string): Promise<RewrittenContent> {
@@ -433,10 +450,13 @@ Conteúdo: ${this.cleanTextContent(extractedContent.content)}
     return [...commonTags, ...foundTags].slice(0, 5);
   }
 
+  /**
+   * @deprecated - Lovable AI NÃO é utilizado neste sistema
+   * O sistema usa exclusivamente LLM externa configurada pelo usuário
+   * Este método está mantido apenas para compatibilidade e sempre retorna erro
+   */
   private static async callLovableAI(userPrompt: string): Promise<RewrittenContent> {
-    // This would use Lovable's native AI if available
-    // For now, we'll simulate or use a fallback
-    throw new Error('Lovable native AI not implemented');
+    throw new Error('Lovable AI não é utilizado. Configure uma LLM externa (Groq, OpenAI, etc.) no Painel Admin.');
   }
 
   private static async callOpenAI(userPrompt: string, model: string, SYSTEM_PROMPT: string): Promise<RewrittenContent> {

@@ -36,36 +36,41 @@ Retorne SEMPRE um JSON válido conforme solicitado.
   }
 
   async generateArticle(request: ArticleGenerationRequest): Promise<GeneratedArticle> {
+    console.log('🔄 Gerando artigo usando LLM externa (Groq)...');
+    
     try {
-      // First try: Use Supabase Edge Function (Groq from secrets)
+      // EXCLUSIVO: Usar Supabase Edge Function (que usa GROQ_API_KEY)
+      // NÃO há fallback para Lovable AI
       return await this.callSupabaseAIArticleGenerator(request);
     } catch (error) {
-      console.error('Supabase AI article generator failed:', error);
+      console.error('❌ Supabase AI article generator (Groq) failed:', error);
       
       try {
-        // Fallback: Try localStorage configured providers
+        // Tentar provedores configurados no localStorage (APENAS externos)
         const prompt = this.buildPrompt(request);
         
-        // 1) Tentar provedores configurados (prioriza Groq)
+        // Priorizar Groq, depois outros provedores externos
         const providers = this.getConfiguredProviders();
         if (providers.length > 0) {
           const ordered = [...providers].sort((a, b) => (a.id === 'groq' ? -1 : 1));
           for (const provider of ordered) {
             try {
+              console.log(`🔄 Tentando provedor externo: ${provider.name} (${provider.model})`);
               if (provider.id === 'groq') {
                 const content = await this.callGroq(prompt, provider.model);
                 if (content) return this.parseGeneratedContent(content, request);
               }
-              // Outros provedores podem ser adicionados aqui quando necessário
+              // OpenAI, Anthropic, etc. podem ser adicionados aqui
             } catch (e) {
-              console.warn(`Provider ${provider.id} falhou`, e);
+              console.warn(`⚠️ Provider ${provider.id} falhou`, e);
               continue;
             }
           }
         }
 
-        // 2) Fallback: OpenAI se a chave foi informada neste serviço
+        // Fallback: OpenAI se a chave foi informada neste serviço
         if (this.apiKey) {
+          console.log('🔄 Tentando OpenAI como fallback...');
           const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -84,7 +89,7 @@ Retorne SEMPRE um JSON válido conforme solicitado.
           });
 
           if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            throw new Error(`OpenAI API Error: ${response.status}`);
           }
           const data = await response.json();
           const content = data.choices[0]?.message?.content;
@@ -92,12 +97,11 @@ Retorne SEMPRE um JSON válido conforme solicitado.
           return this.parseGeneratedContent(content, request);
         }
 
-        // 3) Fallback final: mock específico
-        return this.generateMockArticle(request);
+        // NÃO usar mock como fallback silencioso - retornar erro claro
+        throw new Error('Nenhuma LLM externa configurada. Configure Groq ou OpenAI no Painel Admin.');
       } catch (fallbackError) {
-        console.error('All AI providers failed:', fallbackError);
-        // Mock como último recurso
-        return this.generateMockArticle(request);
+        console.error('❌ All external AI providers failed:', fallbackError);
+        throw new Error(`Falha na geração de artigo: Configure uma LLM externa (Groq, OpenAI) no Painel Admin. Erro: ${fallbackError instanceof Error ? fallbackError.message : 'Erro desconhecido'}`);
       }
     }
   }

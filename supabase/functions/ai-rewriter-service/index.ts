@@ -207,21 +207,25 @@ serve(async (req) => {
       });
     }
 
-    // Check for API keys - prioritize GROQ_API_KEY
+    // EXCLUSIVO: Usar apenas GROQ_API_KEY (LLM configurada pelo usuário)
+    // NÃO usar LOVABLE_API_KEY em nenhuma circunstância
     const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
-    const useGroq = !!GROQ_API_KEY;
-    const useLovable = !useGroq && !!LOVABLE_API_KEY;
     
     console.log(`🔑 [${requestId}] API Keys status:`, {
       groqConfigured: !!GROQ_API_KEY,
-      lovableConfigured: !!LOVABLE_API_KEY,
-      provider: useGroq ? 'GROQ (sem consumir créditos Lovable)' : useLovable ? 'LOVABLE AI Gateway (consome créditos)' : 'NONE'
+      provider: GROQ_API_KEY ? 'GROQ (LLM externa - sem consumir créditos Lovable)' : 'NONE'
     });
 
-    if (!useGroq && !useLovable) {
-      throw new Error('No AI API key configured. Please configure GROQ_API_KEY or LOVABLE_API_KEY in secrets.');
+    if (!GROQ_API_KEY) {
+      console.error(`❌ [${requestId}] GROQ_API_KEY não configurada. Configure no Painel Admin → Configurações.`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'LLM externa não configurada',
+          message: 'Configure GROQ_API_KEY no Supabase Secrets para usar esta funcionalidade.',
+          details: 'Este sistema utiliza exclusivamente LLM externa configurada pelo usuário. Configure sua chave API no Painel Admin → Configurações.'
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get Supabase client for fetching settings
@@ -229,7 +233,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT;
-    let selectedModel = useGroq ? 'llama-3.1-8b-instant' : 'google/gemini-2.5-flash';
+    let selectedModel = 'llama-3.1-8b-instant'; // Sempre Groq
     
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
@@ -241,11 +245,9 @@ serve(async (req) => {
         SYSTEM_PROMPT = await getSystemPrompt(supabase);
         console.log(`✅ [${requestId}] System prompt loaded - Length: ${SYSTEM_PROMPT.length} chars`);
         
-        // Fetch preferred model based on provider
-        if (useGroq) {
-          selectedModel = await getPreferredGroqModel(supabase);
-          console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
-        }
+        // Fetch preferred Groq model
+        selectedModel = await getPreferredGroqModel(supabase);
+        console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
       } catch (configError) {
         console.warn('Could not load configurations from database, using defaults:', configError);
       }
@@ -282,123 +284,81 @@ Conteúdo: ${cleanedContent}
 `;
 
     let response: Response;
-    let providerUsed: string;
+    const providerUsed = 'Groq';
 
-    if (useGroq) {
-      // Use Groq API (free with user's key)
-      console.log(`🚀 [${requestId}] Calling Groq API with model: ${selectedModel} (SEM consumir créditos Lovable)`);
-      providerUsed = 'Groq';
-      
-      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 4096
-        })
-      });
-    } else {
-      // Fallback to Lovable AI Gateway
-      console.log(`🚀 [${requestId}] Calling Lovable AI Gateway with model: ${selectedModel} (CONSOME créditos Lovable)`);
-      providerUsed = 'Lovable AI';
-      
-      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userPrompt }
-          ]
-        })
-      });
-    }
+    // Usar EXCLUSIVAMENTE Groq API (LLM externa do usuário)
+    console.log(`🚀 [${requestId}] Calling Groq API with model: ${selectedModel} (LLM externa - SEM consumir créditos Lovable)`);
+    
+    response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4096
+      })
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ [${requestId}] ${providerUsed} API error:`, response.status, errorText);
+      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
       
-      // If Groq fails, try fallback to Lovable AI
-      if (useGroq && LOVABLE_API_KEY) {
-        console.log(`🔄 [${requestId}] Groq failed, trying fallback to Lovable AI Gateway...`);
-        
-        const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: userPrompt }
-            ]
-          })
-        });
-        
-        if (fallbackResponse.ok) {
-          console.log(`✅ [${requestId}] Fallback to Lovable AI successful`);
-          response = fallbackResponse;
-          providerUsed = 'Lovable AI (fallback)';
-        } else {
-          const fallbackError = await fallbackResponse.text();
-          console.error(`❌ [${requestId}] Lovable AI fallback also failed:`, fallbackResponse.status, fallbackError);
-          
-          if (fallbackResponse.status === 429) {
-            throw new Error('Rate limit exceeded on both Groq and Lovable AI. Please try again later.');
-          }
-          if (fallbackResponse.status === 402) {
-            throw new Error('Groq failed and Lovable AI requires payment. Please check your GROQ_API_KEY or add Lovable credits.');
-          }
-          throw new Error(`Both AI providers failed. Groq: ${response.status}, Lovable: ${fallbackResponse.status}`);
-        }
-      } else {
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded (429). Please try again later.');
-        }
-        if (response.status === 402) {
-          throw new Error('Payment required (402). Please add credits to Lovable AI or configure GROQ_API_KEY.');
-        }
-        throw new Error(`${providerUsed} API error: ${response.status} - ${errorText}`);
+      // NÃO fazer fallback para Lovable AI - registrar erro claro
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Limite de requisições Groq excedido',
+            message: 'Aguarde alguns minutos e tente novamente.',
+            details: 'A API da Groq está temporariamente indisponível devido a limite de requisições.'
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+      if (response.status === 401) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'GROQ_API_KEY inválida',
+            message: 'Verifique se sua chave API da Groq está correta no Painel Admin → Configurações.',
+            details: 'A chave API configurada foi rejeitada pela Groq.'
+          }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const aiContent = data.choices[0]?.message?.content;
-    console.log(`✅ [${requestId}] ${providerUsed} response received - Content length: ${aiContent?.length || 0} chars`);
+    console.log(`✅ [${requestId}] Groq response received - Content length: ${aiContent?.length || 0} chars`);
     
     if (!aiContent) {
-      console.error(`❌ [${requestId}] No content returned from ${providerUsed}`);
-      throw new Error(`No content returned from ${providerUsed}`);
+      console.error(`❌ [${requestId}] No content returned from Groq`);
+      throw new Error('No content returned from Groq');
     }
 
     console.log(`📊 [${requestId}] Parsing AI JSON response...`);
 
     // Parse AI response
     const rewrittenContent = parseAIResponse(aiContent, url, title);
-    console.log(`✅ [${requestId}] Content successfully rewritten using ${providerUsed}`);
+    console.log(`✅ [${requestId}] Content successfully rewritten using Groq (LLM externa)`);
     console.log(`📤 [${requestId}] Result - Title: "${rewrittenContent.title}"`);
     console.log(`📤 [${requestId}] Result - Content length: ${rewrittenContent.content_html.length} chars`);
 
     return new Response(JSON.stringify({
       ...rewrittenContent,
       _meta: {
-        provider: providerUsed,
+        provider: 'Groq',
         model: selectedModel,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        note: 'Gerado usando LLM externa configurada pelo usuário (sem consumir créditos Lovable)'
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
