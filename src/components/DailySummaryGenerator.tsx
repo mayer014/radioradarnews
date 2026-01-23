@@ -40,8 +40,8 @@ const DailySummaryGenerator: React.FC = () => {
   const [result, setResult] = useState<DailySummaryResult | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // URL base do site
-  const siteBaseUrl = 'https://radiodarnews.lovable.app';
+  // URL base do site (produção)
+  const siteBaseUrl = 'https://radioradar.news';
 
   // Filtrar artigos publicados hoje
   const getTodayArticles = () => {
