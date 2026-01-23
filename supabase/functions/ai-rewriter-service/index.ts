@@ -110,11 +110,27 @@ Formato de resposta (JSON válido):
 CRÍTICO: TODOS os parágrafos devem ter <p style="margin-bottom: 1.5rem;"> para espaçamento adequado. Retorne APENAS o JSON válido.
 `;
 
+// Modelos Groq permitidos
+const ALLOWED_GROQ_MODELS = [
+  'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it'
+];
+
+// Modelos Lovable AI Gateway permitidos
+const ALLOWED_LOVABLE_MODELS = [
+  'google/gemini-2.5-pro',
+  'google/gemini-2.5-flash',
+  'google/gemini-2.5-flash-lite',
+  'openai/gpt-5',
+  'openai/gpt-5-mini',
+  'openai/gpt-5-nano'
+];
+
 // Função para buscar o prompt customizado do banco
 async function getSystemPrompt(supabaseClient: any): Promise<string> {
   try {
-    // Force fresh fetch - no caching
-    const timestamp = new Date().getTime();
     const { data, error } = await supabaseClient
       .from('settings')
       .select('value')
@@ -129,7 +145,7 @@ async function getSystemPrompt(supabaseClient: any): Promise<string> {
 
     const promptValue = data?.value?.prompt;
     if (promptValue && typeof promptValue === 'string' && promptValue.length > 0) {
-      console.log(`✅ Using custom system prompt from database (${promptValue.length} chars) - fetched at ${new Date().toISOString()}`);
+      console.log(`✅ Using custom system prompt from database (${promptValue.length} chars)`);
       return promptValue;
     }
 
@@ -139,6 +155,26 @@ async function getSystemPrompt(supabaseClient: any): Promise<string> {
     console.warn('Exception fetching system prompt from database, using fallback:', error);
     return FALLBACK_SYSTEM_PROMPT;
   }
+}
+
+// Função para buscar modelo preferido do banco
+async function getPreferredGroqModel(supabaseClient: any): Promise<string> {
+  try {
+    const { data } = await supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('category', 'ai')
+      .eq('key', 'groq_preferred_model')
+      .maybeSingle();
+      
+    const model = data?.value?.model as string | undefined;
+    if (model && ALLOWED_GROQ_MODELS.includes(model)) {
+      return model;
+    }
+  } catch (error) {
+    console.warn('Error fetching preferred Groq model:', error);
+  }
+  return 'llama-3.1-8b-instant'; // Default Groq model
 }
 
 serve(async (req) => {
@@ -151,7 +187,7 @@ serve(async (req) => {
   console.log(`🔵 [${requestId}] ==================== AI Rewriter Service called at ${new Date().toISOString()} ====================`);
 
   try {
-    // SECURITY: Rate limiting - use IP address or a unique identifier
+    // SECURITY: Rate limiting
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const rateLimitCheck = checkRateLimit(clientIp);
     
@@ -170,59 +206,49 @@ serve(async (req) => {
         }
       });
     }
+
+    // Check for API keys - prioritize GROQ_API_KEY
+    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    console.log(`🔑 [${requestId}] LOVABLE_API_KEY configured:`, !!LOVABLE_API_KEY);
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured in secrets');
+    
+    const useGroq = !!GROQ_API_KEY;
+    const useLovable = !useGroq && !!LOVABLE_API_KEY;
+    
+    console.log(`🔑 [${requestId}] API Keys status:`, {
+      groqConfigured: !!GROQ_API_KEY,
+      lovableConfigured: !!LOVABLE_API_KEY,
+      provider: useGroq ? 'GROQ (sem consumir créditos Lovable)' : useLovable ? 'LOVABLE AI Gateway (consome créditos)' : 'NONE'
+    });
+
+    if (!useGroq && !useLovable) {
+      throw new Error('No AI API key configured. Please configure GROQ_API_KEY or LOVABLE_API_KEY in secrets.');
     }
 
-    // Get preferred model from configuration
+    // Get Supabase client for fetching settings
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    console.log(`🔧 [${requestId}] Supabase credentials found:`, { hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_SERVICE_ROLE_KEY });
     
-    let selectedModel = 'google/gemini-2.5-flash'; // Default (Gemini 2.5 Flash)
-    let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT; // Start with fallback
+    let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT;
+    let selectedModel = useGroq ? 'llama-3.1-8b-instant' : 'google/gemini-2.5-flash';
     
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
-        // Fetch custom prompt from database
+        // Fetch custom prompt
         console.log(`📚 [${requestId}] Fetching custom system prompt from database...`);
         SYSTEM_PROMPT = await getSystemPrompt(supabase);
         console.log(`✅ [${requestId}] System prompt loaded - Length: ${SYSTEM_PROMPT.length} chars`);
-        console.log(`📝 [${requestId}] First 200 chars of prompt:`, SYSTEM_PROMPT.substring(0, 200));
         
-        // Fetch preferred model (optional)
-        const { data } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('category', 'ai')
-          .in('key', ['ai_gateway_preferred_model','groq_preferred_model'])
-          .maybeSingle();
-          
-        const preferred = data?.value?.model as string | undefined;
-        const allowed = [
-          'google/gemini-2.5-pro',
-          'google/gemini-2.5-flash',
-          'google/gemini-2.5-flash-lite',
-          'openai/gpt-5',
-          'openai/gpt-5-mini',
-          'openai/gpt-5-nano'
-        ];
-        if (preferred && allowed.includes(preferred)) {
-          selectedModel = preferred;
-          console.log(`Using preferred AI gateway model: ${selectedModel}`);
-        } else if (preferred) {
-          console.log(`Ignoring unsupported preferred model from DB: ${preferred}`);
+        // Fetch preferred model based on provider
+        if (useGroq) {
+          selectedModel = await getPreferredGroqModel(supabase);
+          console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
         }
       } catch (configError) {
         console.warn('Could not load configurations from database, using defaults:', configError);
       }
-    } else {
-      console.warn('Supabase environment not configured, using default prompt and model');
     }
 
     const { title, content, url }: RewriteRequest = await req.json();
@@ -255,55 +281,126 @@ Fonte: ${url}
 Conteúdo: ${cleanedContent}
 `;
 
-    console.log(`🤖 [${requestId}] Calling Lovable AI Gateway with model: ${selectedModel}`);
+    let response: Response;
+    let providerUsed: string;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ]
-      })
-    });
+    if (useGroq) {
+      // Use Groq API (free with user's key)
+      console.log(`🚀 [${requestId}] Calling Groq API with model: ${selectedModel} (SEM consumir créditos Lovable)`);
+      providerUsed = 'Groq';
+      
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 4096
+        })
+      });
+    } else {
+      // Fallback to Lovable AI Gateway
+      console.log(`🚀 [${requestId}] Calling Lovable AI Gateway with model: ${selectedModel} (CONSOME créditos Lovable)`);
+      providerUsed = 'Lovable AI';
+      
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt }
+          ]
+        })
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ [${requestId}] AI Gateway error:`, response.status, errorText);
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded (429). Please try again later.');
+      console.error(`❌ [${requestId}] ${providerUsed} API error:`, response.status, errorText);
+      
+      // If Groq fails, try fallback to Lovable AI
+      if (useGroq && LOVABLE_API_KEY) {
+        console.log(`🔄 [${requestId}] Groq failed, trying fallback to Lovable AI Gateway...`);
+        
+        const fallbackResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: userPrompt }
+            ]
+          })
+        });
+        
+        if (fallbackResponse.ok) {
+          console.log(`✅ [${requestId}] Fallback to Lovable AI successful`);
+          response = fallbackResponse;
+          providerUsed = 'Lovable AI (fallback)';
+        } else {
+          const fallbackError = await fallbackResponse.text();
+          console.error(`❌ [${requestId}] Lovable AI fallback also failed:`, fallbackResponse.status, fallbackError);
+          
+          if (fallbackResponse.status === 429) {
+            throw new Error('Rate limit exceeded on both Groq and Lovable AI. Please try again later.');
+          }
+          if (fallbackResponse.status === 402) {
+            throw new Error('Groq failed and Lovable AI requires payment. Please check your GROQ_API_KEY or add Lovable credits.');
+          }
+          throw new Error(`Both AI providers failed. Groq: ${response.status}, Lovable: ${fallbackResponse.status}`);
+        }
+      } else {
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded (429). Please try again later.');
+        }
+        if (response.status === 402) {
+          throw new Error('Payment required (402). Please add credits to Lovable AI or configure GROQ_API_KEY.');
+        }
+        throw new Error(`${providerUsed} API error: ${response.status} - ${errorText}`);
       }
-      if (response.status === 402) {
-        throw new Error('Payment required (402). Please add credits to Lovable AI.');
-      }
-      throw new Error(`AI Gateway error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const aiContent = data.choices[0]?.message?.content;
-    console.log(`✅ [${requestId}] Groq API response received - Content length: ${aiContent?.length || 0} chars`);
-    console.log(`🔍 [${requestId}] AI Response preview (first 300 chars):`, aiContent?.substring(0, 300));
+    console.log(`✅ [${requestId}] ${providerUsed} response received - Content length: ${aiContent?.length || 0} chars`);
     
     if (!aiContent) {
-      console.error(`❌ [${requestId}] No content returned from Groq API`);
-      throw new Error('No content returned from Groq API');
+      console.error(`❌ [${requestId}] No content returned from ${providerUsed}`);
+      throw new Error(`No content returned from ${providerUsed}`);
     }
 
     console.log(`📊 [${requestId}] Parsing AI JSON response...`);
 
     // Parse AI response
     const rewrittenContent = parseAIResponse(aiContent, url, title);
-    console.log(`✅ [${requestId}] Content successfully rewritten and parsed`);
+    console.log(`✅ [${requestId}] Content successfully rewritten using ${providerUsed}`);
     console.log(`📤 [${requestId}] Result - Title: "${rewrittenContent.title}"`);
     console.log(`📤 [${requestId}] Result - Content length: ${rewrittenContent.content_html.length} chars`);
-    console.log(`📤 [${requestId}] Result - Has ${(rewrittenContent.content_html.match(/<p/g) || []).length} paragraphs`);
 
-    return new Response(JSON.stringify(rewrittenContent), {
+    return new Response(JSON.stringify({
+      ...rewrittenContent,
+      _meta: {
+        provider: providerUsed,
+        model: selectedModel,
+        timestamp: new Date().toISOString()
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
@@ -335,7 +432,7 @@ function cleanTextContent(content: string): string {
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
-    .substring(0, 8000); // Limit content length for API
+    .substring(0, 8000);
 }
 
 function parseAIResponse(content: string, sourceUrl: string, originalTitle: string): RewrittenContent {
@@ -410,7 +507,6 @@ function forceRewriteTitle(original: string): string {
     if (t.trim().toLowerCase() === (original || '').trim().toLowerCase()) {
       t = t.replace(/:?\s*$/, '') + ' — entenda o caso';
     }
-    // Cap at 100 chars
     if (t.length > 100) t = t.slice(0, 100).replace(/\s+\S*$/, '');
     return t;
   } catch {
