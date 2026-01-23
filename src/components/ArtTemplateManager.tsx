@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Palette, Save, RotateCcw, Upload, Eye, Image, X } from 'lucide-react';
+import { Palette, Save, RotateCcw, Upload, Eye, Image, X, Move } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useArtTemplates } from '@/contexts/ArtTemplateContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +13,8 @@ import {
   RegularArtTemplate, 
   ColumnistArtTemplate, 
   DEFAULT_REGULAR_TEMPLATE, 
-  DEFAULT_COLUMNIST_TEMPLATE 
+  DEFAULT_COLUMNIST_TEMPLATE,
+  FreePosition
 } from '@/types/artTemplate';
 
 const ArtTemplateManager: React.FC = () => {
@@ -51,19 +51,19 @@ const ArtTemplateManager: React.FC = () => {
     try {
       // Criar nome único para o arquivo
       const fileExt = file.name.split('.').pop();
-      const fileName = `art-template-${type}-${templateType}-${Date.now()}.${fileExt}`;
-      const filePath = `art-templates/${fileName}`;
+      const fileName = `${type}-${templateType}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
 
-      // Upload para o storage do Supabase
+      // Upload para o bucket art-templates
       const { error: uploadError } = await supabase.storage
-        .from('media')
+        .from('art-templates')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Obter URL pública
       const { data: urlData } = supabase.storage
-        .from('media')
+        .from('art-templates')
         .getPublicUrl(filePath);
 
       const imageUrl = urlData.publicUrl;
@@ -103,7 +103,7 @@ const ArtTemplateManager: React.FC = () => {
       console.error('Erro no upload:', error);
       toast({
         title: 'Erro no upload',
-        description: 'Não foi possível enviar a imagem.',
+        description: 'Não foi possível enviar a imagem. Verifique suas permissões.',
         variant: 'destructive'
       });
     } finally {
@@ -159,11 +159,9 @@ const ArtTemplateManager: React.FC = () => {
     
     ctx.scale(previewScale, previewScale);
     
-    // Função para desenhar o preview
-    const drawPreview = (bgImage?: HTMLImageElement) => {
+    const drawPreview = (bgImage?: HTMLImageElement, logoImage?: HTMLImageElement) => {
       // Fundo
       if (bgImage && bgImage.complete && bgImage.naturalWidth > 0) {
-        // Desenhar background customizado
         const bgAspect = bgImage.naturalWidth / bgImage.naturalHeight;
         const canvasAspect = template.canvas.width / template.canvas.height;
         
@@ -181,7 +179,6 @@ const ArtTemplateManager: React.FC = () => {
         }
         ctx.drawImage(bgImage, bgX, bgY, bgWidth, bgHeight);
       } else {
-        // Gradiente padrão
         const gradient = ctx.createLinearGradient(0, 0, template.canvas.width, template.canvas.height);
         gradient.addColorStop(0, '#1a1a2e');
         gradient.addColorStop(0.5, '#16213e');
@@ -190,7 +187,7 @@ const ArtTemplateManager: React.FC = () => {
         ctx.fillRect(0, 0, template.canvas.width, template.canvas.height);
       }
 
-      // Área da imagem do artigo (ocupa maior parte, acima da categoria)
+      // Área da imagem do artigo
       const imageHeight = template.canvas.height * (template.articleImage.heightPercent / 100);
       const imageY = template.articleImage.marginTop;
       const imageX = template.articleImage.marginHorizontal;
@@ -201,7 +198,6 @@ const ArtTemplateManager: React.FC = () => {
       ctx.roundRect(imageX, imageY, imageWidth, imageHeight, template.articleImage.borderRadius);
       ctx.fill();
       
-      // Ícone de imagem
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.font = '64px Arial';
       ctx.textAlign = 'center';
@@ -210,7 +206,7 @@ const ArtTemplateManager: React.FC = () => {
       ctx.font = '24px Arial';
       ctx.fillText(`IMAGEM DO ARTIGO (${template.articleImage.heightPercent}%)`, template.canvas.width / 2, imageY + imageHeight / 2 + 60);
 
-      // Área de texto (abaixo da imagem)
+      // Área de texto
       const textY = imageY + imageHeight;
       const textOverlay = ctx.createLinearGradient(0, textY, 0, template.canvas.height);
       textOverlay.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
@@ -256,92 +252,164 @@ const ArtTemplateManager: React.FC = () => {
         ctx.fillText(line, template.canvas.width / 2, titleY + (i * template.title.lineHeight));
       });
 
-      // Perfil do colunista (apenas para template de colunista)
+      // Avatar do colunista (posição livre - pode sobrepor imagem)
       if (activeTab === 'columnist' && 'columnistProfile' in columnistTemplate) {
         const profile = columnistTemplate.columnistProfile;
-        const profileY = titleY + (2 * template.title.lineHeight) + 20;
-        const profileX = 40;
-        const profileWidth = template.canvas.width - 80;
-        const profileHeight = profile.avatarSize + 30;
         
-        // Fundo do perfil
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.beginPath();
-        ctx.roundRect(profileX, profileY, profileWidth, profileHeight, 15);
-        ctx.fill();
-        
-        // Avatar
-        const avatarX = profileX + 15;
-        const avatarY = profileY + 15;
-        
-        ctx.fillStyle = '#6366f1';
-        ctx.beginPath();
-        ctx.arc(avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2, profile.avatarSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${profile.avatarSize * 0.4}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('AB', avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2);
-        
-        // Nome
-        const infoX = avatarX + profile.avatarSize + 15;
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${profile.nameSize}px Arial`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText('Nome do Colunista', infoX, avatarY);
-        
-        // Especialidade
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.font = `${profile.specialtySize}px Arial`;
-        ctx.fillText('Especialidade', infoX, avatarY + profile.nameSize + 5);
+        if (profile.avatarSeparate) {
+          // Avatar em posição livre (sobrepondo a imagem)
+          const avatarX = (template.canvas.width * profile.avatarPosition.x / 100) - (profile.avatarSize / 2);
+          const avatarY = (template.canvas.height * profile.avatarPosition.y / 100) - (profile.avatarSize / 2);
+          
+          // Círculo do avatar com borda
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetY = 5;
+          
+          // Borda branca
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2, profile.avatarSize / 2 + 4, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Avatar
+          ctx.fillStyle = '#6366f1';
+          ctx.beginPath();
+          ctx.arc(avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2, profile.avatarSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${profile.avatarSize * 0.4}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('AB', avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2);
+          
+          // Nome e especialidade abaixo do título
+          const infoY = titleY + (2 * template.title.lineHeight) + 30;
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${profile.nameSize}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText('Nome do Colunista', template.canvas.width / 2, infoY);
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.font = `${profile.specialtySize}px Arial`;
+          ctx.fillText('Especialidade', template.canvas.width / 2, infoY + profile.nameSize + 5);
+        } else {
+          // Avatar junto com nome/especialidade
+          const profileY = titleY + (2 * template.title.lineHeight) + 20;
+          const profileX = 40;
+          const profileWidth = template.canvas.width - 80;
+          const profileHeight = profile.avatarSize + 30;
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.beginPath();
+          ctx.roundRect(profileX, profileY, profileWidth, profileHeight, 15);
+          ctx.fill();
+          
+          const avatarX = profileX + 15;
+          const avatarY = profileY + 15;
+          
+          ctx.fillStyle = '#6366f1';
+          ctx.beginPath();
+          ctx.arc(avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2, profile.avatarSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${profile.avatarSize * 0.4}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('AB', avatarX + profile.avatarSize / 2, avatarY + profile.avatarSize / 2);
+          
+          const infoX = avatarX + profile.avatarSize + 15;
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${profile.nameSize}px Arial`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText('Nome do Colunista', infoX, avatarY);
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.font = `${profile.specialtySize}px Arial`;
+          ctx.fillText('Especialidade', infoX, avatarY + profile.nameSize + 5);
+        }
       }
 
-      // Logo (fixa no canto inferior direito)
+      // Logo em posição livre (pode sobrepor qualquer elemento)
       if (template.logo.enabled) {
-        const logoX = template.canvas.width - template.logo.marginX - template.logo.size;
-        const logoY = template.canvas.height - template.logo.marginY - (template.logo.size * 0.4);
+        const logoX = (template.canvas.width * template.logo.position.x / 100) - (template.logo.size / 2);
+        const logoY = (template.canvas.height * template.logo.position.y / 100) - (template.logo.size * 0.2);
+        const logoHeight = template.logo.size * 0.4;
         
-        if (template.logo.imageUrl) {
-          // Placeholder para logo customizada
+        if (logoImage && logoImage.complete && logoImage.naturalWidth > 0) {
+          // Desenhar logo real
+          const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
+          const drawWidth = template.logo.size;
+          const drawHeight = drawWidth / logoAspect;
+          ctx.drawImage(logoImage, logoX - drawWidth/2 + template.logo.size/2, logoY - drawHeight/2 + logoHeight/2, drawWidth, drawHeight);
+        } else if (template.logo.imageUrl) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
           ctx.beginPath();
-          ctx.roundRect(logoX, logoY, template.logo.size, template.logo.size * 0.4, 8);
+          ctx.roundRect(logoX, logoY, template.logo.size, logoHeight, 8);
           ctx.fill();
           
           ctx.fillStyle = '#333';
           ctx.font = 'bold 14px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('SUA LOGO', logoX + template.logo.size / 2, logoY + template.logo.size * 0.2);
+          ctx.fillText('SUA LOGO', logoX + template.logo.size / 2, logoY + logoHeight / 2);
         } else {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
           ctx.beginPath();
-          ctx.roundRect(logoX, logoY, template.logo.size, template.logo.size * 0.4, 8);
+          ctx.roundRect(logoX, logoY, template.logo.size, logoHeight, 8);
           ctx.fill();
           
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.font = 'bold 16px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('LOGO', logoX + template.logo.size / 2, logoY + template.logo.size * 0.2);
+          ctx.fillText('LOGO', logoX + template.logo.size / 2, logoY + logoHeight / 2);
         }
       }
       
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     };
 
-    // Se tiver background customizado, carregar e desenhar
+    // Carregar imagens e desenhar
     const bgUrl = activeTab === 'regular' ? regularTemplate.background.imageUrl : columnistTemplate.background.imageUrl;
+    const logoUrl = activeTab === 'regular' ? regularTemplate.logo.imageUrl : columnistTemplate.logo.imageUrl;
+    
+    let bgImage: HTMLImageElement | undefined;
+    let logoImage: HTMLImageElement | undefined;
+    let loadedCount = 0;
+    const totalToLoad = (bgUrl ? 1 : 0) + (logoUrl ? 1 : 0);
+    
+    const tryDraw = () => {
+      loadedCount++;
+      if (loadedCount >= totalToLoad || totalToLoad === 0) {
+        drawPreview(bgImage, logoImage);
+      }
+    };
+    
     if (bgUrl) {
-      const bgImage = new window.Image();
+      bgImage = new window.Image();
       bgImage.crossOrigin = 'anonymous';
-      bgImage.onload = () => drawPreview(bgImage);
-      bgImage.onerror = () => drawPreview();
+      bgImage.onload = tryDraw;
+      bgImage.onerror = tryDraw;
       bgImage.src = bgUrl;
-    } else {
+    }
+    
+    if (logoUrl) {
+      logoImage = new window.Image();
+      logoImage.crossOrigin = 'anonymous';
+      logoImage.onload = tryDraw;
+      logoImage.onerror = tryDraw;
+      logoImage.src = logoUrl;
+    }
+    
+    if (totalToLoad === 0) {
       drawPreview();
     }
   };
@@ -486,15 +554,9 @@ const ArtTemplateManager: React.FC = () => {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, 'background', 'regular');
+                      if (file) handleImageUpload(file, 'background', activeTab);
                     }}
                   />
-                  
-                  {!regularTemplate.background.imageUrl && (
-                    <p className="text-xs text-muted-foreground">
-                      Envie uma imagem de fundo personalizada ou deixe vazio para usar o gradiente padrão
-                    </p>
-                  )}
                 </div>
 
                 {/* Logo */}
@@ -544,14 +606,42 @@ const ArtTemplateManager: React.FC = () => {
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file, 'logo', 'regular');
+                          if (file) handleImageUpload(file, 'logo', activeTab);
                         }}
                       />
                       
-                      <div className="space-y-2">
-                        <Label>Posição (fixa)</Label>
-                        <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                          📍 Canto inferior direito
+                      <div className="space-y-4 mt-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Move className="h-4 w-4" />
+                          <span>Posição Livre (pode sobrepor a imagem)</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Posição X: {regularTemplate.logo.position.x}%</Label>
+                          <Slider
+                            value={[regularTemplate.logo.position.x]}
+                            onValueChange={([value]) => updateRegularField('logo', { 
+                              ...regularTemplate.logo, 
+                              position: { ...regularTemplate.logo.position, x: value } 
+                            })}
+                            min={5}
+                            max={95}
+                            step={1}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Posição Y: {regularTemplate.logo.position.y}%</Label>
+                          <Slider
+                            value={[regularTemplate.logo.position.y]}
+                            onValueChange={([value]) => updateRegularField('logo', { 
+                              ...regularTemplate.logo, 
+                              position: { ...regularTemplate.logo.position, y: value } 
+                            })}
+                            min={5}
+                            max={95}
+                            step={1}
+                          />
                         </div>
                       </div>
                       
@@ -572,9 +662,6 @@ const ArtTemplateManager: React.FC = () => {
                 {/* Imagem do Artigo */}
                 <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
                   <Label className="text-base font-semibold">🖼️ Imagem do Artigo</Label>
-                  <p className="text-xs text-muted-foreground">
-                    A imagem do artigo ocupa a área acima do destaque de categoria
-                  </p>
                   
                   <div className="space-y-2">
                     <Label>Altura: {regularTemplate.articleImage.heightPercent}%</Label>
@@ -584,17 +671,6 @@ const ArtTemplateManager: React.FC = () => {
                       min={50}
                       max={80}
                       step={5}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Margem superior: {regularTemplate.articleImage.marginTop}px</Label>
-                    <Slider
-                      value={[regularTemplate.articleImage.marginTop]}
-                      onValueChange={([value]) => updateRegularField('articleImage', { ...regularTemplate.articleImage, marginTop: value })}
-                      min={0}
-                      max={80}
-                      step={10}
                     />
                   </div>
                 </div>
@@ -726,6 +802,41 @@ const ArtTemplateManager: React.FC = () => {
                         }}
                       />
                       
+                      <div className="space-y-4 mt-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Move className="h-4 w-4" />
+                          <span>Posição Livre</span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Posição X: {columnistTemplate.logo.position.x}%</Label>
+                          <Slider
+                            value={[columnistTemplate.logo.position.x]}
+                            onValueChange={([value]) => updateColumnistField('logo', { 
+                              ...columnistTemplate.logo, 
+                              position: { ...columnistTemplate.logo.position, x: value } 
+                            })}
+                            min={5}
+                            max={95}
+                            step={1}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Posição Y: {columnistTemplate.logo.position.y}%</Label>
+                          <Slider
+                            value={[columnistTemplate.logo.position.y]}
+                            onValueChange={([value]) => updateColumnistField('logo', { 
+                              ...columnistTemplate.logo, 
+                              position: { ...columnistTemplate.logo.position, y: value } 
+                            })}
+                            min={5}
+                            max={95}
+                            step={1}
+                          />
+                        </div>
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label>Tamanho: {columnistTemplate.logo.size}px</Label>
                         <Slider
@@ -785,24 +896,84 @@ const ArtTemplateManager: React.FC = () => {
 
                 {/* Perfil do Colunista */}
                 <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-                  <Label className="text-base font-semibold">👤 Perfil do Colunista</Label>
+                  <Label className="text-base font-semibold">👤 Foto do Colunista</Label>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Separar foto do nome/especialidade</Label>
+                    <Switch
+                      checked={columnistTemplate.columnistProfile.avatarSeparate}
+                      onCheckedChange={(checked) => updateColumnistField('columnistProfile', { 
+                        ...columnistTemplate.columnistProfile, 
+                        avatarSeparate: checked 
+                      })}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    {columnistTemplate.columnistProfile.avatarSeparate 
+                      ? '✨ A foto pode sobrepor a imagem do artigo para um efeito especial'
+                      : '📋 A foto fica junto ao nome e especialidade'}
+                  </p>
                   
                   <div className="space-y-2">
-                    <Label>Tamanho do avatar: {columnistTemplate.columnistProfile.avatarSize}px</Label>
+                    <Label>Tamanho da foto: {columnistTemplate.columnistProfile.avatarSize}px</Label>
                     <Slider
                       value={[columnistTemplate.columnistProfile.avatarSize]}
-                      onValueChange={([value]) => updateColumnistField('columnistProfile', { ...columnistTemplate.columnistProfile, avatarSize: value })}
+                      onValueChange={([value]) => updateColumnistField('columnistProfile', { 
+                        ...columnistTemplate.columnistProfile, 
+                        avatarSize: value 
+                      })}
                       min={60}
-                      max={120}
+                      max={140}
                       step={10}
                     />
                   </div>
                   
-                  <div className="space-y-2">
+                  {columnistTemplate.columnistProfile.avatarSeparate && (
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
+                        <Move className="h-4 w-4" />
+                        <span>Posição Livre da Foto</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Posição X: {columnistTemplate.columnistProfile.avatarPosition.x}%</Label>
+                        <Slider
+                          value={[columnistTemplate.columnistProfile.avatarPosition.x]}
+                          onValueChange={([value]) => updateColumnistField('columnistProfile', { 
+                            ...columnistTemplate.columnistProfile, 
+                            avatarPosition: { ...columnistTemplate.columnistProfile.avatarPosition, x: value } 
+                          })}
+                          min={10}
+                          max={90}
+                          step={1}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Posição Y: {columnistTemplate.columnistProfile.avatarPosition.y}%</Label>
+                        <Slider
+                          value={[columnistTemplate.columnistProfile.avatarPosition.y]}
+                          onValueChange={([value]) => updateColumnistField('columnistProfile', { 
+                            ...columnistTemplate.columnistProfile, 
+                            avatarPosition: { ...columnistTemplate.columnistProfile.avatarPosition, y: value } 
+                          })}
+                          min={10}
+                          max={90}
+                          step={1}
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="space-y-2 pt-4 border-t border-border/50">
                     <Label>Tamanho do nome: {columnistTemplate.columnistProfile.nameSize}px</Label>
                     <Slider
                       value={[columnistTemplate.columnistProfile.nameSize]}
-                      onValueChange={([value]) => updateColumnistField('columnistProfile', { ...columnistTemplate.columnistProfile, nameSize: value })}
+                      onValueChange={([value]) => updateColumnistField('columnistProfile', { 
+                        ...columnistTemplate.columnistProfile, 
+                        nameSize: value 
+                      })}
                       min={18}
                       max={32}
                       step={2}
@@ -813,7 +984,10 @@ const ArtTemplateManager: React.FC = () => {
                     <Label>Tamanho da especialidade: {columnistTemplate.columnistProfile.specialtySize}px</Label>
                     <Slider
                       value={[columnistTemplate.columnistProfile.specialtySize]}
-                      onValueChange={([value]) => updateColumnistField('columnistProfile', { ...columnistTemplate.columnistProfile, specialtySize: value })}
+                      onValueChange={([value]) => updateColumnistField('columnistProfile', { 
+                        ...columnistTemplate.columnistProfile, 
+                        specialtySize: value 
+                      })}
                       min={12}
                       max={24}
                       step={2}
@@ -856,16 +1030,21 @@ const ArtTemplateManager: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center">
+              <div className="flex justify-center">
                 <canvas 
                   ref={canvasRef}
-                  className="rounded-lg shadow-lg max-w-full"
-                  style={{ maxHeight: '500px' }}
+                  className="rounded-lg shadow-lg border border-border/50"
+                  style={{ maxWidth: '100%', height: 'auto' }}
                 />
               </div>
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                * Este é um preview simplificado. A arte final terá a imagem real do artigo.
-              </p>
+              <div className="mt-4 text-center text-sm text-muted-foreground">
+                <p>Canvas: {currentTemplate.canvas.width} x {currentTemplate.canvas.height}px</p>
+                <p className="mt-1">
+                  {activeTab === 'regular' 
+                    ? 'Template para matérias regulares' 
+                    : 'Template para artigos de colunistas'}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

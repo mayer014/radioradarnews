@@ -46,32 +46,50 @@ export const ArtTemplateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         data.forEach(row => {
           if (row.key === 'regular' && row.value) {
             const savedValue = row.value as object;
+            const savedRecord = savedValue as Record<string, unknown>;
             loadedTemplates.regular = {
               ...DEFAULT_TEMPLATES.regular,
               ...savedValue,
               // Garantir que campos novos existam
               background: {
                 ...DEFAULT_TEMPLATES.regular.background,
-                ...(savedValue as Record<string, unknown>).background as object | undefined
+                ...savedRecord.background as object | undefined
               },
               logo: {
                 ...DEFAULT_TEMPLATES.regular.logo,
-                ...(savedValue as Record<string, unknown>).logo as object | undefined
+                ...savedRecord.logo as object | undefined,
+                position: {
+                  ...DEFAULT_TEMPLATES.regular.logo.position,
+                  ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+                }
               }
             } as RegularArtTemplate;
           } else if (row.key === 'columnist' && row.value) {
             const savedValue = row.value as object;
+            const savedRecord = savedValue as Record<string, unknown>;
             loadedTemplates.columnist = {
               ...DEFAULT_TEMPLATES.columnist,
               ...savedValue,
               // Garantir que campos novos existam
               background: {
                 ...DEFAULT_TEMPLATES.columnist.background,
-                ...(savedValue as Record<string, unknown>).background as object | undefined
+                ...savedRecord.background as object | undefined
               },
               logo: {
                 ...DEFAULT_TEMPLATES.columnist.logo,
-                ...(savedValue as Record<string, unknown>).logo as object | undefined
+                ...savedRecord.logo as object | undefined,
+                position: {
+                  ...DEFAULT_TEMPLATES.columnist.logo.position,
+                  ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+                }
+              },
+              columnistProfile: {
+                ...DEFAULT_TEMPLATES.columnist.columnistProfile,
+                ...savedRecord.columnistProfile as object | undefined,
+                avatarPosition: {
+                  ...DEFAULT_TEMPLATES.columnist.columnistProfile.avatarPosition,
+                  ...(savedRecord.columnistProfile as Record<string, unknown> | undefined)?.avatarPosition as object | undefined
+                }
               }
             } as ColumnistArtTemplate;
           }
@@ -204,30 +222,48 @@ export const fetchArtTemplatesFromDB = async (): Promise<ArtTemplatesConfig> => 
       data.forEach(row => {
         if (row.key === 'regular' && row.value) {
           const savedValue = row.value as object;
+          const savedRecord = savedValue as Record<string, unknown>;
           loadedTemplates.regular = {
             ...DEFAULT_TEMPLATES.regular,
             ...savedValue,
             background: {
               ...DEFAULT_TEMPLATES.regular.background,
-              ...(savedValue as Record<string, unknown>).background as object | undefined
+              ...savedRecord.background as object | undefined
             },
             logo: {
               ...DEFAULT_TEMPLATES.regular.logo,
-              ...(savedValue as Record<string, unknown>).logo as object | undefined
+              ...savedRecord.logo as object | undefined,
+              position: {
+                ...DEFAULT_TEMPLATES.regular.logo.position,
+                ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+              }
             }
           } as RegularArtTemplate;
         } else if (row.key === 'columnist' && row.value) {
           const savedValue = row.value as object;
+          const savedRecord = savedValue as Record<string, unknown>;
           loadedTemplates.columnist = {
             ...DEFAULT_TEMPLATES.columnist,
             ...savedValue,
             background: {
               ...DEFAULT_TEMPLATES.columnist.background,
-              ...(savedValue as Record<string, unknown>).background as object | undefined
+              ...savedRecord.background as object | undefined
             },
             logo: {
               ...DEFAULT_TEMPLATES.columnist.logo,
-              ...(savedValue as Record<string, unknown>).logo as object | undefined
+              ...savedRecord.logo as object | undefined,
+              position: {
+                ...DEFAULT_TEMPLATES.columnist.logo.position,
+                ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+              }
+            },
+            columnistProfile: {
+              ...DEFAULT_TEMPLATES.columnist.columnistProfile,
+              ...savedRecord.columnistProfile as object | undefined,
+              avatarPosition: {
+                ...DEFAULT_TEMPLATES.columnist.columnistProfile.avatarPosition,
+                ...(savedRecord.columnistProfile as Record<string, unknown> | undefined)?.avatarPosition as object | undefined
+              }
             }
           } as ColumnistArtTemplate;
         }

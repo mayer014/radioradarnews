@@ -796,27 +796,32 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         console.log('✅ Resumo posicionado na parte escura');
       }
       
-      // 9. LOGO - Renderizar logo customizada no canto inferior direito
+      // 9. LOGO - Renderizar logo em posição livre (pode sobrepor imagem)
       if (template.logo.enabled) {
         const logoSize = template.logo.size;
-        const logoX = canvas.width - template.logo.marginX - logoSize;
-        const logoY = canvas.height - template.logo.marginY - (logoSize * 0.4);
+        // Usar posição livre baseada em porcentagem
+        const logoX = (canvas.width * template.logo.position.x / 100) - (logoSize / 2);
+        const logoY = (canvas.height * template.logo.position.y / 100) - (logoSize * 0.2);
         
         const hasLogoImage = template.logo.imageUrl && 
                              logoImage.complete && 
                              logoImage.naturalWidth > 0;
         
         if (hasLogoImage) {
-          console.log('🏷️ Renderizando logo customizada');
+          console.log('🏷️ Renderizando logo customizada em posição livre');
           // Calcular proporção da logo
           const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
           const logoHeight = logoSize * 0.5;
           const logoWidth = logoHeight * logoAspect;
           
+          // Centralizar logo na posição
+          const drawX = (canvas.width * template.logo.position.x / 100) - (logoWidth / 2);
+          const drawY = (canvas.height * template.logo.position.y / 100) - (logoHeight / 2);
+          
           ctx.drawImage(
             logoImage, 
-            canvas.width - template.logo.marginX - logoWidth, 
-            canvas.height - template.logo.marginY - logoHeight,
+            drawX, 
+            drawY,
             logoWidth, 
             logoHeight
           );
