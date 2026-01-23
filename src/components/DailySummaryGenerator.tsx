@@ -23,6 +23,9 @@ interface ArticleSummary {
   category: string;
   summary: string;
   link: string;
+  isColumnist: boolean;
+  columnistName?: string;
+  columnistSpecialty?: string;
 }
 
 interface DailySummaryResult {
@@ -75,8 +78,11 @@ const DailySummaryGenerator: React.FC = () => {
         title: article.title,
         category: article.category,
         excerpt: article.excerpt || '',
-        content: article.content?.substring(0, 500) || '', // Limitar conteúdo para não sobrecarregar
-        link: `${siteBaseUrl}${getArticleLink(article)}`
+        content: article.content?.substring(0, 500) || '',
+        link: `${siteBaseUrl}${getArticleLink(article)}`,
+        isColumnist: !!(article.columnist_id || article.columnist_name),
+        columnistName: article.columnist_name || '',
+        columnistSpecialty: article.columnist_specialty || ''
       }));
 
       // Chamar edge function para gerar resumos
@@ -86,11 +92,14 @@ const DailySummaryGenerator: React.FC = () => {
 
       if (error) throw error;
 
-      // Mapear resumos com links
+      // Mapear resumos com links e dados de colunista
       const summaries: ArticleSummary[] = (data.summaries || []).map((summary: any, index: number) => ({
         ...summary,
         id: articlesData[index]?.id || '',
-        link: articlesData[index]?.link || ''
+        link: articlesData[index]?.link || '',
+        isColumnist: articlesData[index]?.isColumnist || false,
+        columnistName: articlesData[index]?.columnistName || '',
+        columnistSpecialty: articlesData[index]?.columnistSpecialty || ''
       }));
       
       // Montar texto completo para leitura em rádio / WhatsApp
@@ -100,15 +109,20 @@ const DailySummaryGenerator: React.FC = () => {
       fullText += `Confira as principais notícias de hoje no Portal RRN - Radar de Notícias:\n\n`;
       fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-      // Agrupar por categoria
+      // Separar artigos de colunistas dos gerais
+      const columnistArticles = summaries.filter(s => s.isColumnist);
+      const regularArticles = summaries.filter(s => !s.isColumnist);
+
+      // Agrupar artigos regulares por categoria
       const byCategory: Record<string, ArticleSummary[]> = {};
-      summaries.forEach(summary => {
+      regularArticles.forEach(summary => {
         if (!byCategory[summary.category]) {
           byCategory[summary.category] = [];
         }
         byCategory[summary.category].push(summary);
       });
 
+      // Primeiro: Artigos regulares agrupados por categoria
       Object.entries(byCategory).forEach(([category, items]) => {
         fullText += `📌 ${category.toUpperCase()}\n\n`;
         items.forEach((item) => {
@@ -118,6 +132,24 @@ const DailySummaryGenerator: React.FC = () => {
         });
         fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
       });
+
+      // Depois: Seção especial para colunistas
+      if (columnistArticles.length > 0) {
+        fullText += `✍️ OPINIÃO DOS NOSSOS COLUNISTAS\n\n`;
+        
+        columnistArticles.forEach((item) => {
+          fullText += `🎯 ${item.columnistName}\n`;
+          if (item.columnistSpecialty) {
+            fullText += `   📋 ${item.columnistSpecialty}\n`;
+          }
+          fullText += `\n`;
+          fullText += `📝 "${item.title}"\n`;
+          fullText += `${item.summary}\n`;
+          fullText += `🔗 Leia a coluna completa: ${item.link}\n\n`;
+        });
+        
+        fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      }
 
       fullText += `📡 Essas foram as principais notícias de hoje.\n\n`;
       
