@@ -77,6 +77,7 @@ import VPSMigrationPanel from '@/components/VPSMigrationPanel';
 import RadioManager from '@/components/RadioManager';
 import ColumnistActivityDashboard from '@/components/ColumnistActivityDashboard';
 import DailySummaryGenerator from '@/components/DailySummaryGenerator';
+import ArtTemplateManager from '@/components/ArtTemplateManager';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -99,7 +100,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary' | 'art-templates'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -510,6 +511,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Resumo do Dia</span>
                 <span className="sm:hidden">Resumo</span>
               </Button>
+              <Button
+                variant={activeTab === 'art-templates' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('art-templates')}
+                className={`${activeTab === 'art-templates' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Palette className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Templates Artes</span>
+                <span className="sm:hidden">Artes</span>
+              </Button>
             </div>
           </div>
         )}
@@ -865,6 +876,11 @@ const AdminPanel = () => {
         {/* Resumo do Dia - apenas para admin */}
         {activeTab === 'daily-summary' && isAdmin && (
           <DailySummaryGenerator />
+        )}
+
+        {/* Templates de Artes - apenas para admin */}
+        {activeTab === 'art-templates' && isAdmin && (
+          <ArtTemplateManager />
         )}
       </div>
       
