@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useArtTemplates } from '@/contexts/ArtTemplateContext';
 import { supabase } from '@/integrations/supabase/client';
+import { clearTemplatesCache } from '@/utils/shareHelpers';
 import { 
   RegularArtTemplate, 
   ColumnistArtTemplate, 
@@ -423,9 +424,12 @@ const ArtTemplateManager: React.FC = () => {
         await updateTemplate('columnist', columnistTemplate);
       }
       
+      // Limpar cache dos templates para forçar recarregamento nas próximas gerações
+      clearTemplatesCache();
+      
       toast({
         title: '✅ Template salvo!',
-        description: `O template de ${activeTab === 'regular' ? 'matérias' : 'colunistas'} foi atualizado.`
+        description: `O template de ${activeTab === 'regular' ? 'matérias' : 'colunistas'} foi atualizado. As novas artes usarão estas configurações.`
       });
     } catch (error) {
       toast({
