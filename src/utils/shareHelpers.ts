@@ -1,7 +1,36 @@
 import { ENV } from '@/config/environment';
+import { 
+  ArtTemplatesConfig, 
+  DEFAULT_TEMPLATES, 
+  RegularArtTemplate, 
+  ColumnistArtTemplate 
+} from '@/types/artTemplate';
+import { fetchArtTemplatesFromDB } from '@/contexts/ArtTemplateContext';
 
 // Helper para obter URL do proxy dinamicamente
 const getImageProxyUrl = () => `${ENV.SUPABASE_URL}/functions/v1/image-proxy`;
+
+// Cache para templates (evita múltiplas requisições)
+let templatesCache: ArtTemplatesConfig | null = null;
+let templatesCacheTime = 0;
+const CACHE_DURATION = 60000; // 1 minuto
+
+const getTemplates = async (): Promise<ArtTemplatesConfig> => {
+  const now = Date.now();
+  if (templatesCache && (now - templatesCacheTime) < CACHE_DURATION) {
+    return templatesCache;
+  }
+  
+  try {
+    templatesCache = await fetchArtTemplatesFromDB();
+    templatesCacheTime = now;
+    console.log('🎨 [Templates] Carregados do banco:', templatesCache);
+    return templatesCache;
+  } catch {
+    console.warn('⚠️ [Templates] Usando defaults');
+    return DEFAULT_TEMPLATES;
+  }
+};
 
 interface ArticleData {
   title: string;
@@ -81,10 +110,22 @@ const getCategoryFallbackImage = (category: string): string => {
 };
 
 export const generateFeedImage = async ({ title, image, category, summary, columnist, source, sourceUrl }: ArticleData): Promise<Blob> => {
-  // Versão v7.0 - Correção completa de CORS no mobile com proxy para avatares
+  // Versão v8.0 - Templates dinâmicos configuráveis
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  console.log('🖼️ [v7.0] Iniciando geração de imagem para Feed');
+  console.log('🖼️ [v8.0] Iniciando geração de imagem para Feed com templates dinâmicos');
   console.log('📱 Ambiente:', isMobile ? 'Mobile' : 'Desktop');
+  
+  // Carregar templates do banco
+  const templates = await getTemplates();
+  const template = columnist ? templates.columnist : templates.regular;
+  console.log('🎨 [Template] Usando:', template.id, template.name);
+  console.log('📐 [Template] Config:', {
+    canvas: template.canvas,
+    imageHeight: template.articleImage.heightPercent + '%',
+    titleSize: template.title.fontSize + 'px',
+    logoEnabled: template.logo.enabled
+  });
+  
   console.log('📊 Dados recebidos:', { 
     title: title.substring(0, 50), 
     hasImage: !!image, 
@@ -102,17 +143,10 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     const issues = [];
     if (!columnist.name) issues.push('nome ausente');
     if (!columnist.avatar) issues.push('avatar ausente');
-    if (!columnist.bio) issues.push('biografia ausente');
     if (!columnist.specialty) issues.push('especialidade ausente');
-    if (!image || (!image.startsWith('http') && !image.startsWith('data:') && !image.startsWith('/'))) {
-      issues.push('imagem do artigo inválida/ausente');
-    }
     
     if (issues.length > 0) {
       console.warn('⚠️ [AUDITORIA] Problemas encontrados para colunista:', issues);
-      if (isMobile) {
-        console.log('📱 [MOBILE] Estes problemas podem causar falhas no carregamento. Usando fallbacks robustos.');
-      }
     } else {
       console.log('✅ [AUDITORIA] Dados do colunista completos');
     }
@@ -128,9 +162,9 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       return;
     }
 
-    // Instagram Feed dimensions
-    canvas.width = 1080;
-    canvas.height = 1080;
+    // Usar dimensões do template
+    canvas.width = template.canvas.width;
+    canvas.height = template.canvas.height;
 
     // Configurar qualidade máxima do canvas
     ctx.imageSmoothingEnabled = true;
@@ -223,10 +257,10 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         console.log('✅ Fundo fallback aplicado');
       }
 
-      // 2. Desenhar imagem do artigo com fallback para colunistas
-      const imageHeight = canvas.height * 0.35;
-      const imageY = 220;
-      
+      // 2. Desenhar imagem do artigo com valores do template
+      const imageHeight = canvas.height * (template.articleImage.heightPercent / 100);
+      const imageY = template.articleImage.marginTop;
+      const imageMargin = template.articleImage.marginHorizontal;
       let imageToUse = null;
       
       // Log detalhado do estado das imagens

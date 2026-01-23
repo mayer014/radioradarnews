@@ -19,6 +19,7 @@ import { ContactProvider } from "@/contexts/ContactContext";
 import { LegalContentProvider } from "@/contexts/LegalContentContext";
 import { SupabaseAIConfigProvider } from "@/contexts/SupabaseAIConfigContext";
 import { RadioProvider } from "@/contexts/RadioContext";
+import { ArtTemplateProvider } from "@/contexts/ArtTemplateContext";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -96,15 +97,17 @@ const App = () => (
                         <NotificationsProvider>
                           <TooltipProvider>
                             <RadioProvider>
-                              <NewsProvider>
-                                <UsersProvider>
-                                  <ContactProvider>
-                                    <CommentsProvider>
-                                        <AppContent />
-                                    </CommentsProvider>
-                                  </ContactProvider>
-                                </UsersProvider>
-                              </NewsProvider>
+                              <ArtTemplateProvider>
+                                <NewsProvider>
+                                  <UsersProvider>
+                                    <ContactProvider>
+                                      <CommentsProvider>
+                                          <AppContent />
+                                      </CommentsProvider>
+                                    </ContactProvider>
+                                  </UsersProvider>
+                                </NewsProvider>
+                              </ArtTemplateProvider>
                             </RadioProvider>
                           </TooltipProvider>
                         </NotificationsProvider>
