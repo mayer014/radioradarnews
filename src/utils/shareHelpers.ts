@@ -876,6 +876,13 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           
           console.log('📐 Logo dimensões:', { logoWidth, logoHeight, drawX, drawY });
           
+          // Aplicar sombra sutil para destacar logo em fundos claros
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = 15;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+          
           ctx.drawImage(
             logoImage, 
             drawX, 
@@ -883,6 +890,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
             logoWidth, 
             logoHeight
           );
+          
+          ctx.restore(); // Restaurar para remover sombra dos próximos elementos
           console.log('✅ Logo customizada renderizada');
         } else if (!template.logo.imageUrl) {
           // Placeholder para logo (texto)
