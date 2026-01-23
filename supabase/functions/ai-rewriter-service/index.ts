@@ -118,15 +118,36 @@ const ALLOWED_GROQ_MODELS = [
   'gemma2-9b-it'
 ];
 
-// Modelos Lovable AI Gateway permitidos
-const ALLOWED_LOVABLE_MODELS = [
-  'google/gemini-2.5-pro',
-  'google/gemini-2.5-flash',
-  'google/gemini-2.5-flash-lite',
-  'openai/gpt-5',
-  'openai/gpt-5-mini',
-  'openai/gpt-5-nano'
-];
+// ==== CENTRALIZAÇÃO DE API KEY ====
+// Busca a API key diretamente do banco de dados (tabela ai_configurations)
+// Isso permite gerenciamento 100% pelo Painel Admin, sem depender de secrets
+async function getGroqApiKeyFromDatabase(supabaseClient: any): Promise<string | null> {
+  try {
+    // Buscar configuração do Groq na tabela ai_configurations
+    const { data, error } = await supabaseClient
+      .from('ai_configurations')
+      .select('api_key_encrypted, config_json')
+      .eq('provider_name', 'groq')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Erro ao buscar API key do banco:', error);
+      return null;
+    }
+
+    if (data?.api_key_encrypted) {
+      console.log('✅ API key Groq carregada do banco de dados (Painel Admin)');
+      return data.api_key_encrypted;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('Exception ao buscar API key do banco:', error);
+    return null;
+  }
+}
 
 // Função para buscar o prompt customizado do banco
 async function getSystemPrompt(supabaseClient: any): Promise<string> {
@@ -207,51 +228,57 @@ serve(async (req) => {
       });
     }
 
-    // EXCLUSIVO: Usar apenas GROQ_API_KEY (LLM configurada pelo usuário)
-    // NÃO usar LOVABLE_API_KEY em nenhuma circunstância
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    // Get Supabase client
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    console.log(`🔑 [${requestId}] API Keys status:`, {
-      groqConfigured: !!GROQ_API_KEY,
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error(`❌ [${requestId}] Supabase configuration missing`);
+      throw new Error('Supabase configuration missing');
+    }
+
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ==== BUSCA CENTRALIZADA DA API KEY ====
+    // PRIORIDADE 1: Buscar do banco de dados (Painel Admin → Configurações)
+    let GROQ_API_KEY = await getGroqApiKeyFromDatabase(supabase);
+    
+    // PRIORIDADE 2: Fallback para env var (compatibilidade)
+    if (!GROQ_API_KEY) {
+      GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') || null;
+      if (GROQ_API_KEY) {
+        console.log(`⚠️ [${requestId}] Usando GROQ_API_KEY de env vars (configure no Painel Admin para autonomia total)`);
+      }
+    }
+    
+    console.log(`🔑 [${requestId}] API Key status:`, {
+      source: GROQ_API_KEY ? 'database/env' : 'NONE',
       provider: GROQ_API_KEY ? 'GROQ (LLM externa - sem consumir créditos Lovable)' : 'NONE'
     });
 
     if (!GROQ_API_KEY) {
-      console.error(`❌ [${requestId}] GROQ_API_KEY não configurada. Configure no Painel Admin → Configurações.`);
+      console.error(`❌ [${requestId}] Nenhuma API key Groq configurada. Configure no Painel Admin → Configurações.`);
       return new Response(
         JSON.stringify({ 
           error: 'LLM externa não configurada',
-          message: 'Configure GROQ_API_KEY no Supabase Secrets para usar esta funcionalidade.',
-          details: 'Este sistema utiliza exclusivamente LLM externa configurada pelo usuário. Configure sua chave API no Painel Admin → Configurações.'
+          message: 'Configure sua chave API Groq no Painel Admin → Configurações → IA.',
+          details: 'Este sistema utiliza exclusivamente LLM externa configurada pelo usuário. Acesse Painel Admin → Configurações para adicionar sua chave Groq.'
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get Supabase client for fetching settings
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
     let SYSTEM_PROMPT = FALLBACK_SYSTEM_PROMPT;
-    let selectedModel = 'llama-3.1-8b-instant'; // Sempre Groq
+    let selectedModel = 'llama-3.1-8b-instant';
     
-    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        
-        // Fetch custom prompt
-        console.log(`📚 [${requestId}] Fetching custom system prompt from database...`);
-        SYSTEM_PROMPT = await getSystemPrompt(supabase);
-        console.log(`✅ [${requestId}] System prompt loaded - Length: ${SYSTEM_PROMPT.length} chars`);
-        
-        // Fetch preferred Groq model
-        selectedModel = await getPreferredGroqModel(supabase);
-        console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
-      } catch (configError) {
-        console.warn('Could not load configurations from database, using defaults:', configError);
-      }
-    }
+    // Fetch custom prompt and model
+    console.log(`📚 [${requestId}] Fetching custom system prompt from database...`);
+    SYSTEM_PROMPT = await getSystemPrompt(supabase);
+    console.log(`✅ [${requestId}] System prompt loaded - Length: ${SYSTEM_PROMPT.length} chars`);
+    
+    selectedModel = await getPreferredGroqModel(supabase);
+    console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
 
     const { title, content, url }: RewriteRequest = await req.json();
     console.log(`📥 [${requestId}] Request received:`, { 

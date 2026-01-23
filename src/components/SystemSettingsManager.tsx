@@ -87,7 +87,22 @@ const SystemSettingsManager = () => {
 
       // Se o teste passou
       if (aiProvider === 'groq') {
-        // Para Groq, salvamos a preferência do modelo usando edge function
+        // Para Groq, salvamos a chave API E a preferência do modelo
+        // Salvar chave na tabela ai_configurations (prioridade sobre env vars)
+        const { error: saveError } = await addConfiguration({
+          provider_name: 'groq',
+          api_key_encrypted: aiApiKey, // Em produção, criptografar
+          config_json: {
+            model: aiModel,
+            tested_at: new Date().toISOString(),
+            last_test_success: true,
+            available_models: data.availableModels || []
+          }
+        });
+
+        if (saveError) throw new Error(saveError);
+
+        // Também salvar preferência do modelo
         try {
           await supabase.functions.invoke('groq-config', {
             body: { action: 'set', model: aiModel }
@@ -97,8 +112,8 @@ const SystemSettingsManager = () => {
         }
         
         toast({
-          title: 'Teste bem-sucedido! ✅',
-          description: `Groq testado com ${data.modelTested}. Modelo salvo como preferência. Configure GROQ_API_KEY no Supabase Secrets para uso em produção.`,
+          title: 'Configuração salva! ✅',
+          description: `Groq configurado com sucesso usando ${data.modelTested}. A chave foi salva no banco de dados e será usada automaticamente.`,
         });
       } else {
         // Persistimos apenas provedores adicionais (OpenAI/Anthropic) vinculados ao usuário
@@ -330,12 +345,12 @@ const SystemSettingsManager = () => {
                 </Button>
               </div>
 
-              <Alert className="border-primary/30 bg-primary/5">
-                <Key className="h-4 w-4" />
+              <Alert className="border-green-500/30 bg-green-50/10">
+                <Key className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-xs">
-                  <strong>IA Principal (Groq):</strong> Configurada automaticamente via Supabase Secrets para máxima segurança.
+                  <strong>✓ Autonomia Total:</strong> As chaves API são salvas diretamente no banco de dados do seu site.
                   <br />
-                  <strong>APIs Adicionais:</strong> Podem ser configuradas aqui como fallback secundário.
+                  <strong>Você não precisa acessar a Lovable</strong> para gerenciar suas configurações de IA.
                 </AlertDescription>
               </Alert>
             </div>

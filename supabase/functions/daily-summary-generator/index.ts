@@ -26,6 +26,35 @@ const ALLOWED_GROQ_MODELS = [
   'gemma2-9b-it'
 ];
 
+// ==== CENTRALIZAÇÃO DE API KEY ====
+// Busca a API key diretamente do banco de dados (tabela ai_configurations)
+async function getGroqApiKeyFromDatabase(supabaseClient: any): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('ai_configurations')
+      .select('api_key_encrypted, config_json')
+      .eq('provider_name', 'groq')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Erro ao buscar API key do banco:', error);
+      return null;
+    }
+
+    if (data?.api_key_encrypted) {
+      console.log('✅ API key Groq carregada do banco de dados (Painel Admin)');
+      return data.api_key_encrypted;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('Exception ao buscar API key do banco:', error);
+    return null;
+  }
+}
+
 // Função para buscar modelo preferido do banco
 async function getPreferredGroqModel(supabaseClient: any): Promise<string> {
   try {
@@ -65,42 +94,49 @@ serve(async (req) => {
       );
     }
 
-    // PRIORIDADE: GROQ_API_KEY (LLM externa do usuário)
-    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    // Get Supabase client
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    console.log(`🔑 [${requestId}] API Keys status:`, {
-      groqConfigured: !!GROQ_API_KEY,
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error(`❌ [${requestId}] Supabase configuration missing`);
+      throw new Error('Supabase configuration missing');
+    }
+
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // ==== BUSCA CENTRALIZADA DA API KEY ====
+    // PRIORIDADE 1: Buscar do banco de dados (Painel Admin → Configurações)
+    let GROQ_API_KEY = await getGroqApiKeyFromDatabase(supabase);
+    
+    // PRIORIDADE 2: Fallback para env var (compatibilidade)
+    if (!GROQ_API_KEY) {
+      GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') || null;
+      if (GROQ_API_KEY) {
+        console.log(`⚠️ [${requestId}] Usando GROQ_API_KEY de env vars (configure no Painel Admin para autonomia total)`);
+      }
+    }
+    
+    console.log(`🔑 [${requestId}] API Key status:`, {
+      source: GROQ_API_KEY ? 'database/env' : 'NONE',
       provider: GROQ_API_KEY ? 'GROQ (sem consumir créditos Lovable)' : 'NONE'
     });
 
     if (!GROQ_API_KEY) {
-      console.error(`❌ [${requestId}] GROQ_API_KEY não configurada. Configure no Painel Admin → Configurações.`);
+      console.error(`❌ [${requestId}] Nenhuma API key Groq configurada. Configure no Painel Admin → Configurações.`);
       return new Response(
         JSON.stringify({ 
           error: 'LLM externa não configurada',
-          message: 'Configure GROQ_API_KEY no Supabase Secrets para usar esta funcionalidade.',
-          details: 'Nenhuma LLM externa está configurada. Configure sua chave API no Painel Admin → Configurações.'
+          message: 'Configure sua chave API Groq no Painel Admin → Configurações → IA.',
+          details: 'Nenhuma API key foi encontrada. Acesse Painel Admin → Configurações para adicionar sua chave Groq.'
         }),
         { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Buscar modelo preferido do banco
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    let selectedModel = 'llama-3.1-8b-instant';
-    
-    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        selectedModel = await getPreferredGroqModel(supabase);
-      } catch (configError) {
-        console.warn('Could not load Groq model preference, using default:', configError);
-      }
-    }
-
+    // Buscar modelo preferido
+    const selectedModel = await getPreferredGroqModel(supabase);
     console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
     console.log(`📰 [${requestId}] Gerando resumos para ${articles.length} artigos usando GROQ (sem consumir créditos Lovable)`);
 
