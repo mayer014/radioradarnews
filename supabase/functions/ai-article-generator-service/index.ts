@@ -66,19 +66,71 @@ Você é um jornalista profissional. Gere conteúdo:
 Retorne SEMPRE um JSON válido conforme solicitado.
 `;
 
+// ==== CENTRALIZAÇÃO DE API KEY ====
+// Busca a API key diretamente do banco de dados (tabela ai_configurations)
+async function getGroqApiKeyFromDatabase(supabaseClient: any): Promise<string | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('ai_configurations')
+      .select('api_key_encrypted, config_json')
+      .eq('provider_name', 'groq')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Erro ao buscar API key do banco:', error);
+      return null;
+    }
+
+    if (data?.api_key_encrypted) {
+      console.log('✅ API key Groq carregada do banco de dados (Painel Admin)');
+      return data.api_key_encrypted;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('Exception ao buscar API key do banco:', error);
+    return null;
+  }
+}
+
+// Função para buscar modelo preferido do banco
+async function getPreferredGroqModel(supabaseClient: any): Promise<string> {
+  try {
+    const { data } = await supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('category', 'ai')
+      .eq('key', 'groq_preferred_model')
+      .maybeSingle();
+      
+    const model = data?.value?.model as string | undefined;
+    if (model && typeof model === 'string') {
+      return model;
+    }
+  } catch (error) {
+    console.warn('Error fetching preferred Groq model:', error);
+  }
+  return 'llama-3.1-8b-instant';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = `ARTGEN_${Date.now()}`;
+  console.log(`🔵 [${requestId}] AI Article Generator called at ${new Date().toISOString()}`);
+
   try {
-    // SECURITY: Rate limiting - use IP address or a unique identifier
+    // SECURITY: Rate limiting
     const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     const rateLimitCheck = checkRateLimit(clientIp);
     
     if (!rateLimitCheck.allowed) {
-      console.warn(`⚠️ Rate limit exceeded for ${clientIp}`);
+      console.warn(`⚠️ [${requestId}] Rate limit exceeded for ${clientIp}`);
       return new Response(JSON.stringify({
         error: 'Rate limit exceeded',
         message: `Too many requests. Please try again in ${rateLimitCheck.retryAfter} seconds.`,
@@ -92,37 +144,44 @@ serve(async (req) => {
         }
       });
     }
-    const groqApiKey = Deno.env.get('GROQ_API_KEY');
-    if (!groqApiKey) {
-      throw new Error('GROQ_API_KEY not configured in secrets');
-    }
 
-    // Get preferred model from configuration
+    // Get Supabase client
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    let selectedModel = 'llama-3.1-8b-instant'; // Default
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // PRIORIDADE 1: Buscar API key do banco de dados (Painel Admin)
+    let groqApiKey = await getGroqApiKeyFromDatabase(supabase);
     
-    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        
-        const { data } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('category', 'ai')
-          .eq('key', 'groq_preferred_model')
-          .maybeSingle();
-          
-        if (data?.value?.model) {
-          selectedModel = data.value.model;
-          console.log(`Using preferred Groq model: ${selectedModel}`);
-        }
-      } catch (configError) {
-        console.warn('Could not load Groq model preference, using default:', configError);
+    // PRIORIDADE 2: Fallback para env var (compatibilidade)
+    if (!groqApiKey) {
+      groqApiKey = Deno.env.get('GROQ_API_KEY') || null;
+      if (groqApiKey) {
+        console.log(`⚠️ [${requestId}] Usando GROQ_API_KEY de env vars (configure no Painel Admin para autonomia total)`);
       }
     }
+
+    if (!groqApiKey) {
+      console.error(`❌ [${requestId}] Nenhuma API key Groq configurada`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'LLM externa não configurada',
+          message: 'Configure sua chave API Groq no Painel Admin → Configurações.',
+          details: 'Nenhuma API key foi encontrada. Acesse Painel Admin → Configurações → IA para adicionar sua chave Groq.'
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Buscar modelo preferido
+    const selectedModel = await getPreferredGroqModel(supabase);
+    console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
 
     const request: ArticleGenerationRequest = await req.json();
 
