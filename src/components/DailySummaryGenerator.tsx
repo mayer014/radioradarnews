@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
+import { useSupabaseContactInfo } from '@/contexts/SupabaseContactInfoContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { getArticleLink } from '@/lib/utils';
 import { 
   Newspaper, 
   Copy, 
@@ -16,9 +18,11 @@ import { format, isToday, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface ArticleSummary {
+  id: string;
   title: string;
   category: string;
   summary: string;
+  link: string;
 }
 
 interface DailySummaryResult {
@@ -30,10 +34,14 @@ interface DailySummaryResult {
 
 const DailySummaryGenerator: React.FC = () => {
   const { articles } = useSupabaseNews();
+  const { contactInfo } = useSupabaseContactInfo();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<DailySummaryResult | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // URL base do site
+  const siteBaseUrl = 'https://radiodarnews.lovable.app';
 
   // Filtrar artigos publicados hoje
   const getTodayArticles = () => {
@@ -63,10 +71,12 @@ const DailySummaryGenerator: React.FC = () => {
     try {
       // Preparar dados das matérias para enviar à IA
       const articlesData = todayArticles.map(article => ({
+        id: article.id,
         title: article.title,
         category: article.category,
         excerpt: article.excerpt || '',
-        content: article.content?.substring(0, 500) || '' // Limitar conteúdo para não sobrecarregar
+        content: article.content?.substring(0, 500) || '', // Limitar conteúdo para não sobrecarregar
+        link: `${siteBaseUrl}${getArticleLink(article)}`
       }));
 
       // Chamar edge function para gerar resumos
@@ -76,13 +86,18 @@ const DailySummaryGenerator: React.FC = () => {
 
       if (error) throw error;
 
-      const summaries: ArticleSummary[] = data.summaries || [];
+      // Mapear resumos com links
+      const summaries: ArticleSummary[] = (data.summaries || []).map((summary: any, index: number) => ({
+        ...summary,
+        id: articlesData[index]?.id || '',
+        link: articlesData[index]?.link || ''
+      }));
       
-      // Montar texto completo para leitura em rádio
+      // Montar texto completo para leitura em rádio / WhatsApp
       const today = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
       
       let fullText = `📻 RESUMO DO DIA - ${today.toUpperCase()}\n\n`;
-      fullText += `Confira as principais notícias de hoje na Rádio Radar News:\n\n`;
+      fullText += `Confira as principais notícias de hoje no Portal RRN - Radar de Notícias:\n\n`;
       fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
       // Agrupar por categoria
@@ -96,15 +111,35 @@ const DailySummaryGenerator: React.FC = () => {
 
       Object.entries(byCategory).forEach(([category, items]) => {
         fullText += `📌 ${category.toUpperCase()}\n\n`;
-        items.forEach((item, index) => {
+        items.forEach((item) => {
           fullText += `▶ ${item.title}\n`;
-          fullText += `${item.summary}\n\n`;
+          fullText += `${item.summary}\n`;
+          fullText += `🔗 Leia mais: ${item.link}\n\n`;
         });
         fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
       });
 
-      fullText += `📡 Essas foram as principais notícias de hoje.\n`;
-      fullText += `Acompanhe a Rádio Radar News para mais informações.\n`;
+      fullText += `📡 Essas foram as principais notícias de hoje.\n\n`;
+      
+      // Rodapé com informações do site e redes sociais
+      fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      fullText += `🌐 PORTAL RRN - RADAR DE NOTÍCIAS\n\n`;
+      fullText += `🔗 Site: ${siteBaseUrl}\n`;
+      
+      if (contactInfo?.instagram_url) {
+        fullText += `📸 Instagram: ${contactInfo.instagram_url}\n`;
+      }
+      if (contactInfo?.facebook_url) {
+        fullText += `👍 Facebook: ${contactInfo.facebook_url}\n`;
+      }
+      if (contactInfo?.twitter_url) {
+        fullText += `🐦 Twitter: ${contactInfo.twitter_url}\n`;
+      }
+      if (contactInfo?.youtube_url) {
+        fullText += `🎬 YouTube: ${contactInfo.youtube_url}\n`;
+      }
+      
+      fullText += `\nAcompanhe-nos nas redes sociais! 📲\n`;
       fullText += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
       setResult({
