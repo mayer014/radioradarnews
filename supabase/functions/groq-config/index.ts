@@ -112,7 +112,7 @@ serve(async (req) => {
           category: 'ai',
           key: 'groq_preferred_model',
           value: { model, updated_at: new Date().toISOString() }
-        });
+        }, { onConflict: 'category,key' });
 
       if (error) {
         throw new Error(`Failed to save model preference: ${error.message}`);
