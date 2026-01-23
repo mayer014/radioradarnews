@@ -401,46 +401,52 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       }
       
       if (imageToUse) {
-        console.log('✅ [DRAW] Iniciando desenho da imagem:', {
+        console.log('✅ [DRAW] Iniciando desenho da imagem (MODO COVER - sem bordas):', {
           src: imageToUse.src?.substring(0, 100),
           naturalWidth: imageToUse.naturalWidth,
           naturalHeight: imageToUse.naturalHeight,
           complete: imageToUse.complete
         });
         
+        // MODO COVER: Imagem preenche 100% da área configurada, sem margens
+        // A imagem é escalada e cortada (zoom) para preencher todo o espaço
+        const containerWidth = canvas.width; // 100% da largura, SEM MARGENS
+        const containerHeight = imageHeight;
+        
         const imgAspect = imageToUse.naturalWidth / imageToUse.naturalHeight;
-        const containerAspect = (canvas.width - 160) / imageHeight;
+        const containerAspect = containerWidth / containerHeight;
         
-        let drawWidth, drawHeight, drawX, drawY;
+        let sourceX = 0, sourceY = 0, sourceWidth = imageToUse.naturalWidth, sourceHeight = imageToUse.naturalHeight;
         
+        // Calcular crop para modo COVER (preencher 100%)
         if (imgAspect > containerAspect) {
-          drawWidth = canvas.width - 160;
-          drawHeight = drawWidth / imgAspect;
-          drawX = 80;
-          drawY = imageY + (imageHeight - drawHeight) / 2;
+          // Imagem mais larga que container - cortar laterais
+          sourceWidth = imageToUse.naturalHeight * containerAspect;
+          sourceX = (imageToUse.naturalWidth - sourceWidth) / 2;
         } else {
-          drawHeight = imageHeight;
-          drawWidth = drawHeight * imgAspect;
-          drawX = (canvas.width - drawWidth) / 2;
-          drawY = imageY;
+          // Imagem mais alta que container - cortar topo/base
+          sourceHeight = imageToUse.naturalWidth / containerAspect;
+          sourceY = (imageToUse.naturalHeight - sourceHeight) / 2;
         }
         
-        console.log('📐 [DRAW] Dimensões de desenho:', {
-          drawX,
-          drawY,
-          drawWidth,
-          drawHeight,
+        console.log('📐 [DRAW] COVER mode - dimensões:', {
+          containerWidth,
+          containerHeight,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
           imgAspect,
           containerAspect
         });
         
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 20);
-        ctx.clip();
-        ctx.drawImage(imageToUse, drawX, drawY, drawWidth, drawHeight);
-        ctx.restore();
-        console.log('✅ [DRAW] Imagem desenhada com sucesso no canvas');
+        // Desenhar imagem SEM bordas arredondadas, preenchendo 100%
+        ctx.drawImage(
+          imageToUse, 
+          sourceX, sourceY, sourceWidth, sourceHeight, // Source (crop)
+          0, imageY, containerWidth, containerHeight   // Destination (sem margens)
+        );
+        console.log('✅ [DRAW] Imagem desenhada em MODO COVER (100% área)');
       } else if (columnist) {
         console.error('❌ [COLUNISTA] CRÍTICO: Nenhuma imagem renderizada para colunista!', {
           articleId: title.substring(0, 50),
@@ -842,50 +848,9 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         }
       }
       
-      // 8. Resumo da matéria NA PARTE ESCURA (APENAS para matérias normais sem fonte - NÃO para colunistas)
-      // Colunistas com avatarSeparate não mostram resumo para manter layout limpo
-      if (summary && !source && !columnist) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.font = '20px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        
-        // Quebrar texto do resumo
-        const summaryMaxWidth = canvas.width - 80;
-        const summaryLineHeight = 26;
-        const summaryWords = summary.split(' ');
-        const summaryLines: string[] = [];
-        let currentSummaryLine = '';
-        
-        for (const word of summaryWords) {
-          const testLine = currentSummaryLine + (currentSummaryLine ? ' ' : '') + word;
-          const metrics = ctx.measureText(testLine);
-          
-          if (metrics.width > summaryMaxWidth && currentSummaryLine) {
-            summaryLines.push(currentSummaryLine);
-            currentSummaryLine = word;
-          } else {
-            currentSummaryLine = testLine;
-          }
-        }
-        
-        if (currentSummaryLine) {
-          summaryLines.push(currentSummaryLine);
-        }
-        
-        // Limitar a 2 linhas de resumo
-        const summaryDisplayLines = summaryLines.slice(0, 2);
-        if (summaryLines.length > 2) {
-          summaryDisplayLines[1] = summaryDisplayLines[1] + '...';
-        }
-        
-        const summaryStartY = titleStartY + (displayLines.length * titleLineHeight) + columnistSectionHeight + 25;
-        summaryDisplayLines.forEach((line, index) => {
-          ctx.fillText(line, canvas.width / 2, summaryStartY + (index * summaryLineHeight));
-        });
-        
-        console.log('✅ Resumo posicionado na parte escura (matéria normal)');
-      }
+      // 8. RESUMO REMOVIDO - Conforme configuração do template, não exibimos resumo nas artes
+      // O layout fica mais limpo sem o resumo, apenas: Imagem + Logo + Categoria + Título
+      console.log('📝 [TEMPLATE] Resumo desabilitado conforme configuração');
       
       // 9. LOGO - Renderizar logo em posição livre (pode sobrepor imagem)
       if (template.logo.enabled) {
