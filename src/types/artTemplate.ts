@@ -1,5 +1,11 @@
 // Tipos para o sistema de templates de artes para redes sociais
 
+// Posição livre com coordenadas X/Y para sobreposição
+export interface FreePosition {
+  x: number;  // 0-100% da esquerda
+  y: number;  // 0-100% do topo
+}
+
 export interface ArtTemplateSettings {
   canvas: {
     width: number;  // 1080
@@ -9,13 +15,11 @@ export interface ArtTemplateSettings {
   background: {
     imageUrl: string;   // URL do background customizado (vazio = gradiente padrão)
   };
-  // Logo do jornal
+  // Logo do jornal com posição livre
   logo: {
     enabled: boolean;
-    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    position: FreePosition;  // Posição livre X/Y (pode sobrepor imagem)
     size: number;       // 60-200px
-    marginX: number;    // margem horizontal
-    marginY: number;    // margem vertical
     imageUrl: string;   // URL da logo customizada
   };
   // Imagem do artigo (ocupa área acima do destaque de categoria)
@@ -47,7 +51,9 @@ export interface ColumnistArtTemplate extends ArtTemplateSettings {
   id: 'columnist';
   name: string;
   columnistProfile: {
-    avatarSize: number;     // 80-100px
+    avatarSize: number;     // 80-120px
+    avatarPosition: FreePosition;  // Posição livre do avatar (pode sobrepor imagem)
+    avatarSeparate: boolean;  // Se true, avatar fica separado do nome/especialidade
     nameSize: number;       // 24-28px
     specialtySize: number;  // 16-20px
   };
@@ -60,7 +66,7 @@ export interface ArtTemplatesConfig {
   columnist: ColumnistArtTemplate;
 }
 
-// Valores padrão otimizados - imagem grande, logo inferior direito
+// Valores padrão otimizados - imagem grande, posição livre para sobreposição
 export const DEFAULT_REGULAR_TEMPLATE: RegularArtTemplate = {
   id: 'regular',
   name: 'Matérias Regulares',
@@ -73,15 +79,13 @@ export const DEFAULT_REGULAR_TEMPLATE: RegularArtTemplate = {
   },
   logo: {
     enabled: true,
-    position: 'bottom-right',  // Logo fixa no canto inferior direito
+    position: { x: 85, y: 92 },  // Posição livre (canto inferior direito por padrão)
     size: 120,
-    marginX: 30,
-    marginY: 30,
     imageUrl: ''
   },
   articleImage: {
     heightPercent: 70,  // Imagem ocupa maior parte (70%)
-    marginTop: 40,
+    marginTop: 0,
     marginHorizontal: 0,  // Sem margem horizontal - imagem de ponta a ponta
     borderRadius: 0
   },
@@ -110,15 +114,13 @@ export const DEFAULT_COLUMNIST_TEMPLATE: ColumnistArtTemplate = {
   },
   logo: {
     enabled: true,
-    position: 'bottom-right',  // Logo fixa no canto inferior direito
+    position: { x: 85, y: 92 },  // Posição livre
     size: 100,
-    marginX: 30,
-    marginY: 30,
     imageUrl: ''
   },
   articleImage: {
     heightPercent: 55,
-    marginTop: 40,
+    marginTop: 0,
     marginHorizontal: 0,
     borderRadius: 0
   },
@@ -134,7 +136,9 @@ export const DEFAULT_COLUMNIST_TEMPLATE: ColumnistArtTemplate = {
     color: '#ffffff'
   },
   columnistProfile: {
-    avatarSize: 90,
+    avatarSize: 100,
+    avatarPosition: { x: 50, y: 52 },  // Centralizado sobre a imagem (acima da categoria)
+    avatarSeparate: true,  // Avatar separado do nome por padrão
     nameSize: 26,
     specialtySize: 18
   }
