@@ -167,9 +167,9 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
         </div>
 
         {/* Conteúdo */}
-        <div className="p-3 md:p-6 flex flex-col h-full">
+        <div className="p-3 md:p-6 flex flex-col">
           {/* Info do colunista */}
-           <div className="flex items-center gap-2 mb-3">
+           <div className="flex items-center gap-2 mb-2">
              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden border border-primary/20 flex-shrink-0">
                 {currentAvatar && currentAvatar !== '' ? (
                   <img
@@ -204,8 +204,20 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
             </div>
           </div>
 
+          {/* Título */}
+          <h3 className="text-sm md:text-lg font-bold mb-2 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 leading-tight">
+            {article.title}
+          </h3>
+          
+          {/* Excerpt - resumo do artigo */}
+          {article.excerpt && (
+            <p className="text-muted-foreground text-xs md:text-sm line-clamp-2 mb-2">
+              {article.excerpt}
+            </p>
+          )}
+
           {/* Data */}
-          <div className="flex items-center gap-3 mb-3 text-[10px] md:text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 mb-2 text-[10px] md:text-xs text-muted-foreground">
             <div className="flex items-center">
               <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
               <span>{new Date(article.created_at).toLocaleDateString('pt-BR')}</span>
@@ -216,31 +228,19 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
             </div>
           </div>
 
-          {/* Título */}
-          <h3 className="text-sm md:text-lg font-bold mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-3 leading-tight flex-grow">
-            {article.title}
-          </h3>
-          
-          {/* Excerpt - apenas no desktop */}
-          <p className="text-muted-foreground text-sm line-clamp-2 mb-4 hidden md:block">
-            {article.excerpt}
-          </p>
-
           {/* Ações */}
-          <div className="mt-auto pt-2">
-            <div className="flex flex-col gap-2">
-              <Link 
-                to={`/colunista/${profileId}`}
-                className="flex items-center text-[10px] md:text-xs text-muted-foreground hover:text-primary transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <User className="w-3 h-3 mr-1 flex-shrink-0" />
-                <span>Ver perfil do colunista</span>
-              </Link>
-              <span className="text-primary text-xs md:text-sm font-medium group-hover:underline">
-                Ler artigo completo →
-              </span>
-            </div>
+          <div className="flex flex-col gap-1 mt-auto">
+            <Link 
+              to={`/colunista/${profileId}`}
+              className="flex items-center text-[10px] md:text-xs text-muted-foreground hover:text-primary transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <User className="w-3 h-3 mr-1 flex-shrink-0" />
+              <span>Ver perfil do colunista</span>
+            </Link>
+            <span className="text-primary text-xs md:text-sm font-medium group-hover:underline">
+              Ler artigo completo →
+            </span>
           </div>
         </div>
       </Card>
