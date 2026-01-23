@@ -457,9 +457,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
 
       // 3. LOGO REMOVIDA - já está no fundo
 
-      // 4. Área de texto NA PARTE ESCURA (bem embaixo)
-      // 4. Área de texto na zona inferior - posicionamento diferente para colunistas vs matérias normais
-      const textY = columnist ? (imageY + imageHeight + 20) : (imageY + imageHeight + 60); // Mais espaço para matérias normais
+      // 4. Área de texto COLADA na imagem - sem espaço extra
+      const textY = imageY + imageHeight; // Sem espaço adicional - colado na imagem
       const textHeight = canvas.height - textY;
       
       // Overlay MUITO sutil apenas na área do texto
@@ -496,7 +495,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       const textMetrics = ctx.measureText(categoryText);
       const badgeWidth = Math.max(textMetrics.width + 40, 120); // Mínimo 120px, padding 40px
       const badgeX = (canvas.width - badgeWidth) / 2;
-      const badgeY = columnist ? (textY + 20) : (textY + 40); // Mais espaço para matérias normais
+      const badgeY = textY + 15; // Posição colada na borda da imagem (sem espaço extra)
       
       // Badge glassmorphism
       ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
@@ -557,8 +556,8 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         displayLines[titleMaxLines - 1] = displayLines[titleMaxLines - 1] + '...';
       }
       
-      // Desenhar linhas do título
-      const titleStartY = columnist ? (badgeY + badgeHeight + 20) : (badgeY + badgeHeight + 30);
+      // Desenhar linhas do título - posição colada no badge
+      const titleStartY = badgeY + badgeHeight + 15; // Posição uniforme para ambos
       displayLines.forEach((line, index) => {
         ctx.fillText(line, canvas.width / 2, titleStartY + (index * titleLineHeight));
       });
@@ -864,15 +863,18 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
                              logoImage.naturalWidth > 0;
         
         if (hasLogoImage) {
-          console.log('🏷️ Renderizando logo customizada em posição livre');
-          // Calcular proporção da logo
+          console.log('🏷️ Renderizando logo customizada em posição livre, tamanho:', logoSize);
+          // Calcular proporção da logo - USAR TAMANHO REAL DO TEMPLATE
           const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
-          const logoHeight = logoSize * 0.5;
+          // Altura = tamanho configurado, largura proporcional
+          const logoHeight = logoSize; // USAR TAMANHO COMPLETO, não reduzido
           const logoWidth = logoHeight * logoAspect;
           
-          // Centralizar logo na posição
+          // Centralizar logo na posição configurada
           const drawX = (canvas.width * template.logo.position.x / 100) - (logoWidth / 2);
           const drawY = (canvas.height * template.logo.position.y / 100) - (logoHeight / 2);
+          
+          console.log('📐 Logo dimensões:', { logoWidth, logoHeight, drawX, drawY });
           
           ctx.drawImage(
             logoImage, 

@@ -215,10 +215,10 @@ const ArtTemplateManager: React.FC = () => {
       ctx.fillStyle = textOverlay;
       ctx.fillRect(0, textY, template.canvas.width, template.canvas.height - textY);
 
-      // Badge de categoria
+      // Badge de categoria - COLADO na borda da imagem (sem espaço extra)
       const badgeWidth = 180;
       const badgeX = (template.canvas.width - badgeWidth) / 2;
-      const badgeY = textY + 25;
+      const badgeY = textY + 15; // Mesmo valor que shareHelpers.ts
       
       ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.beginPath();
@@ -237,8 +237,8 @@ const ArtTemplateManager: React.FC = () => {
       ctx.textBaseline = 'middle';
       ctx.fillText('CATEGORIA', template.canvas.width / 2, badgeY + template.categoryBadge.height / 2);
 
-      // Título
-      const titleY = badgeY + template.categoryBadge.height + 20;
+      // Título - COLADO no badge (mesmo valor que shareHelpers.ts)
+      const titleY = badgeY + template.categoryBadge.height + 15;
       ctx.fillStyle = template.title.color;
       ctx.font = `${template.title.fontWeight} ${template.title.fontSize}px Arial`;
       ctx.textAlign = 'center';
@@ -340,38 +340,50 @@ const ArtTemplateManager: React.FC = () => {
 
       // Logo em posição livre (pode sobrepor qualquer elemento)
       if (template.logo.enabled) {
-        const logoX = (template.canvas.width * template.logo.position.x / 100) - (template.logo.size / 2);
-        const logoY = (template.canvas.height * template.logo.position.y / 100) - (template.logo.size * 0.2);
-        const logoHeight = template.logo.size * 0.4;
+        // Usar tamanho REAL do template (igual ao shareHelpers.ts)
+        const logoSize = template.logo.size;
         
         if (logoImage && logoImage.complete && logoImage.naturalWidth > 0) {
-          // Desenhar logo real
+          // Desenhar logo real - USAR TAMANHO COMPLETO DO TEMPLATE
           const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
-          const drawWidth = template.logo.size;
-          const drawHeight = drawWidth / logoAspect;
-          ctx.drawImage(logoImage, logoX - drawWidth/2 + template.logo.size/2, logoY - drawHeight/2 + logoHeight/2, drawWidth, drawHeight);
+          const logoHeight = logoSize; // Tamanho completo configurado
+          const logoWidth = logoHeight * logoAspect;
+          
+          // Centralizar logo na posição configurada
+          const drawX = (template.canvas.width * template.logo.position.x / 100) - (logoWidth / 2);
+          const drawY = (template.canvas.height * template.logo.position.y / 100) - (logoHeight / 2);
+          
+          ctx.drawImage(logoImage, drawX, drawY, logoWidth, logoHeight);
         } else if (template.logo.imageUrl) {
+          // Placeholder quando logo está carregando
+          const drawX = (template.canvas.width * template.logo.position.x / 100) - (logoSize / 2);
+          const drawY = (template.canvas.height * template.logo.position.y / 100) - (logoSize / 2);
+          
           ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
           ctx.beginPath();
-          ctx.roundRect(logoX, logoY, template.logo.size, logoHeight, 8);
+          ctx.roundRect(drawX, drawY, logoSize, logoSize * 0.5, 8);
           ctx.fill();
           
           ctx.fillStyle = '#333';
           ctx.font = 'bold 14px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('SUA LOGO', logoX + template.logo.size / 2, logoY + logoHeight / 2);
+          ctx.fillText('SUA LOGO', drawX + logoSize / 2, drawY + logoSize * 0.25);
         } else {
+          // Placeholder quando não há logo configurada
+          const drawX = (template.canvas.width * template.logo.position.x / 100) - (logoSize / 2);
+          const drawY = (template.canvas.height * template.logo.position.y / 100) - (logoSize / 2);
+          
           ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
           ctx.beginPath();
-          ctx.roundRect(logoX, logoY, template.logo.size, logoHeight, 8);
+          ctx.roundRect(drawX, drawY, logoSize, logoSize * 0.5, 8);
           ctx.fill();
           
           ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
           ctx.font = 'bold 16px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('LOGO', logoX + template.logo.size / 2, logoY + logoHeight / 2);
+          ctx.fillText('LOGO', drawX + logoSize / 2, drawY + logoSize * 0.25);
         }
       }
       
