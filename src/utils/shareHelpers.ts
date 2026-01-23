@@ -13,18 +13,26 @@ const getImageProxyUrl = () => `${ENV.SUPABASE_URL}/functions/v1/image-proxy`;
 // Cache para templates (evita múltiplas requisições)
 let templatesCache: ArtTemplatesConfig | null = null;
 let templatesCacheTime = 0;
-const CACHE_DURATION = 60000; // 1 minuto
+const CACHE_DURATION = 30000; // 30 segundos (reduzido para refletir mudanças mais rápido)
+
+// Função para limpar cache de templates (exportada para uso externo)
+export const clearTemplatesCache = () => {
+  console.log('🗑️ [Templates] Cache limpo');
+  templatesCache = null;
+  templatesCacheTime = 0;
+};
 
 const getTemplates = async (): Promise<ArtTemplatesConfig> => {
   const now = Date.now();
   if (templatesCache && (now - templatesCacheTime) < CACHE_DURATION) {
+    console.log('📦 [Templates] Usando cache existente');
     return templatesCache;
   }
   
   try {
     templatesCache = await fetchArtTemplatesFromDB();
     templatesCacheTime = now;
-    console.log('🎨 [Templates] Carregados do banco:', templatesCache);
+    console.log('🎨 [Templates] Carregados do banco:', JSON.stringify(templatesCache, null, 2));
     return templatesCache;
   } catch {
     console.warn('⚠️ [Templates] Usando defaults');
@@ -456,7 +464,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       ctx.fillStyle = textOverlayGradient;
       ctx.fillRect(0, textY, canvas.width, textHeight);
 
-      // 5. Badge da categoria NA PARTE ESCURA (responsivo)
+      // 5. Badge da categoria usando valores do template
       const categoryColors: Record<string, string> = {
         'Política': '#6366f1',
         'Economia': '#10b981',
@@ -472,26 +480,29 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       
       const categoryColor = categoryColors[category] || '#6366f1';
       
+      // Usar tamanho do badge do template
+      const badgeFontSize = template.categoryBadge.fontSize;
+      const badgeHeight = template.categoryBadge.height;
+      
       // Medir o texto da categoria para badge responsivo
-      ctx.font = 'bold 20px Arial, sans-serif';
+      ctx.font = `bold ${badgeFontSize}px Arial, sans-serif`;
       const categoryText = category.toUpperCase();
       const textMetrics = ctx.measureText(categoryText);
       const badgeWidth = Math.max(textMetrics.width + 40, 120); // Mínimo 120px, padding 40px
-      const badgeHeight = 40;
       const badgeX = (canvas.width - badgeWidth) / 2;
       const badgeY = columnist ? (textY + 20) : (textY + 40); // Mais espaço para matérias normais
       
       // Badge glassmorphism
       ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 22);
+      ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2);
       ctx.fill();
       
       // Borda colorida
       ctx.strokeStyle = categoryColor;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 22);
+      ctx.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2);
       ctx.stroke();
       
       // Texto da categoria
@@ -500,15 +511,20 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       ctx.textBaseline = 'middle';
       ctx.fillText(categoryText, canvas.width / 2, badgeY + badgeHeight / 2);
       
-      // 6. Título NA PARTE ESCURA
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px Arial, sans-serif'; // Fonte menor
+      // 6. Título usando valores do template
+      const titleFontSize = template.title.fontSize;
+      const titleLineHeight = template.title.lineHeight;
+      const titleMaxLines = template.title.maxLines;
+      const titleColor = template.title.color || '#ffffff';
+      const titleFontWeight = template.title.fontWeight || 'bold';
+      
+      ctx.fillStyle = titleColor;
+      ctx.font = `${titleFontWeight} ${titleFontSize}px Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       
       // Quebrar texto do título
-      const maxWidth = canvas.width - 60; // Margens menores
-      const lineHeight = 40; // Altura de linha menor
+      const maxWidth = canvas.width - 60;
       const words = title.split(' ');
       const lines: string[] = [];
       let currentLine = '';
@@ -529,16 +545,16 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         lines.push(currentLine);
       }
       
-      // Limitar a 3 linhas
-      const displayLines = lines.slice(0, 3);
-      if (lines.length > 3) {
-        displayLines[2] = displayLines[2] + '...';
+      // Limitar ao número de linhas do template
+      const displayLines = lines.slice(0, titleMaxLines);
+      if (lines.length > titleMaxLines) {
+        displayLines[titleMaxLines - 1] = displayLines[titleMaxLines - 1] + '...';
       }
       
-      // Desenhar linhas do título - posicionamento diferente para colunistas vs matérias normais
-      const titleStartY = columnist ? (badgeY + badgeHeight + 20) : (badgeY + badgeHeight + 30); // Mais espaço para matérias normais
+      // Desenhar linhas do título
+      const titleStartY = columnist ? (badgeY + badgeHeight + 20) : (badgeY + badgeHeight + 30);
       displayLines.forEach((line, index) => {
-        ctx.fillText(line, canvas.width / 2, titleStartY + (index * lineHeight));
+        ctx.fillText(line, canvas.width / 2, titleStartY + (index * titleLineHeight));
       });
 
       // 7. Fonte da matéria (para matérias reescritas)
@@ -546,7 +562,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       if (source && !columnist) {
         console.log('🏷️ Adicionando fonte da matéria reescrita:', source);
         
-        const sourceY = titleStartY + (displayLines.length * lineHeight) + (columnist ? 15 : 25); // Mais espaço para matérias normais
+        const sourceY = titleStartY + (displayLines.length * titleLineHeight) + 25;
         
         // Fundo sutil para a fonte
         const sourceBoxHeight = 35;
@@ -604,7 +620,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
           summaryDisplayLines[1] = summaryDisplayLines[1] + '...';
         }
         
-        const summaryStartY = titleStartY + (displayLines.length * lineHeight) + sourceHeight + (columnist ? 10 : 20); // Mais espaço para matérias normais
+        const summaryStartY = titleStartY + (displayLines.length * titleLineHeight) + sourceHeight + 20;
         summaryDisplayLines.forEach((line, index) => {
           ctx.fillText(line, canvas.width / 2, summaryStartY + (index * summaryLineHeight));
         });
@@ -615,136 +631,217 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       if (columnist) {
         console.log('🎨 Renderizando perfil do colunista:', columnist);
         try {
-        const columnistY = titleStartY + (displayLines.length * lineHeight) + 20;
-        const avatarSize = 50;
-        const profileX = 40;
-        
-        // Informações do colunista para calcular altura
-        const infoX = profileX + 15 + avatarSize + 15;
-        const infoY = columnistY + 15;
-        
-        // Primeiro, calcular quantas linhas a bio terá
-        ctx.font = '13px Arial, sans-serif';
-        const bioText = columnist.bio && columnist.bio.trim().length > 0 
-          ? columnist.bio 
-          : 'Colunista do Portal RRN';
-        
-        const bioMaxWidth = canvas.width - infoX - 40;
-        const bioLineHeight = 18;
-        const bioWords = bioText.split(' ');
-        const bioLines: string[] = [];
-        let currentBioLine = '';
-        
-        for (const word of bioWords) {
-          const testLine = currentBioLine + (currentBioLine ? ' ' : '') + word;
-          const metrics = ctx.measureText(testLine);
+          // Obter configurações do template de colunista
+          const columnistConfig = (template as ColumnistArtTemplate).columnistProfile;
+          const avatarSize = columnistConfig?.avatarSize || 100;
+          const avatarSeparate = columnistConfig?.avatarSeparate ?? true;
+          const avatarPosition = columnistConfig?.avatarPosition || { x: 50, y: 52 };
+          const nameSize = columnistConfig?.nameSize || 26;
+          const specialtySize = columnistConfig?.specialtySize || 18;
           
-          if (metrics.width > bioMaxWidth && currentBioLine) {
-            bioLines.push(currentBioLine);
-            currentBioLine = word;
+          console.log('📐 [COLUNISTA] Configurações do template:', {
+            avatarSize,
+            avatarSeparate,
+            avatarPosition,
+            nameSize,
+            specialtySize
+          });
+          
+          // Calcular posição do título baseado no template
+          const columnistY = titleStartY + (displayLines.length * titleLineHeight) + 20;
+          
+          // Se avatar separado, renderizar em posição livre (pode sobrepor imagem)
+          if (avatarSeparate) {
+            // Avatar em posição livre baseada em porcentagem
+            const avatarX = (canvas.width * avatarPosition.x / 100) - (avatarSize / 2);
+            const avatarY = (canvas.height * avatarPosition.y / 100) - (avatarSize / 2);
+            
+            if (columnistAvatarLoaded && columnistAvatarImage.complete && columnistAvatarImage.naturalWidth > 0) {
+              console.log('✅ [COLUNISTA] Renderizando avatar em posição livre:', { avatarX, avatarY, avatarSize });
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.clip();
+              ctx.drawImage(columnistAvatarImage, avatarX, avatarY, avatarSize, avatarSize);
+              ctx.restore();
+              
+              // Borda do avatar
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.stroke();
+            } else {
+              // Avatar fallback com iniciais
+              console.log('🔄 [COLUNISTA] Usando avatar de fallback em posição livre');
+              ctx.save();
+              ctx.fillStyle = categoryColor;
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.fill();
+              
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.stroke();
+              
+              const initials = columnist.name
+                .split(' ')
+                .filter(n => n.length > 0)
+                .map(n => n[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+              
+              ctx.fillStyle = '#ffffff';
+              ctx.font = `bold ${avatarSize * 0.4}px Arial, sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(initials, avatarX + avatarSize/2, avatarY + avatarSize/2 + 2);
+              ctx.restore();
+            }
+            
+            // Nome e especialidade em área separada (na parte escura abaixo do título)
+            const infoY = columnistY + 10;
+            
+            // Desenhar fundo sutil para nome e especialidade
+            const infoHeight = 60;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.beginPath();
+            ctx.roundRect(40, infoY, canvas.width - 80, infoHeight, 15);
+            ctx.fill();
+            
+            // Nome do colunista
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${nameSize}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(columnist.name, canvas.width / 2, infoY + 10);
+            
+            // Especialidade
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = `${specialtySize}px Arial, sans-serif`;
+            ctx.fillText(columnist.specialty, canvas.width / 2, infoY + 10 + nameSize + 5);
+            
+            columnistSectionHeight = infoHeight + 30;
+            
           } else {
-            currentBioLine = testLine;
+            // Layout tradicional: avatar ao lado do nome
+            const profileX = 40;
+            const infoX = profileX + 15 + avatarSize + 15;
+            const infoY = columnistY + 15;
+            
+            // Calcular altura da bio
+            ctx.font = '13px Arial, sans-serif';
+            const bioText = columnist.bio && columnist.bio.trim().length > 0 
+              ? columnist.bio 
+              : 'Colunista do Portal RRN';
+            
+            const bioMaxWidth = canvas.width - infoX - 40;
+            const bioLineHeight = 18;
+            const bioWords = bioText.split(' ');
+            const bioLines: string[] = [];
+            let currentBioLine = '';
+            
+            for (const word of bioWords) {
+              const testLine = currentBioLine + (currentBioLine ? ' ' : '') + word;
+              const metrics = ctx.measureText(testLine);
+              
+              if (metrics.width > bioMaxWidth && currentBioLine) {
+                bioLines.push(currentBioLine);
+                currentBioLine = word;
+              } else {
+                currentBioLine = testLine;
+              }
+            }
+            
+            if (currentBioLine) {
+              bioLines.push(currentBioLine);
+            }
+            
+            const bioDisplayLines = bioLines.slice(0, 4);
+            if (bioLines.length > 4) {
+              bioDisplayLines[3] = bioDisplayLines[3].substring(0, bioDisplayLines[3].length - 3) + '...';
+            }
+            
+            const profileHeight = 40 + (bioDisplayLines.length * bioLineHeight) + 30;
+            
+            // Desenhar fundo
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.beginPath();
+            ctx.roundRect(profileX, columnistY, canvas.width - 80, profileHeight, 15);
+            ctx.fill();
+            
+            // Avatar
+            const avatarX = profileX + 15;
+            const avatarY = columnistY + 15;
+            
+            if (columnistAvatarLoaded && columnistAvatarImage.complete && columnistAvatarImage.naturalWidth > 0) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.clip();
+              ctx.drawImage(columnistAvatarImage, avatarX, avatarY, avatarSize, avatarSize);
+              ctx.restore();
+              
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.stroke();
+            } else {
+              ctx.save();
+              ctx.fillStyle = categoryColor;
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.fill();
+              
+              ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+              ctx.stroke();
+              
+              const initials = columnist.name
+                .split(' ')
+                .filter(n => n.length > 0)
+                .map(n => n[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+              
+              ctx.fillStyle = '#ffffff';
+              ctx.font = `bold ${avatarSize * 0.4}px Arial, sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(initials, avatarX + avatarSize/2, avatarY + avatarSize/2 + 2);
+              ctx.restore();
+            }
+            
+            // Nome do colunista
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${nameSize}px Arial, sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(columnist.name, infoX, infoY);
+            
+            // Especialidade
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = `${specialtySize}px Arial, sans-serif`;
+            ctx.fillText(columnist.specialty, infoX, infoY + nameSize + 5);
+            
+            // Bio
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '13px Arial, sans-serif';
+            bioDisplayLines.forEach((line, index) => {
+              ctx.fillText(line, infoX, infoY + nameSize + 5 + specialtySize + 10 + (index * bioLineHeight));
+            });
+            
+            columnistSectionHeight = profileHeight + 20;
           }
-        }
-        
-        if (currentBioLine) {
-          bioLines.push(currentBioLine);
-        }
-        
-        // Limitar a 4 linhas
-        const bioDisplayLines = bioLines.slice(0, 4);
-        if (bioLines.length > 4) {
-          bioDisplayLines[3] = bioDisplayLines[3].substring(0, bioDisplayLines[3].length - 3) + '...';
-        }
-        
-        // Calcular altura do card baseado no conteúdo
-        // Nome (18px) + Especialidade (22px from top) + Bio start (40px from top) + (linhas * 18px) + padding bottom (15px)
-        const profileHeight = 40 + (bioDisplayLines.length * bioLineHeight) + 30;
-        
-        // Desenhar fundo sutil para o perfil do colunista com altura calculada
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.beginPath();
-        ctx.roundRect(profileX, columnistY, canvas.width - 80, profileHeight, 15);
-        ctx.fill();
-        
-        // Avatar do colunista
-        const avatarX = profileX + 15;
-        const avatarY = columnistY + 15;
-        
-        if (columnistAvatarLoaded && columnistAvatarImage.complete) {
-          console.log('✅ [COLUNISTA] Renderizando avatar do colunista');
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-          ctx.clip();
-          ctx.drawImage(columnistAvatarImage, avatarX, avatarY, avatarSize, avatarSize);
-          ctx.restore();
           
-          // Borda do avatar
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-          ctx.stroke();
-        } else {
-          console.log('🔄 [COLUNISTA] Usando avatar de fallback para:', columnist.name);
-          // Avatar fallback com cor da categoria e iniciais
-          ctx.save();
-          
-          // Círculo de fundo com cor da categoria
-          ctx.fillStyle = categoryColor;
-          ctx.beginPath();
-          ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Borda do avatar
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-          ctx.stroke();
-          
-          // Iniciais do nome
-          const initials = columnist.name
-            .split(' ')
-            .filter(n => n.length > 0)
-            .map(n => n[0])
-            .join('')
-            .substring(0, 2)
-            .toUpperCase();
-          
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 28px Arial, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(initials, avatarX + avatarSize/2, avatarY + avatarSize/2 + 2);
-          
-          ctx.restore();
-          console.log('✅ Avatar fallback desenhado com iniciais:', initials);
-        }
-        
-        // Nome do colunista
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px Arial, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(columnist.name, infoX, infoY);
-        
-        // Especialidade
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.font = '14px Arial, sans-serif';
-        ctx.fillText(columnist.specialty, infoX, infoY + 22);
-        
-        // Bio (desenhar as linhas já calculadas)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.font = '13px Arial, sans-serif';
-        bioDisplayLines.forEach((line, index) => {
-          ctx.fillText(line, infoX, infoY + 40 + (index * bioLineHeight));
-        });
-        
-        // Altura da seção do colunista
-        columnistSectionHeight = profileHeight + 20; // profileHeight + espaçamento
-        console.log('✅ Perfil do colunista renderizado com sucesso');
+          console.log('✅ Perfil do colunista renderizado com sucesso');
         } catch (error) {
           console.error('❌ Erro ao renderizar perfil do colunista:', error);
           columnistSectionHeight = 0;
@@ -788,7 +885,7 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         }
         
         // Desenhar linhas do resumo - posicionamento diferente para colunistas vs matérias normais
-        const summaryStartY = titleStartY + (displayLines.length * lineHeight) + columnistSectionHeight + (columnist ? 15 : 25);
+        const summaryStartY = titleStartY + (displayLines.length * titleLineHeight) + columnistSectionHeight + (columnist ? 15 : 25);
         summaryDisplayLines.forEach((line, index) => {
           ctx.fillText(line, canvas.width / 2, summaryStartY + (index * summaryLineHeight));
         });
