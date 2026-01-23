@@ -5,16 +5,22 @@ export interface ArtTemplateSettings {
     width: number;  // 1080
     height: number; // 1080
   };
+  // Imagem de fundo customizável
+  background: {
+    imageUrl: string;   // URL do background customizado (vazio = gradiente padrão)
+  };
+  // Logo do jornal
   logo: {
     enabled: boolean;
     position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-    size: number;       // 60-150px
+    size: number;       // 60-200px
     marginX: number;    // margem horizontal
     marginY: number;    // margem vertical
     imageUrl: string;   // URL da logo customizada
   };
+  // Imagem do artigo (ocupa área acima do destaque de categoria)
   articleImage: {
-    heightPercent: number;  // 55-70%
+    heightPercent: number;  // 55-80%
     marginTop: number;
     marginHorizontal: number;
     borderRadius: number;
@@ -54,7 +60,7 @@ export interface ArtTemplatesConfig {
   columnist: ColumnistArtTemplate;
 }
 
-// Valores padrão otimizados para legibilidade
+// Valores padrão otimizados - imagem grande, logo inferior direito
 export const DEFAULT_REGULAR_TEMPLATE: RegularArtTemplate = {
   id: 'regular',
   name: 'Matérias Regulares',
@@ -62,29 +68,32 @@ export const DEFAULT_REGULAR_TEMPLATE: RegularArtTemplate = {
     width: 1080,
     height: 1080
   },
+  background: {
+    imageUrl: ''  // Vazio = usa gradiente padrão
+  },
   logo: {
     enabled: true,
-    position: 'top-left',
-    size: 100,
-    marginX: 40,
-    marginY: 40,
+    position: 'bottom-right',  // Logo fixa no canto inferior direito
+    size: 120,
+    marginX: 30,
+    marginY: 30,
     imageUrl: ''
   },
   articleImage: {
-    heightPercent: 65,
-    marginTop: 160,
-    marginHorizontal: 40,
-    borderRadius: 20
+    heightPercent: 70,  // Imagem ocupa maior parte (70%)
+    marginTop: 40,
+    marginHorizontal: 0,  // Sem margem horizontal - imagem de ponta a ponta
+    borderRadius: 0
   },
   categoryBadge: {
-    fontSize: 20,
-    height: 40
+    fontSize: 18,
+    height: 36
   },
   title: {
-    fontSize: 52,
+    fontSize: 48,
     fontWeight: 'bold',
     maxLines: 3,
-    lineHeight: 58,
+    lineHeight: 54,
     color: '#ffffff'
   }
 };
@@ -96,29 +105,32 @@ export const DEFAULT_COLUMNIST_TEMPLATE: ColumnistArtTemplate = {
     width: 1080,
     height: 1080
   },
+  background: {
+    imageUrl: ''  // Vazio = usa gradiente padrão
+  },
   logo: {
     enabled: true,
-    position: 'top-left',
+    position: 'bottom-right',  // Logo fixa no canto inferior direito
     size: 100,
-    marginX: 40,
-    marginY: 40,
+    marginX: 30,
+    marginY: 30,
     imageUrl: ''
   },
   articleImage: {
     heightPercent: 55,
-    marginTop: 160,
-    marginHorizontal: 40,
-    borderRadius: 20
+    marginTop: 40,
+    marginHorizontal: 0,
+    borderRadius: 0
   },
   categoryBadge: {
-    fontSize: 20,
-    height: 40
+    fontSize: 18,
+    height: 36
   },
   title: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: 'bold',
     maxLines: 2,
-    lineHeight: 54,
+    lineHeight: 50,
     color: '#ffffff'
   },
   columnistProfile: {

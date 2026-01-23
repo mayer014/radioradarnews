@@ -110,9 +110,9 @@ const getCategoryFallbackImage = (category: string): string => {
 };
 
 export const generateFeedImage = async ({ title, image, category, summary, columnist, source, sourceUrl }: ArticleData): Promise<Blob> => {
-  // Versão v8.0 - Templates dinâmicos configuráveis
+  // Versão v9.0 - Templates dinâmicos com background e logo customizáveis
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  console.log('🖼️ [v8.0] Iniciando geração de imagem para Feed com templates dinâmicos');
+  console.log('🖼️ [v9.0] Iniciando geração de imagem para Feed com templates dinâmicos');
   console.log('📱 Ambiente:', isMobile ? 'Mobile' : 'Desktop');
   
   // Carregar templates do banco
@@ -123,7 +123,9 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     canvas: template.canvas,
     imageHeight: template.articleImage.heightPercent + '%',
     titleSize: template.title.fontSize + 'px',
-    logoEnabled: template.logo.enabled
+    logoEnabled: template.logo.enabled,
+    hasBackgroundImage: !!template.background?.imageUrl,
+    hasLogoImage: !!template.logo?.imageUrl
   });
   
   console.log('📊 Dados recebidos:', { 
@@ -172,22 +174,26 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
 
     // Elementos a serem carregados
     const backgroundImage = new Image();
+    const customBackgroundImage = new Image();
     const articleImage = new Image();
     const fallbackImage = new Image();
     const columnistAvatarImage = new Image();
+    const logoImage = new Image();
     
     backgroundImage.crossOrigin = 'anonymous';
+    customBackgroundImage.crossOrigin = 'anonymous';
     articleImage.crossOrigin = 'anonymous';
     fallbackImage.crossOrigin = 'anonymous';
-    
-    backgroundImage.src = '/lovable-uploads/ff5e1b42-0800-4f2f-af32-28657e649317.png?v=' + Date.now();
+    logoImage.crossOrigin = 'anonymous';
 
     let backgroundLoaded = false;
+    let customBackgroundLoaded = !template.background?.imageUrl; // Só precisa carregar se tiver URL
     let articleImageLoaded = false;
     let articleImageSuccess = false;
     let fallbackImageLoaded = false;
     let fallbackImageSuccess = false;
     let columnistAvatarLoaded = false;
+    let logoLoaded = !template.logo?.enabled || !template.logo?.imageUrl; // Só precisa se tiver logo customizada
 
     const checkIfReady = () => {
       const needsArticleImage = image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'));
@@ -196,10 +202,12 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       // Para colunistas, sempre garantir que temos uma imagem (original ou fallback)
       const imageReady = !needsArticleImage || articleImageLoaded || (columnist && fallbackImageLoaded);
       const avatarReady = !needsColumnistAvatar || columnistAvatarLoaded;
-      const allLoaded = backgroundLoaded && imageReady && avatarReady;
+      const allLoaded = backgroundLoaded && customBackgroundLoaded && logoLoaded && imageReady && avatarReady;
       
       console.log('🔍 Status de carregamento:', {
         backgroundLoaded,
+        customBackgroundLoaded,
+        logoLoaded,
         needsArticleImage,
         articleImageLoaded,
         articleImageSuccess,
@@ -217,10 +225,38 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     };
 
     const drawContent = () => {
-      console.log('🎨 [v5.0] Desenhando conteúdo com fallbacks para colunistas');
+      console.log('🎨 [v9.0] Desenhando conteúdo com background e logo customizáveis');
       
-      // 1. SEMPRE usar o fundo original sem filtros
-      if (backgroundImage.complete && backgroundImage.naturalWidth > 0) {
+      // 1. FUNDO - Usar background customizado se disponível, senão fallback
+      const hasCustomBg = template.background?.imageUrl && 
+                          customBackgroundImage.complete && 
+                          customBackgroundImage.naturalWidth > 0;
+      
+      if (hasCustomBg) {
+        console.log('🎨 Usando background customizado do template');
+        ctx.save();
+        
+        const bgAspect = customBackgroundImage.naturalWidth / customBackgroundImage.naturalHeight;
+        const canvasAspect = canvas.width / canvas.height;
+        
+        let bgWidth, bgHeight, bgX, bgY;
+        
+        if (bgAspect > canvasAspect) {
+          bgHeight = canvas.height;
+          bgWidth = bgHeight * bgAspect;
+          bgX = -(bgWidth - canvas.width) / 2;
+          bgY = 0;
+        } else {
+          bgWidth = canvas.width;
+          bgHeight = bgWidth / bgAspect;
+          bgX = 0;
+          bgY = -(bgHeight - canvas.height) / 2;
+        }
+        
+        ctx.drawImage(customBackgroundImage, bgX, bgY, bgWidth, bgHeight);
+        ctx.restore();
+        console.log('✅ Background customizado aplicado');
+      } else if (backgroundImage.complete && backgroundImage.naturalWidth > 0) {
         ctx.save();
         
         const bgAspect = backgroundImage.naturalWidth / backgroundImage.naturalHeight;
@@ -760,11 +796,51 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
         console.log('✅ Resumo posicionado na parte escura');
       }
       
-      // 8. Converter para blob
+      // 9. LOGO - Renderizar logo customizada no canto inferior direito
+      if (template.logo.enabled) {
+        const logoSize = template.logo.size;
+        const logoX = canvas.width - template.logo.marginX - logoSize;
+        const logoY = canvas.height - template.logo.marginY - (logoSize * 0.4);
+        
+        const hasLogoImage = template.logo.imageUrl && 
+                             logoImage.complete && 
+                             logoImage.naturalWidth > 0;
+        
+        if (hasLogoImage) {
+          console.log('🏷️ Renderizando logo customizada');
+          // Calcular proporção da logo
+          const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
+          const logoHeight = logoSize * 0.5;
+          const logoWidth = logoHeight * logoAspect;
+          
+          ctx.drawImage(
+            logoImage, 
+            canvas.width - template.logo.marginX - logoWidth, 
+            canvas.height - template.logo.marginY - logoHeight,
+            logoWidth, 
+            logoHeight
+          );
+          console.log('✅ Logo customizada renderizada');
+        } else if (!template.logo.imageUrl) {
+          // Placeholder para logo (texto)
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.beginPath();
+          ctx.roundRect(logoX, logoY, logoSize, logoSize * 0.4, 8);
+          ctx.fill();
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.font = 'bold 16px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('LOGO', logoX + logoSize / 2, logoY + logoSize * 0.2);
+        }
+      }
+      
+      // 10. Converter para blob
       console.log('🎊 Convertendo para blob...');
       canvas.toBlob((blob) => {
         if (blob) {
-          console.log('✅ [v4.0] Imagem padronizada gerada com sucesso! Tamanho:', blob.size, 'bytes');
+          console.log('✅ [v9.0] Imagem padronizada gerada com sucesso! Tamanho:', blob.size, 'bytes');
           resolve(blob);
         } else {
           console.error('❌ Falha ao criar blob');
@@ -773,18 +849,54 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
       }, 'image/jpeg', 0.95);
     };
 
-    // Configurar eventos de carregamento - LOGO REMOVIDA
+    // Configurar eventos de carregamento
+    
+    // 1. Fundo padrão
     backgroundImage.onload = () => {
-      console.log('✅ Fundo carregado:', backgroundImage.naturalWidth, 'x', backgroundImage.naturalHeight);
+      console.log('✅ Fundo padrão carregado:', backgroundImage.naturalWidth, 'x', backgroundImage.naturalHeight);
       backgroundLoaded = true;
       checkIfReady();
     };
 
     backgroundImage.onerror = () => {
-      console.warn('⚠️ Falha ao carregar fundo');
+      console.warn('⚠️ Falha ao carregar fundo padrão');
       backgroundLoaded = true;
       checkIfReady();
     };
+    
+    backgroundImage.src = '/lovable-uploads/ff5e1b42-0800-4f2f-af32-28657e649317.png?v=' + Date.now();
+
+    // 2. Background customizado (se configurado)
+    if (template.background?.imageUrl) {
+      console.log('🎨 Carregando background customizado:', template.background.imageUrl.substring(0, 100));
+      customBackgroundImage.onload = () => {
+        console.log('✅ Background customizado carregado');
+        customBackgroundLoaded = true;
+        checkIfReady();
+      };
+      customBackgroundImage.onerror = () => {
+        console.warn('⚠️ Falha ao carregar background customizado, usando fallback');
+        customBackgroundLoaded = true;
+        checkIfReady();
+      };
+      customBackgroundImage.src = template.background.imageUrl;
+    }
+    
+    // 3. Logo customizada (se configurada)
+    if (template.logo?.enabled && template.logo?.imageUrl) {
+      console.log('🏷️ Carregando logo customizada:', template.logo.imageUrl.substring(0, 100));
+      logoImage.onload = () => {
+        console.log('✅ Logo customizada carregada');
+        logoLoaded = true;
+        checkIfReady();
+      };
+      logoImage.onerror = () => {
+        console.warn('⚠️ Falha ao carregar logo customizada');
+        logoLoaded = true;
+        checkIfReady();
+      };
+      logoImage.src = template.logo.imageUrl;
+    }
 
     // Carregar imagem do artigo se necessário (com proteção CORS)
     if (image && (image.startsWith('http') || image.startsWith('data:') || image.startsWith('/'))) {
