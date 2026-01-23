@@ -461,10 +461,135 @@ function cleanTextContent(content: string): string {
     .substring(0, 8000);
 }
 
+// Sanitiza caracteres de controle dentro de strings JSON
+function sanitizeJsonString(jsonStr: string): string {
+  let result = '';
+  let inString = false;
+  let escape = false;
+  
+  for (let i = 0; i < jsonStr.length; i++) {
+    const char = jsonStr[i];
+    
+    if (escape) {
+      result += char;
+      escape = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escape = true;
+      result += char;
+      continue;
+    }
+    
+    if (char === '"') {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+    
+    if (inString) {
+      // Dentro de uma string JSON, escapar caracteres de controle
+      if (char === '\n') {
+        result += '\\n';
+      } else if (char === '\r') {
+        result += '\\r';
+      } else if (char === '\t') {
+        result += '\\t';
+      } else if (char.charCodeAt(0) < 32) {
+        // Outros caracteres de controle
+        result += '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0');
+      } else {
+        result += char;
+      }
+    } else {
+      result += char;
+    }
+  }
+  
+  return result;
+}
+
+// Fallback para extrair conteúdo via regex quando JSON está quebrado
+function createFallbackContent(rawContent: string, sourceUrl: string, originalTitle: string): RewrittenContent {
+  console.warn('⚠️ Using fallback content extraction due to parse error');
+  
+  const domain = getDomainFromUrl(sourceUrl);
+  
+  // Tentar extrair campos individuais via regex
+  const titleMatch = rawContent.match(/"title"\s*:\s*"([^"]+)"/);
+  const leadMatch = rawContent.match(/"lead"\s*:\s*"([^"]+)"/);
+  const excerptMatch = rawContent.match(/"excerpt"\s*:\s*"([^"]+)"/);
+  const categoryMatch = rawContent.match(/"category_suggestion"\s*:\s*"([^"]+)"/);
+  
+  // Para content_html, tentar capturar mesmo com quebras de linha
+  let contentHtml = '';
+  const contentMatch = rawContent.match(/"content_html"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*\})/);
+  if (contentMatch) {
+    contentHtml = contentMatch[1]
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+  }
+  
+  const title = titleMatch?.[1] || forceRewriteTitle(originalTitle);
+  
+  return {
+    title,
+    slug: title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/--+/g, '-').substring(0, 60),
+    lead: leadMatch?.[1] || 'Conteúdo processado com formatação alternativa',
+    content_html: contentHtml || 
+      `<p style="margin-bottom: 1.5rem;">O conteúdo foi processado mas houve erro na formatação da resposta da IA.</p>
+       <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+         <p style="font-style: italic; color: #6b7280; font-size: 0.9rem;">
+           <strong>Fonte:</strong> 
+           <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">
+             ${domain} — Leia a matéria completa clicando aqui
+           </a>
+         </p>
+       </div>`,
+    excerpt: excerptMatch?.[1] || 'Conteúdo extraído com processamento alternativo',
+    category_suggestion: categoryMatch?.[1] || 'Notícias',
+    tags: [],
+    image_prompt: `Imagem ilustrativa para: ${title}`,
+    source_url: sourceUrl,
+    source_domain: domain,
+    published_at_suggestion: new Date().toISOString()
+  };
+}
+
 function parseAIResponse(content: string, sourceUrl: string, originalTitle: string): RewrittenContent {
   try {
-    const cleanContent = content.replace(/```json\n?|```\n?/g, '').trim();
-    const parsed = JSON.parse(cleanContent);
+    // 1. Remove markdown code blocks
+    let cleanContent = content.replace(/```json\n?|```\n?/g, '').trim();
+    
+    // 2. Tentar extrair apenas o objeto JSON (caso tenha texto antes/depois)
+    const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanContent = jsonMatch[0];
+    }
+    
+    // 3. Primeira tentativa de parse direto
+    let parsed;
+    try {
+      parsed = JSON.parse(cleanContent);
+      console.log('✅ JSON parsed successfully on first attempt');
+    } catch (firstError) {
+      console.warn('⚠️ First parse attempt failed, trying with control character sanitization...');
+      
+      // 4. Segunda tentativa com sanitização de caracteres de controle
+      try {
+        const sanitizedContent = sanitizeJsonString(cleanContent);
+        parsed = JSON.parse(sanitizedContent);
+        console.log('✅ JSON parsed successfully after sanitization');
+      } catch (secondError) {
+        console.error('❌ Second parse attempt also failed:', secondError);
+        console.error('Content preview (first 500 chars):', cleanContent.substring(0, 500));
+        
+        // 5. Fallback: extrair campos via regex
+        return createFallbackContent(content, sourceUrl, originalTitle);
+      }
+    }
 
     const titleCandidate: string = parsed.title || parsed.titulo || 'Título não disponível';
     const contentHtml: string = parsed.content_html || parsed.content || parsed.html || '<p>Conteúdo não disponível</p>';
@@ -502,20 +627,7 @@ function parseAIResponse(content: string, sourceUrl: string, originalTitle: stri
     return result;
   } catch (error) {
     console.error('Error parsing AI response:', error);
-    const domain = getDomainFromUrl(sourceUrl);
-    return {
-      title: forceRewriteTitle(originalTitle || 'Conteúdo reescrito automaticamente'),
-      slug: 'conteudo-reescrito-automaticamente',
-      lead: 'Artigo processado automaticamente devido a erro na análise de IA.',
-      content_html: `<p>O conteúdo foi processado mas houve erro na formatação da resposta da IA.</p><p>Fonte: ${domain} – Leia a matéria completa em: ${sourceUrl}</p>`,
-      excerpt: 'Artigo processado automaticamente.',
-      category_suggestion: 'Notícias',
-      tags: ['reescrita', 'automatico'],
-      image_prompt: 'Imagem ilustrativa para artigo',
-      source_url: sourceUrl,
-      source_domain: domain,
-      published_at_suggestion: new Date().toISOString()
-    };
+    return createFallbackContent(content, sourceUrl, originalTitle);
   }
 }
 
