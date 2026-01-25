@@ -80,6 +80,7 @@ import ColumnistActivityDashboard from '@/components/ColumnistActivityDashboard'
 import DailySummaryGenerator from '@/components/DailySummaryGenerator';
 import ArtTemplateManager from '@/components/ArtTemplateManager';
 import SocialMediaConfigPanel from '@/components/SocialMediaConfigPanel';
+import TokenExpirationAlert from '@/components/TokenExpirationAlert';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -304,6 +305,11 @@ const AdminPanel = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Token Expiration Alert - Only for admins */}
+      {isAdmin && (
+        <TokenExpirationAlert onNavigateToConfig={() => setActiveTab('social-media')} />
+      )}
+
       {/* Header */}
       <div className="bg-gradient-card backdrop-blur-sm border-b border-primary/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">

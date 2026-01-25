@@ -136,17 +136,60 @@ const SocialMediaConfigPanel: React.FC = () => {
     }
   };
 
+  // Calcular data de expiração automática (60 dias a partir de hoje)
+  const calculateExpirationDate = (): string => {
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 60);
+    return expirationDate.toISOString();
+  };
+
+  // Calcular dias restantes até expiração
+  const getDaysUntilExpiration = (): number | null => {
+    if (!formData.token_expires_at) return null;
+    const expirationDate = new Date(formData.token_expires_at);
+    const today = new Date();
+    const diffTime = expirationDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Obter cor do indicador baseado nos dias restantes
+  const getExpirationIndicatorColor = (): string => {
+    const days = getDaysUntilExpiration();
+    if (days === null) return 'text-muted-foreground';
+    if (days <= 0) return 'text-destructive';
+    if (days <= 5) return 'text-red-500';
+    if (days <= 10) return 'text-orange-500';
+    return 'text-green-500';
+  };
+
   const saveConfigs = async () => {
     setSaving(true);
 
     try {
+      // Se o token mudou, calcular nova data de expiração automaticamente
+      const existingToken = configs.find(c => c.platform === 'facebook')?.access_token || 
+                           configs.find(c => c.platform === 'instagram')?.access_token;
+      
+      const tokenChanged = formData.access_token && formData.access_token !== existingToken;
+      
+      // Usar data de expiração automática se o token foi alterado, senão manter a existente
+      const expirationDate = tokenChanged 
+        ? calculateExpirationDate() 
+        : (formData.token_expires_at || null);
+
+      // Limpar sessão de "lembrar depois" quando token for atualizado
+      if (tokenChanged) {
+        sessionStorage.removeItem('token_expiration_dismissed');
+      }
+
       // Facebook config
       if (formData.facebook_page_id) {
         const fbData = {
           platform: 'facebook' as const,
           page_id: formData.facebook_page_id,
           access_token: formData.access_token,
-          token_expires_at: formData.token_expires_at || null,
+          token_expires_at: expirationDate,
           is_active: formData.is_active,
           auto_publish_articles: formData.auto_publish_articles,
           auto_publish_columnist: formData.auto_publish_columnist,
@@ -167,7 +210,7 @@ const SocialMediaConfigPanel: React.FC = () => {
           page_id: formData.facebook_page_id || 'instagram_only',
           instagram_user_id: formData.instagram_user_id,
           access_token: formData.access_token,
-          token_expires_at: formData.token_expires_at || null,
+          token_expires_at: expirationDate,
           is_active: formData.is_active,
           auto_publish_articles: formData.auto_publish_articles,
           auto_publish_columnist: formData.auto_publish_columnist,
@@ -183,7 +226,9 @@ const SocialMediaConfigPanel: React.FC = () => {
 
       toast({
         title: 'Sucesso',
-        description: 'Configurações salvas com sucesso',
+        description: tokenChanged 
+          ? 'Token atualizado! A data de expiração foi definida para 60 dias a partir de hoje.' 
+          : 'Configurações salvas com sucesso',
       });
 
       fetchConfigs();
@@ -414,16 +459,33 @@ const SocialMediaConfigPanel: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="token_expires_at">Data de Expiração do Token (opcional)</Label>
-                <Input
-                  id="token_expires_at"
-                  type="date"
-                  value={formData.token_expires_at ? formData.token_expires_at.split('T')[0] : ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    token_expires_at: e.target.value ? new Date(e.target.value).toISOString() : '' 
-                  }))}
-                />
+                <Label htmlFor="token_expires_at">Data de Expiração do Token</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="token_expires_at"
+                    type="date"
+                    value={formData.token_expires_at ? formData.token_expires_at.split('T')[0] : ''}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      token_expires_at: e.target.value ? new Date(e.target.value).toISOString() : '' 
+                    }))}
+                    className="flex-1"
+                  />
+                  {formData.token_expires_at && (
+                    <div className={`flex items-center gap-1 text-sm font-medium ${getExpirationIndicatorColor()}`}>
+                      <AlertCircle className="w-4 h-4" />
+                      {(() => {
+                        const days = getDaysUntilExpiration();
+                        if (days === null) return '';
+                        if (days <= 0) return 'Expirado!';
+                        return `${days} dias restantes`;
+                      })()}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ao salvar um novo token, a data de expiração será calculada automaticamente para 60 dias.
+                </p>
               </div>
 
               <div className="flex gap-2">
