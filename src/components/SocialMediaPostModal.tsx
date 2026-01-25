@@ -6,7 +6,7 @@ import { Instagram, Facebook, Image, Loader2, Check, X, RefreshCw } from 'lucide
 import { toast } from 'sonner';
 import { generateFeedImage, generateCaption } from '@/utils/shareHelpers';
 import { supabase } from '@/integrations/supabase/client';
-
+import { VPSImageService } from '@/services/VPSImageService';
 interface Article {
   id: string;
   title: string;
@@ -122,7 +122,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     }
     
     try {
-      console.log('🔄 Iniciando upload para Supabase Storage...');
+      console.log('🔄 Iniciando upload da arte para redes sociais...');
       
       // Converter data URL para blob
       const response = await fetch(artImageUrl);
@@ -130,8 +130,22 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
       
       console.log('📦 Blob criado:', blob.size, 'bytes, tipo:', blob.type);
       
-      // Upload para Supabase Storage
+      // Criar File a partir do Blob para o VPSImageService
       const fileName = `social-art-${article.id}-${Date.now()}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      
+      // ESTRATÉGIA: Tentar VPS primeiro (mais confiável em produção)
+      console.log('🔄 Tentando upload via VPS (media.radioradar.news)...');
+      const vpsResult = await VPSImageService.uploadImage(file, 'article', false);
+      
+      if (vpsResult.success && vpsResult.url) {
+        console.log('✅ Upload VPS concluído:', vpsResult.url);
+        return vpsResult.url;
+      }
+      
+      console.warn('⚠️ VPS falhou, tentando Supabase Storage como fallback...');
+      
+      // Fallback: Supabase Storage
       const { data, error } = await supabase.storage
         .from('art-templates')
         .upload(`generated/${fileName}`, blob, {
@@ -140,23 +154,17 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         });
 
       if (error) {
-        console.error('❌ Erro no upload para Supabase Storage:', error);
-        console.error('Detalhes do erro:', JSON.stringify(error, null, 2));
+        console.error('❌ Erro no Supabase Storage:', error);
         
-        // Mensagem mais detalhada para o usuário
-        if (error.message?.includes('not authenticated')) {
-          toast.error('Sessão expirada. Por favor, faça login novamente.');
-        } else if (error.message?.includes('row-level security')) {
-          toast.error('Sem permissão para upload. Verifique suas credenciais.');
-        } else {
-          toast.error(`Erro no upload: ${error.message || 'Erro desconhecido'}`);
-        }
+        // Ambos falharam - mostrar erro detalhado
+        const vpsError = vpsResult.error || 'Erro desconhecido no VPS';
+        toast.error(`Upload falhou. VPS: ${vpsError}. Supabase: ${error.message}`);
         return null;
       }
 
-      console.log('✅ Upload concluído:', data);
+      console.log('✅ Upload Supabase concluído:', data);
 
-      // Retornar URL pública
+      // Retornar URL pública do Supabase
       const { data: publicUrl } = supabase.storage
         .from('art-templates')
         .getPublicUrl(`generated/${fileName}`);
@@ -164,7 +172,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
       console.log('🔗 URL pública:', publicUrl.publicUrl);
       return publicUrl.publicUrl;
     } catch (error) {
-      console.error('❌ Erro ao fazer upload:', error);
+      console.error('❌ Erro crítico ao fazer upload:', error);
       toast.error(`Erro inesperado: ${(error as Error).message}`);
       return null;
     }
