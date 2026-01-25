@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,7 +18,8 @@ import {
   EyeOff,
   RefreshCw,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Share2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -34,8 +34,6 @@ interface SocialMediaConfig {
   access_token: string;
   token_expires_at?: string;
   is_active: boolean;
-  auto_publish_articles: boolean;
-  auto_publish_columnist: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -61,15 +59,12 @@ const SocialMediaConfigPanel: React.FC = () => {
   const [showToken, setShowToken] = useState(false);
   const { toast } = useToast();
 
-  // Form state
+  // Form state - simplificado sem campos de auto-publish
   const [formData, setFormData] = useState({
     facebook_page_id: '',
     instagram_user_id: '',
     access_token: '',
     token_expires_at: '',
-    is_active: true,
-    auto_publish_articles: true,
-    auto_publish_columnist: true,
   });
 
   useEffect(() => {
@@ -86,7 +81,6 @@ const SocialMediaConfigPanel: React.FC = () => {
 
       if (error) throw error;
 
-      // Cast platform to the correct type
       const typedData = (data || []).map(item => ({
         ...item,
         platform: item.platform as 'facebook' | 'instagram'
@@ -104,9 +98,6 @@ const SocialMediaConfigPanel: React.FC = () => {
           instagram_user_id: igConfig?.instagram_user_id || '',
           access_token: fbConfig?.access_token || igConfig?.access_token || '',
           token_expires_at: fbConfig?.token_expires_at || igConfig?.token_expires_at || '',
-          is_active: fbConfig?.is_active ?? igConfig?.is_active ?? true,
-          auto_publish_articles: fbConfig?.auto_publish_articles ?? igConfig?.auto_publish_articles ?? true,
-          auto_publish_columnist: fbConfig?.auto_publish_columnist ?? igConfig?.auto_publish_columnist ?? true,
         }));
       }
     } catch (error) {
@@ -190,9 +181,7 @@ const SocialMediaConfigPanel: React.FC = () => {
           page_id: formData.facebook_page_id,
           access_token: formData.access_token,
           token_expires_at: expirationDate,
-          is_active: formData.is_active,
-          auto_publish_articles: formData.auto_publish_articles,
-          auto_publish_columnist: formData.auto_publish_columnist,
+          is_active: true,
           updated_at: new Date().toISOString(),
         };
 
@@ -211,9 +200,7 @@ const SocialMediaConfigPanel: React.FC = () => {
           instagram_user_id: formData.instagram_user_id,
           access_token: formData.access_token,
           token_expires_at: expirationDate,
-          is_active: formData.is_active,
-          auto_publish_articles: formData.auto_publish_articles,
-          auto_publish_columnist: formData.auto_publish_columnist,
+          is_active: true,
           updated_at: new Date().toISOString(),
         };
 
@@ -333,20 +320,52 @@ const SocialMediaConfigPanel: React.FC = () => {
     );
   }
 
+  const daysRemaining = getDaysUntilExpiration();
+  const isTokenExpiringSoon = daysRemaining !== null && daysRemaining <= 10;
+  const isTokenExpired = daysRemaining !== null && daysRemaining <= 0;
+
   return (
     <div className="space-y-6">
+      {/* Header Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-primary" />
             <Facebook className="w-5 h-5 text-blue-600" />
             <Instagram className="w-5 h-5 text-pink-600" />
-            Automação de Redes Sociais
+            Integração com Redes Sociais
           </CardTitle>
           <CardDescription>
-            Configure a publicação automática de matérias e artigos de colunistas no Facebook e Instagram.
+            Configure sua conexão com Facebook e Instagram para publicar matérias diretamente nas redes sociais.
+            As publicações são feitas manualmente através do botão de compartilhamento ao salvar uma matéria.
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* Token Expiration Alert */}
+      {isTokenExpiringSoon && (
+        <Card className={isTokenExpired ? 'border-destructive bg-destructive/5' : 'border-orange-500 bg-orange-500/5'}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className={`w-5 h-5 mt-0.5 ${isTokenExpired ? 'text-destructive' : 'text-orange-500'}`} />
+              <div>
+                <p className={`font-medium ${isTokenExpired ? 'text-destructive' : 'text-orange-600'}`}>
+                  {isTokenExpired 
+                    ? '⚠️ Token do Meta expirado!' 
+                    : `⚠️ Token expira em ${daysRemaining} dia${daysRemaining === 1 ? '' : 's'}`
+                  }
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isTokenExpired 
+                    ? 'Renove o token abaixo para continuar publicando nas redes sociais.'
+                    : 'Renove o token em breve para evitar interrupções nas publicações.'
+                  }
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="config">
         <TabsList className="grid w-full grid-cols-2">
@@ -485,10 +504,11 @@ const SocialMediaConfigPanel: React.FC = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Ao salvar um novo token, a data de expiração será calculada automaticamente para 60 dias.
+                  Você receberá um aviso quando faltarem 10 dias para expirar.
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={testConnection}>
                   Testar Conexão
                 </Button>
@@ -503,58 +523,6 @@ const SocialMediaConfigPanel: React.FC = () => {
                     Graph API Explorer
                   </a>
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Auto-publish Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Publicação Automática</CardTitle>
-              <CardDescription>
-                Configure quais tipos de conteúdo devem ser publicados automaticamente
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Ativar Publicação Automática</p>
-                  <p className="text-sm text-muted-foreground">
-                    Quando ativado, o conteúdo será publicado automaticamente ao ser salvo como publicado
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Matérias Regulares</p>
-                  <p className="text-sm text-muted-foreground">
-                    Publicar automaticamente matérias do portal
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.auto_publish_articles}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_publish_articles: checked }))}
-                  disabled={!formData.is_active}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">Artigos de Colunistas</p>
-                  <p className="text-sm text-muted-foreground">
-                    Publicar automaticamente artigos dos colunistas
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.auto_publish_columnist}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, auto_publish_columnist: checked }))}
-                  disabled={!formData.is_active}
-                />
               </div>
 
               <Button onClick={saveConfigs} disabled={saving} className="w-full">
@@ -588,6 +556,11 @@ const SocialMediaConfigPanel: React.FC = () => {
                 <li>Converta para um Long-lived Token (válido por ~60 dias)</li>
                 <li>Copie os IDs e o token para os campos acima</li>
               </ol>
+              
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <p className="font-medium text-foreground mb-1">💡 Como publicar nas redes sociais?</p>
+                <p>Ao salvar uma matéria como "Publicado", um modal aparecerá automaticamente permitindo que você publique no Facebook e Instagram com a arte customizada gerada pelo sistema.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -597,7 +570,7 @@ const SocialMediaConfigPanel: React.FC = () => {
             <CardHeader>
               <CardTitle className="text-lg">Histórico de Publicações</CardTitle>
               <CardDescription>
-                Últimas 50 publicações realizadas pelo sistema
+                Últimas 50 publicações realizadas
               </CardDescription>
             </CardHeader>
             <CardContent>
