@@ -168,7 +168,42 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         ? `${window.location.origin}/colunista/${article.columnist_id}/artigo/${article.id}`
         : `${window.location.origin}/artigo/${article.id}`;
 
-      // Postar usando endpoint /feed com link
+      // IMPORTANTE: Primeiro, tentar obter o Page Access Token a partir do User Token
+      // O token armazenado pode ser um User Token - precisamos do Page Token específico
+      let pageAccessToken = configs.access_token;
+      
+      console.log('🔍 Verificando tipo de token e obtendo Page Access Token...');
+      
+      try {
+        // Buscar as páginas que o usuário gerencia e seus tokens
+        const pagesResponse = await fetch(
+          `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token&access_token=${configs.access_token}`
+        );
+        const pagesResult = await pagesResponse.json();
+        
+        console.log('📄 Páginas encontradas:', pagesResult);
+        
+        if (pagesResult.data && pagesResult.data.length > 0) {
+          // Encontrar a página específica pelo ID configurado
+          const targetPage = pagesResult.data.find((page: { id: string }) => page.id === configs.page_id);
+          
+          if (targetPage && targetPage.access_token) {
+            pageAccessToken = targetPage.access_token;
+            console.log('✅ Page Access Token obtido para página:', targetPage.name);
+          } else {
+            // Se não encontrou pelo ID, usar a primeira página
+            pageAccessToken = pagesResult.data[0].access_token;
+            console.log('⚠️ Usando token da primeira página:', pagesResult.data[0].name);
+          }
+        } else if (pagesResult.error) {
+          console.warn('⚠️ Não foi possível obter páginas, usando token original:', pagesResult.error);
+        }
+      } catch (pageError) {
+        console.warn('⚠️ Erro ao buscar Page Token, tentando com token original:', pageError);
+      }
+
+      // Postar usando endpoint /feed com link e Page Access Token
+      console.log('📤 Postando no Facebook com Page Access Token...');
       const response = await fetch(
         `https://graph.facebook.com/v18.0/${configs.page_id}/feed`,
         {
@@ -177,7 +212,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
           body: JSON.stringify({
             message: caption,
             link: articleUrl,
-            access_token: configs.access_token
+            access_token: pageAccessToken
           })
         }
       );
@@ -186,7 +221,14 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       if (!response.ok) {
         console.error('Facebook error:', result);
-        toast.error(`Erro no Facebook: ${result.error?.message || 'Erro desconhecido'}`);
+        
+        // Mensagem de erro mais detalhada
+        let errorMsg = result.error?.message || 'Erro desconhecido';
+        if (result.error?.code === 200) {
+          errorMsg = 'Token sem permissão. Gere um novo Page Access Token no Graph API Explorer com permissões pages_manage_posts e pages_read_engagement.';
+        }
+        
+        toast.error(`Erro no Facebook: ${errorMsg}`);
         
         // Registrar falha
         await supabase.from('social_media_posts').insert({
@@ -199,6 +241,8 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         });
         return;
       }
+
+      console.log('✅ Facebook publicado com sucesso:', result);
 
       // Registrar sucesso
       await supabase.from('social_media_posts').insert({
