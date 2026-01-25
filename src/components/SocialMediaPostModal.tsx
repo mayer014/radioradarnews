@@ -92,7 +92,8 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         columnist: isColumnist ? {
           name: article.columnist_name || 'Colunista',
           specialty: article.columnist_specialty || '',
-          bio: article.columnist_bio || ''
+          bio: article.columnist_bio || '',
+          avatar: article.columnist_avatar || undefined
         } : undefined
       });
 
