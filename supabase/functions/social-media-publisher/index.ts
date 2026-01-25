@@ -236,8 +236,7 @@ serve(async (req) => {
     const caption = generateCaption(payload)
     console.log('📝 Legenda gerada:', caption.substring(0, 100))
     
-    // Usar a imagem original do artigo (já está na VPS ou Supabase)
-    // Se não tiver imagem, não publicar
+    // Verificar se tem imagem
     if (!payload.featured_image) {
       console.log('⚠️ Artigo sem imagem, pulando publicação')
       return new Response(
@@ -246,8 +245,42 @@ serve(async (req) => {
       )
     }
     
-    const imageUrl = payload.featured_image
-    console.log('🖼️ URL da imagem:', imageUrl)
+    // 🎨 GERAR ARTE CUSTOMIZADA via edge function
+    console.log('🎨 Gerando arte customizada...')
+    let imageUrl = payload.featured_image
+    let artGenerated = false
+    
+    try {
+      const artResponse = await fetch(`${SUPABASE_URL}/functions/v1/generate-social-art`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          title: payload.title,
+          category: payload.category,
+          featured_image: payload.featured_image,
+          is_columnist: payload.is_columnist,
+          columnist: payload.columnist
+        })
+      })
+      
+      if (artResponse.ok) {
+        const artResult = await artResponse.json()
+        if (artResult.success && artResult.image_url) {
+          imageUrl = artResult.image_url
+          artGenerated = !artResult.fallback
+          console.log('✅ Arte gerada:', artGenerated ? 'SUCESSO' : 'FALLBACK (imagem original)')
+        }
+      } else {
+        console.warn('⚠️ Falha ao gerar arte, usando imagem original')
+      }
+    } catch (artError) {
+      console.warn('⚠️ Erro ao gerar arte:', artError)
+    }
+    
+    console.log('🖼️ URL da imagem final:', imageUrl)
     
     const results: Array<{ platform: string; success: boolean; postId?: string; error?: string }> = []
     

@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.social-media-publisher]
 verify_jwt = false
+
+[functions.generate-social-art]
+verify_jwt = false
