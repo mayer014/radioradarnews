@@ -124,28 +124,62 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     try {
       console.log('🔄 Iniciando upload da arte para redes sociais...');
       
-      // Converter data URL para blob
+      const fileName = `social-art-${article.id}-${Date.now()}.png`;
+      
+      // ESTRATÉGIA DEFINITIVA: Usar Edge Function como proxy (contorna CORS em produção)
+      // A Edge Function tem a API key e faz o upload diretamente para o VPS
+      console.log('🔄 Enviando via Edge Function proxy para VPS...');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const proxyResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || 'https://bwxbhircezyhwekdngdk.supabase.co'}/functions/v1/vps-image-service`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3eGJoaXJjZXp5aHdla2RuZ2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjU4NDAsImV4cCI6MjA3MzIwMTg0MH0.cRpeDixAWnMRaKsdiQJeJ4KPx7-PJAP6M5m7ljhzEls',
+            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+          },
+          body: JSON.stringify({
+            action: 'upload',
+            file_data: artImageUrl, // já é data URL (base64)
+            file_name: fileName,
+            mime_type: 'image/png',
+            type: 'article'
+          })
+        }
+      );
+      
+      if (proxyResponse.ok) {
+        const proxyResult = await proxyResponse.json();
+        if (proxyResult.success && proxyResult.url) {
+          console.log('✅ Upload via Edge Function concluído:', proxyResult.url);
+          return proxyResult.url;
+        }
+        console.warn('⚠️ Edge Function retornou mas sem URL:', proxyResult);
+      } else {
+        const errorText = await proxyResponse.text();
+        console.warn('⚠️ Edge Function falhou:', proxyResponse.status, errorText);
+      }
+      
+      // FALLBACK 1: Tentar upload direto ao VPS (funciona no Lovable, pode falhar em produção por CORS)
+      console.log('🔄 Tentando upload direto ao VPS...');
       const response = await fetch(artImageUrl);
       const blob = await response.blob();
-      
-      console.log('📦 Blob criado:', blob.size, 'bytes, tipo:', blob.type);
-      
-      // Criar File a partir do Blob para o VPSImageService
-      const fileName = `social-art-${article.id}-${Date.now()}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
       
-      // ESTRATÉGIA: Tentar VPS primeiro (mais confiável em produção)
-      console.log('🔄 Tentando upload via VPS (media.radioradar.news)...');
       const vpsResult = await VPSImageService.uploadImage(file, 'article', false);
       
       if (vpsResult.success && vpsResult.url) {
-        console.log('✅ Upload VPS concluído:', vpsResult.url);
+        console.log('✅ Upload direto VPS concluído:', vpsResult.url);
         return vpsResult.url;
       }
       
-      console.warn('⚠️ VPS falhou, tentando Supabase Storage como fallback...');
+      console.warn('⚠️ VPS direto falhou:', vpsResult.error);
       
-      // Fallback: Supabase Storage
+      // FALLBACK 2: Supabase Storage
+      console.log('🔄 Tentando Supabase Storage...');
       const { data, error } = await supabase.storage
         .from('art-templates')
         .upload(`generated/${fileName}`, blob, {
@@ -154,22 +188,18 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         });
 
       if (error) {
-        console.error('❌ Erro no Supabase Storage:', error);
-        
-        // Ambos falharam - mostrar erro detalhado
-        const vpsError = vpsResult.error || 'Erro desconhecido no VPS';
-        toast.error(`Upload falhou. VPS: ${vpsError}. Supabase: ${error.message}`);
+        console.error('❌ Todos os métodos falharam');
+        toast.error(`Upload falhou em todos os métodos. Por favor, tente novamente.`);
         return null;
       }
 
       console.log('✅ Upload Supabase concluído:', data);
 
-      // Retornar URL pública do Supabase
       const { data: publicUrl } = supabase.storage
         .from('art-templates')
         .getPublicUrl(`generated/${fileName}`);
       
-      console.log('🔗 URL pública:', publicUrl.publicUrl);
+      console.log('🔗 URL pública Supabase:', publicUrl.publicUrl);
       return publicUrl.publicUrl;
     } catch (error) {
       console.error('❌ Erro crítico ao fazer upload:', error);
