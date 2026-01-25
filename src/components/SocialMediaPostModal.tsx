@@ -116,12 +116,19 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
   };
 
   const uploadArtToStorage = async (): Promise<string | null> => {
-    if (!artImageUrl || !article) return null;
+    if (!artImageUrl || !article) {
+      console.error('Upload falhou: artImageUrl ou article não definidos');
+      return null;
+    }
     
     try {
+      console.log('🔄 Iniciando upload para Supabase Storage...');
+      
       // Converter data URL para blob
       const response = await fetch(artImageUrl);
       const blob = await response.blob();
+      
+      console.log('📦 Blob criado:', blob.size, 'bytes, tipo:', blob.type);
       
       // Upload para Supabase Storage
       const fileName = `social-art-${article.id}-${Date.now()}.png`;
@@ -133,18 +140,32 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         });
 
       if (error) {
-        console.error('Erro no upload:', error);
+        console.error('❌ Erro no upload para Supabase Storage:', error);
+        console.error('Detalhes do erro:', JSON.stringify(error, null, 2));
+        
+        // Mensagem mais detalhada para o usuário
+        if (error.message?.includes('not authenticated')) {
+          toast.error('Sessão expirada. Por favor, faça login novamente.');
+        } else if (error.message?.includes('row-level security')) {
+          toast.error('Sem permissão para upload. Verifique suas credenciais.');
+        } else {
+          toast.error(`Erro no upload: ${error.message || 'Erro desconhecido'}`);
+        }
         return null;
       }
+
+      console.log('✅ Upload concluído:', data);
 
       // Retornar URL pública
       const { data: publicUrl } = supabase.storage
         .from('art-templates')
         .getPublicUrl(`generated/${fileName}`);
       
+      console.log('🔗 URL pública:', publicUrl.publicUrl);
       return publicUrl.publicUrl;
     } catch (error) {
-      console.error('Erro ao fazer upload:', error);
+      console.error('❌ Erro ao fazer upload:', error);
+      toast.error(`Erro inesperado: ${(error as Error).message}`);
       return null;
     }
   };
