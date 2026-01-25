@@ -51,8 +51,8 @@ export const BASE_NEWS_CATEGORIES = [
 interface NewsContextType {
   articles: NewsArticle[];
   loading: boolean;
-  addArticle: (article: Omit<NewsArticle, 'id' | 'created_at' | 'updated_at' | 'views' | 'comments_count'>) => Promise<{ error?: string }>;
-  updateArticle: (id: string, updates: Partial<NewsArticle>) => Promise<{ error?: string }>;
+  addArticle: (article: Omit<NewsArticle, 'id' | 'created_at' | 'updated_at' | 'views' | 'comments_count'>) => Promise<{ error?: string; data?: NewsArticle }>;
+  updateArticle: (id: string, updates: Partial<NewsArticle>) => Promise<{ error?: string; data?: NewsArticle }>;
   deleteArticle: (id: string) => Promise<{ error?: string }>;
   getArticleById: (id: string) => NewsArticle | undefined;
   getArticlesByCategory: (category: string) => NewsArticle[];
@@ -357,12 +357,10 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: "Artigo criado com sucesso",
       });
 
-      // Disparar publicação automática em redes sociais se for publicado
-      if (insertedData && articleData.status === 'published') {
-        triggerSocialMediaPublish(insertedData as NewsArticle);
-      }
+      // Publicação em redes sociais agora é feita manualmente via modal no NewsEditor
+      // (A função triggerSocialMediaPublish foi desabilitada para evitar duplicação)
 
-      return {};
+      return { data: insertedData };
     } catch (error) {
       console.error('Error adding article:', error);
       return { error: 'Erro de conexão' };
@@ -396,14 +394,10 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: "Artigo atualizado com sucesso",
       });
 
-      // Disparar publicação automática em redes sociais se for RECÉM publicado
-      if (isNewlyPublished && updatedData) {
-        // Mesclar com dados do artigo atual (que pode ter dados de colunista)
-        const fullArticle = { ...currentArticle, ...updatedData } as NewsArticle;
-        triggerSocialMediaPublish(fullArticle);
-      }
+      // Publicação em redes sociais agora é feita manualmente via modal no NewsEditor
+      // (A função triggerSocialMediaPublish foi desabilitada para evitar duplicação)
 
-      return {};
+      return { data: updatedData };
     } catch (error) {
       console.error('Error updating article:', error);
       return { error: 'Erro de conexão' };

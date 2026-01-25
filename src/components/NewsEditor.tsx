@@ -14,6 +14,7 @@ import ArticleMetadata from '@/components/news-editor/ArticleMetadata';
 import StepNav from '@/components/news-editor/StepNav';
 import ArticleReview from '@/components/news-editor/ArticleReview';
 import FavoriteSites from '@/components/FavoriteSites';
+import { SocialMediaPostModal } from '@/components/SocialMediaPostModal';
 import type { RewrittenContent } from '@/services/AIContentRewriter';
 import { getInternalCategorySlug } from '@/utils/categoryMapper';
 
@@ -28,6 +29,21 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
   const { users } = useUsers();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  
+  // Estado para o modal de redes sociais
+  const [showSocialMediaModal, setShowSocialMediaModal] = useState(false);
+  const [savedArticleForSocial, setSavedArticleForSocial] = useState<{
+    id: string;
+    title: string;
+    excerpt: string;
+    category: string;
+    featured_image?: string | null;
+    columnist_id?: string | null;
+    columnist_name?: string | null;
+    columnist_specialty?: string | null;
+    columnist_bio?: string | null;
+    columnist_avatar?: string | null;
+  } | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -207,22 +223,54 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
       }
 
       // Save article data
+      let savedArticleId = articleId;
+      
       if (articleId) {
         // Updating existing article
-        updateArticle(articleId, articleData);
+        const result = await updateArticle(articleId, articleData);
+        if (result.error) {
+          throw new Error(result.error);
+        }
         toast({
           title: "Artigo atualizado",
           description: "As alterações foram salvas com sucesso.",
         });
       } else {
         // Adding new article
-        addArticle(articleData);
+        const result = await addArticle(articleData);
+        if (result.error) {
+          throw new Error(result.error);
+        }
         toast({
           title: isDraft ? "Rascunho salvo" : "Artigo publicado",
           description: isDraft 
             ? "O rascunho foi salvo e pode ser editado posteriormente." 
             : "O novo artigo foi publicado com sucesso.",
         });
+        
+        // Usar o ID do artigo retornado
+        if (result.data?.id) {
+          savedArticleId = result.data.id;
+        }
+      }
+
+      // Se foi publicado (não rascunho) e tem imagem, mostrar modal de redes sociais
+      if (!isDraft && articleData.featured_image) {
+        setSavedArticleForSocial({
+          id: savedArticleId || '',
+          title: articleData.title,
+          excerpt: articleData.excerpt || excerpt,
+          category: articleData.category,
+          featured_image: articleData.featured_image,
+          columnist_id: articleData.columnist_id,
+          columnist_name: articleData.columnist_name,
+          columnist_specialty: articleData.columnist_specialty,
+          columnist_bio: articleData.columnist_bio,
+          columnist_avatar: articleData.columnist_avatar
+        });
+        setShowSocialMediaModal(true);
+        setLoading(false);
+        return; // Não fecha o editor ainda - o modal vai fechar depois
       }
 
       // Save completed, closing editor
@@ -492,6 +540,18 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
           )}
         </div>
       </div>
+      
+      {/* Modal de Postagem em Redes Sociais */}
+      <SocialMediaPostModal
+        open={showSocialMediaModal}
+        onOpenChange={(open) => {
+          setShowSocialMediaModal(open);
+          if (!open) {
+            onClose(); // Fecha o editor quando o modal fechar
+          }
+        }}
+        article={savedArticleForSocial}
+      />
     </div>
   );
 };
