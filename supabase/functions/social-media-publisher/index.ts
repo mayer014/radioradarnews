@@ -70,24 +70,25 @@ function generateCaption(data: PublishRequest): string {
   return caption
 }
 
-// Publicar no Facebook
+// Publicar no Facebook (usando /feed com link - pages_manage_posts permission)
 async function publishToFacebook(
   config: SocialMediaConfig, 
-  imageUrl: string, 
+  articleUrl: string, 
   caption: string
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   try {
     console.log('📘 Publicando no Facebook...')
-    console.log('📷 URL da imagem:', imageUrl)
+    console.log('🔗 URL do artigo:', articleUrl)
     
+    // Usar endpoint /feed com link - Facebook extrai imagem do Open Graph automaticamente
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/${config.page_id}/photos`,
+      `https://graph.facebook.com/v18.0/${config.page_id}/feed`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: imageUrl,
-          caption: caption,
+          message: caption,
+          link: articleUrl,
           access_token: config.access_token
         })
       }
@@ -255,8 +256,10 @@ serve(async (req) => {
       let result: { success: boolean; postId?: string; error?: string }
       
       if (config.platform === 'facebook') {
-        result = await publishToFacebook(config, imageUrl, caption)
+        // Facebook usa link do artigo (extrai imagem do OG automaticamente)
+        result = await publishToFacebook(config, payload.article_url, caption)
       } else if (config.platform === 'instagram') {
+        // Instagram usa imagem direta
         result = await publishToInstagram(config, imageUrl, caption)
       } else {
         continue
