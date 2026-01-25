@@ -1162,6 +1162,95 @@ export type Database = {
         }
         Relationships: []
       }
+      social_media_config: {
+        Row: {
+          access_token: string
+          auto_publish_articles: boolean | null
+          auto_publish_columnist: boolean | null
+          created_at: string | null
+          id: string
+          instagram_user_id: string | null
+          is_active: boolean | null
+          page_id: string
+          platform: string
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token: string
+          auto_publish_articles?: boolean | null
+          auto_publish_columnist?: boolean | null
+          created_at?: string | null
+          id?: string
+          instagram_user_id?: string | null
+          is_active?: boolean | null
+          page_id: string
+          platform: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          auto_publish_articles?: boolean | null
+          auto_publish_columnist?: boolean | null
+          created_at?: string | null
+          id?: string
+          instagram_user_id?: string | null
+          is_active?: boolean | null
+          page_id?: string
+          platform?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      social_media_posts: {
+        Row: {
+          article_id: string | null
+          caption: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          image_url: string | null
+          is_columnist_article: boolean | null
+          platform: string
+          post_id: string | null
+          status: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          caption?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          is_columnist_article?: boolean | null
+          platform: string
+          post_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          caption?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          is_columnist_article?: boolean | null
+          platform?: string
+          post_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_posts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           created_at: string | null

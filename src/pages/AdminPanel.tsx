@@ -60,7 +60,8 @@ import {
   Hash,
   Palette,
   RotateCcw,
-  TrendingUp
+  TrendingUp,
+  Share2
 } from 'lucide-react';
 import NewsEditor from '@/components/NewsEditor';
 import SuperAdminUsersManager from '@/components/SuperAdminUsersManager';
@@ -78,6 +79,7 @@ import RadioManager from '@/components/RadioManager';
 import ColumnistActivityDashboard from '@/components/ColumnistActivityDashboard';
 import DailySummaryGenerator from '@/components/DailySummaryGenerator';
 import ArtTemplateManager from '@/components/ArtTemplateManager';
+import SocialMediaConfigPanel from '@/components/SocialMediaConfigPanel';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -100,7 +102,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary' | 'art-templates'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary' | 'art-templates' | 'social-media'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
@@ -521,6 +523,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Templates Artes</span>
                 <span className="sm:hidden">Artes</span>
               </Button>
+              <Button
+                variant={activeTab === 'social-media' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('social-media')}
+                className={`${activeTab === 'social-media' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <Share2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Redes Sociais</span>
+                <span className="sm:hidden">Social</span>
+              </Button>
             </div>
           </div>
         )}
@@ -881,6 +893,11 @@ const AdminPanel = () => {
         {/* Templates de Artes - apenas para admin */}
         {activeTab === 'art-templates' && isAdmin && (
           <ArtTemplateManager />
+        )}
+
+        {/* Redes Sociais - apenas para admin */}
+        {activeTab === 'social-media' && isAdmin && (
+          <SocialMediaConfigPanel />
         )}
       </div>
       
