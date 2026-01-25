@@ -224,112 +224,41 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         return;
       }
 
-      // Buscar configuração do Facebook
-      const { data: configs } = await supabase
-        .from('social_media_config')
-        .select('*')
-        .eq('platform', 'facebook')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (!configs) {
-        toast.error('Facebook não configurado. Configure na aba Redes Sociais.');
-        return;
-      }
-
       const isColumnist = !!article.columnist_id;
       const articleUrl = isColumnist 
         ? `${PRODUCTION_URL}/colunista/${article.columnist_id}/artigo/${article.id}`
         : `${PRODUCTION_URL}/artigo/${article.id}`;
 
-      // Obter o Page Access Token
-      let pageAccessToken = configs.access_token;
+      console.log('📤 Enviando para Edge Function social-media-post...');
       
-      console.log('🔍 Verificando tipo de token e obtendo Page Access Token...');
-      
-      try {
-        const pagesResponse = await fetch(
-          `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token&access_token=${configs.access_token}`
-        );
-        const pagesResult = await pagesResponse.json();
-        
-        console.log('📄 Páginas encontradas:', pagesResult);
-        
-        if (pagesResult.data && pagesResult.data.length > 0) {
-          const targetPage = pagesResult.data.find((page: { id: string }) => page.id === configs.page_id);
-          
-          if (targetPage && targetPage.access_token) {
-            pageAccessToken = targetPage.access_token;
-            console.log('✅ Page Access Token obtido para página:', targetPage.name);
-          } else {
-            pageAccessToken = pagesResult.data[0].access_token;
-            console.log('⚠️ Usando token da primeira página:', pagesResult.data[0].name);
-          }
-        } else if (pagesResult.error) {
-          console.warn('⚠️ Não foi possível obter páginas, usando token original:', pagesResult.error);
-        }
-      } catch (pageError) {
-        console.warn('⚠️ Erro ao buscar Page Token, tentando com token original:', pageError);
-      }
-
-      // Postar usando endpoint /photos para incluir a arte gerada
-      console.log('📤 Postando no Facebook com arte gerada...');
-      console.log('🖼️ URL da imagem:', imageUrl);
-      
-      // Adicionar link no final da mensagem
-      const messageWithLink = `${caption}\n\n👉 Leia a matéria completa: ${articleUrl}`;
-      
-      const response = await fetch(
-        `https://graph.facebook.com/v18.0/${configs.page_id}/photos`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url: imageUrl,
-            message: messageWithLink,
-            access_token: pageAccessToken
-          })
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('Facebook error:', result);
-        
-        let errorMsg = result.error?.message || 'Erro desconhecido';
-        if (result.error?.code === 200) {
-          errorMsg = 'Token sem permissão. Gere um novo Page Access Token no Graph API Explorer.';
-        }
-        
-        toast.error(`Erro no Facebook: ${errorMsg}`);
-        
-        await supabase.from('social_media_posts').insert({
-          article_id: article.id,
+      // Usar Edge Function para contornar CORS em produção
+      const response = await supabase.functions.invoke('social-media-post', {
+        body: {
           platform: 'facebook',
+          article_id: article.id,
           image_url: imageUrl,
-          caption: messageWithLink,
-          status: 'failed',
-          error_message: result.error?.message,
-          is_columnist_article: isColumnist
-        });
+          caption: caption,
+          article_url: articleUrl,
+          is_columnist: isColumnist
+        }
+      });
+
+      console.log('📥 Resposta da Edge Function:', response);
+
+      if (response.error) {
+        console.error('❌ Erro na Edge Function:', response.error);
+        toast.error(`Erro ao postar no Facebook: ${response.error.message}`);
         return;
       }
 
-      console.log('✅ Facebook publicado com sucesso:', result);
-
-      await supabase.from('social_media_posts').insert({
-        article_id: article.id,
-        platform: 'facebook',
-        post_id: result.id || result.post_id,
-        image_url: imageUrl,
-        caption: messageWithLink,
-        status: 'published',
-        is_columnist_article: isColumnist
-      });
-
-      setFacebookSuccess(true);
-      toast.success('Publicado no Facebook!');
+      if (response.data?.success) {
+        setFacebookSuccess(true);
+        toast.success('Publicado no Facebook!');
+      } else {
+        const errorMsg = response.data?.error || 'Erro desconhecido';
+        console.error('❌ Facebook error:', errorMsg);
+        toast.error(`Erro no Facebook: ${errorMsg}`);
+      }
     } catch (error) {
       console.error('Erro ao postar no Facebook:', error);
       toast.error('Erro ao postar no Facebook');
@@ -350,102 +279,43 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         return;
       }
 
-      // Buscar configuração do Instagram
-      const { data: configs } = await supabase
-        .from('social_media_config')
-        .select('*')
-        .eq('platform', 'instagram')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (!configs || !configs.instagram_user_id) {
-        toast.error('Instagram não configurado. Configure na aba Redes Sociais.');
-        return;
-      }
-
       const isColumnist = !!article.columnist_id;
+      const articleUrl = isColumnist 
+        ? `${PRODUCTION_URL}/colunista/${article.columnist_id}/artigo/${article.id}`
+        : `${PRODUCTION_URL}/artigo/${article.id}`;
 
-      // Etapa 1: Criar container de mídia
-      const containerResponse = await fetch(
-        `https://graph.facebook.com/v18.0/${configs.instagram_user_id}/media`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_url: imageUrl,
-            caption: caption,
-            access_token: configs.access_token
-          })
-        }
-      );
-
-      const containerResult = await containerResponse.json();
-
-      if (!containerResponse.ok) {
-        console.error('Instagram container error:', containerResult);
-        toast.error(`Erro no Instagram: ${containerResult.error?.message || 'Erro ao criar mídia'}`);
-        
-        await supabase.from('social_media_posts').insert({
-          article_id: article.id,
-          platform: 'instagram',
-          image_url: imageUrl,
-          caption: caption,
-          status: 'failed',
-          error_message: containerResult.error?.message,
-          is_columnist_article: isColumnist
-        });
-        return;
-      }
-
+      console.log('📤 Enviando para Edge Function social-media-post (Instagram)...');
+      
       toast.info('Processando imagem no Instagram...');
       
-      // Aguardar processamento
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
-      // Etapa 2: Publicar container
-      const publishResponse = await fetch(
-        `https://graph.facebook.com/v18.0/${configs.instagram_user_id}/media_publish`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            creation_id: containerResult.id,
-            access_token: configs.access_token
-          })
-        }
-      );
-
-      const publishResult = await publishResponse.json();
-
-      if (!publishResponse.ok) {
-        console.error('Instagram publish error:', publishResult);
-        toast.error(`Erro ao publicar no Instagram: ${publishResult.error?.message || 'Erro ao publicar'}`);
-        
-        await supabase.from('social_media_posts').insert({
-          article_id: article.id,
+      // Usar Edge Function para contornar CORS em produção
+      const response = await supabase.functions.invoke('social-media-post', {
+        body: {
           platform: 'instagram',
+          article_id: article.id,
           image_url: imageUrl,
           caption: caption,
-          status: 'failed',
-          error_message: publishResult.error?.message,
-          is_columnist_article: isColumnist
-        });
+          article_url: articleUrl,
+          is_columnist: isColumnist
+        }
+      });
+
+      console.log('📥 Resposta da Edge Function (Instagram):', response);
+
+      if (response.error) {
+        console.error('❌ Erro na Edge Function:', response.error);
+        toast.error(`Erro ao postar no Instagram: ${response.error.message}`);
         return;
       }
 
-      // Registrar sucesso
-      await supabase.from('social_media_posts').insert({
-        article_id: article.id,
-        platform: 'instagram',
-        post_id: publishResult.id,
-        image_url: imageUrl,
-        caption: caption,
-        status: 'published',
-        is_columnist_article: isColumnist
-      });
-
-      setInstagramSuccess(true);
-      toast.success('Publicado no Instagram!');
+      if (response.data?.success) {
+        setInstagramSuccess(true);
+        toast.success('Publicado no Instagram!');
+      } else {
+        const errorMsg = response.data?.error || 'Erro desconhecido';
+        console.error('❌ Instagram error:', errorMsg);
+        toast.error(`Erro no Instagram: ${errorMsg}`);
+      }
     } catch (error) {
       console.error('Erro ao postar no Instagram:', error);
       toast.error('Erro ao postar no Instagram');
