@@ -48,13 +48,16 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     }
   }, [open, article]);
 
+  // URL de produção do site
+  const PRODUCTION_URL = 'https://radiodarnews.lovable.app';
+
   const handleGenerateCaptionText = () => {
     if (!article) return;
     
     const isColumnist = !!article.columnist_id;
     const articleUrl = isColumnist 
-      ? `${window.location.origin}/colunista/${article.columnist_id}/artigo/${article.id}`
-      : `${window.location.origin}/artigo/${article.id}`;
+      ? `${PRODUCTION_URL}/colunista/${article.columnist_id}/artigo/${article.id}`
+      : `${PRODUCTION_URL}/artigo/${article.id}`;
     
     const captionText = generateCaption({
       title: article.title,
@@ -146,10 +149,21 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
   };
 
   const postToFacebook = async () => {
-    if (!article) return;
+    if (!article || !artImageUrl) {
+      toast.error('Gere a arte antes de postar no Facebook');
+      return;
+    }
     
     setIsPostingFacebook(true);
     try {
+      // Fazer upload da arte primeiro
+      const imageUrl = await uploadArtToStorage();
+      if (!imageUrl) {
+        toast.error('Erro ao fazer upload da imagem');
+        setIsPostingFacebook(false);
+        return;
+      }
+
       // Buscar configuração do Facebook
       const { data: configs } = await supabase
         .from('social_media_config')
@@ -165,17 +179,15 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       const isColumnist = !!article.columnist_id;
       const articleUrl = isColumnist 
-        ? `${window.location.origin}/colunista/${article.columnist_id}/artigo/${article.id}`
-        : `${window.location.origin}/artigo/${article.id}`;
+        ? `${PRODUCTION_URL}/colunista/${article.columnist_id}/artigo/${article.id}`
+        : `${PRODUCTION_URL}/artigo/${article.id}`;
 
-      // IMPORTANTE: Primeiro, tentar obter o Page Access Token a partir do User Token
-      // O token armazenado pode ser um User Token - precisamos do Page Token específico
+      // Obter o Page Access Token
       let pageAccessToken = configs.access_token;
       
       console.log('🔍 Verificando tipo de token e obtendo Page Access Token...');
       
       try {
-        // Buscar as páginas que o usuário gerencia e seus tokens
         const pagesResponse = await fetch(
           `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token&access_token=${configs.access_token}`
         );
@@ -184,14 +196,12 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         console.log('📄 Páginas encontradas:', pagesResult);
         
         if (pagesResult.data && pagesResult.data.length > 0) {
-          // Encontrar a página específica pelo ID configurado
           const targetPage = pagesResult.data.find((page: { id: string }) => page.id === configs.page_id);
           
           if (targetPage && targetPage.access_token) {
             pageAccessToken = targetPage.access_token;
             console.log('✅ Page Access Token obtido para página:', targetPage.name);
           } else {
-            // Se não encontrou pelo ID, usar a primeira página
             pageAccessToken = pagesResult.data[0].access_token;
             console.log('⚠️ Usando token da primeira página:', pagesResult.data[0].name);
           }
@@ -202,16 +212,21 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
         console.warn('⚠️ Erro ao buscar Page Token, tentando com token original:', pageError);
       }
 
-      // Postar usando endpoint /feed com link e Page Access Token
-      console.log('📤 Postando no Facebook com Page Access Token...');
+      // Postar usando endpoint /photos para incluir a arte gerada
+      console.log('📤 Postando no Facebook com arte gerada...');
+      console.log('🖼️ URL da imagem:', imageUrl);
+      
+      // Adicionar link no final da mensagem
+      const messageWithLink = `${caption}\n\n👉 Leia a matéria completa: ${articleUrl}`;
+      
       const response = await fetch(
-        `https://graph.facebook.com/v18.0/${configs.page_id}/feed`,
+        `https://graph.facebook.com/v18.0/${configs.page_id}/photos`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: caption,
-            link: articleUrl,
+            url: imageUrl,
+            message: messageWithLink,
             access_token: pageAccessToken
           })
         }
@@ -222,19 +237,18 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
       if (!response.ok) {
         console.error('Facebook error:', result);
         
-        // Mensagem de erro mais detalhada
         let errorMsg = result.error?.message || 'Erro desconhecido';
         if (result.error?.code === 200) {
-          errorMsg = 'Token sem permissão. Gere um novo Page Access Token no Graph API Explorer com permissões pages_manage_posts e pages_read_engagement.';
+          errorMsg = 'Token sem permissão. Gere um novo Page Access Token no Graph API Explorer.';
         }
         
         toast.error(`Erro no Facebook: ${errorMsg}`);
         
-        // Registrar falha
         await supabase.from('social_media_posts').insert({
           article_id: article.id,
           platform: 'facebook',
-          caption: caption,
+          image_url: imageUrl,
+          caption: messageWithLink,
           status: 'failed',
           error_message: result.error?.message,
           is_columnist_article: isColumnist
@@ -244,12 +258,12 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       console.log('✅ Facebook publicado com sucesso:', result);
 
-      // Registrar sucesso
       await supabase.from('social_media_posts').insert({
         article_id: article.id,
         platform: 'facebook',
         post_id: result.id || result.post_id,
-        caption: caption,
+        image_url: imageUrl,
+        caption: messageWithLink,
         status: 'published',
         is_columnist_article: isColumnist
       });
@@ -447,7 +461,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
             <Button
               variant={facebookSuccess ? "default" : "outline"}
               onClick={postToFacebook}
-              disabled={isPostingFacebook || facebookSuccess}
+              disabled={isPostingFacebook || facebookSuccess || !artImageUrl}
               className="w-full"
             >
               {isPostingFacebook ? (
