@@ -49,7 +49,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
   }, [open, article]);
 
   // URL de produção do site
-  const PRODUCTION_URL = 'https://radiodarnews.lovable.app';
+  const PRODUCTION_URL = 'https://radioradar.news';
 
   const handleGenerateCaptionText = () => {
     if (!article) return;
