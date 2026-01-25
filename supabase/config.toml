@@ -86,3 +86,6 @@ verify_jwt = true
 
 [functions.sitemap-generator]
 verify_jwt = false
+
+[functions.social-media-publisher]
+verify_jwt = false

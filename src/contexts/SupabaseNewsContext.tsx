@@ -281,13 +281,61 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => clearInterval(interval);
   }, [fetchArticles]);
 
+  // Função auxiliar para disparar publicação automática em redes sociais
+  const triggerSocialMediaPublish = async (article: NewsArticle) => {
+    try {
+      // Só dispara se o artigo está publicado e tem imagem
+      if (article.status !== 'published' || !article.featured_image) {
+        console.log('⏭️ Social Media: Artigo não elegível para publicação automática');
+        return;
+      }
+
+      const isColumnist = !!article.columnist_id;
+      const articleUrl = isColumnist 
+        ? `https://radioradar.news/colunista/${article.columnist_id}/artigo/${article.id}`
+        : `https://radioradar.news/artigo/${article.id}`;
+
+      console.log('📤 Disparando publicação automática em redes sociais...');
+
+      // Fire and forget - não bloqueia o usuário
+      supabase.functions.invoke('social-media-publisher', {
+        body: {
+          article_id: article.id,
+          title: article.title,
+          excerpt: article.excerpt,
+          category: article.category,
+          featured_image: article.featured_image,
+          article_url: articleUrl,
+          is_columnist: isColumnist,
+          columnist: isColumnist ? {
+            id: article.columnist_id,
+            name: article.columnist_name,
+            specialty: article.columnist_specialty,
+            bio: article.columnist_bio,
+            avatar: article.columnist_avatar
+          } : undefined
+        }
+      }).then(result => {
+        if (result.error) {
+          console.error('❌ Erro na publicação automática:', result.error);
+        } else {
+          console.log('✅ Publicação automática iniciada:', result.data);
+        }
+      }).catch(err => {
+        console.error('❌ Erro ao chamar social-media-publisher:', err);
+      });
+    } catch (error) {
+      console.error('❌ Erro no trigger de redes sociais:', error);
+    }
+  };
+
   const addArticle = async (articleData: Omit<NewsArticle, 'id' | 'created_at' | 'updated_at' | 'views' | 'comments_count'>) => {
     if (!profile) {
       return { error: 'Usuário não autenticado' };
     }
 
     try {
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from('articles')
         .insert([{
           ...articleData,
@@ -296,7 +344,9 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           author_id: (articleData as any).author_id || profile.id,
           views: 0,
           comments_count: 0
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) {
         return { error: error.message };
@@ -307,6 +357,11 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: "Artigo criado com sucesso",
       });
 
+      // Disparar publicação automática em redes sociais se for publicado
+      if (insertedData && articleData.status === 'published') {
+        triggerSocialMediaPublish(insertedData as NewsArticle);
+      }
+
       return {};
     } catch (error) {
       console.error('Error adding article:', error);
@@ -316,10 +371,18 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const updateArticle = async (id: string, updates: Partial<NewsArticle>) => {
     try {
-      const { error } = await supabase
+      // Buscar o artigo atual para verificar se está mudando para 'published'
+      const currentArticle = articles.find(a => a.id === id);
+      const wasPublished = currentArticle?.status === 'published';
+      const willBePublished = updates.status === 'published';
+      const isNewlyPublished = !wasPublished && willBePublished;
+
+      const { data: updatedData, error } = await supabase
         .from('articles')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) {
         return { error: error.message };
@@ -332,6 +395,13 @@ export const SupabaseNewsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         title: "Sucesso",
         description: "Artigo atualizado com sucesso",
       });
+
+      // Disparar publicação automática em redes sociais se for RECÉM publicado
+      if (isNewlyPublished && updatedData) {
+        // Mesclar com dados do artigo atual (que pode ter dados de colunista)
+        const fullArticle = { ...currentArticle, ...updatedData } as NewsArticle;
+        triggerSocialMediaPublish(fullArticle);
+      }
 
       return {};
     } catch (error) {
