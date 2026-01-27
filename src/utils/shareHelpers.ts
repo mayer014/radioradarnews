@@ -61,6 +61,7 @@ interface CaptionData {
   url: string;
   category: string;
   author?: string;
+  excerpt?: string;
 }
 
 // Função para obter URL de produção
@@ -89,15 +90,20 @@ const categoryHashtags: Record<string, string[]> = {
   'Ciência': ['#ciência', '#pesquisa', '#inovação', '#descoberta'],
 };
 
-export const generateCaption = ({ title, url, category, author }: CaptionData): string => {
+export const generateCaption = ({ title, url, category, author, excerpt }: CaptionData): string => {
   const hashtags = categoryHashtags[category] || ['#notícias', '#brasil'];
   const authorCredit = author ? `\n\n📝 Por: ${author}` : '';
   
-  return `${title}${authorCredit}
+  // Formatar excerpt para ter no máximo 200 caracteres
+  const summaryText = excerpt 
+    ? `\n\n📰 ${excerpt.length > 200 ? excerpt.substring(0, 197) + '...' : excerpt}`
+    : '';
+  
+  return `${title}${summaryText}${authorCredit}
 
 🔗 Leia mais: ${url}
 
-${hashtags.join(' ')} #portalnews #notícias`;
+${hashtags.join(' ')} #radioradarnews #notícias`;
 };
 
 // Função para obter imagem de fallback por categoria

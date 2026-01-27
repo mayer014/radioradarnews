@@ -69,7 +69,7 @@ export const ShareMenu: React.FC<ShareMenuProps> = ({
 
   const handleCopyCaption = async () => {
     try {
-      const caption = generateCaption({ title, url, category, author });
+      const caption = generateCaption({ title, url, category, author, excerpt });
       await navigator.clipboard.writeText(caption);
       
       toast({
