@@ -134,16 +134,18 @@ const AIPromptEditor: React.FC = () => {
       
       const { error } = await supabase
         .from('settings')
-        .update({
+        .upsert({
+          category: 'ai',
+          key: 'rewriter_system_prompt',
           value: {
             prompt: prompt,
             updated_at: new Date().toISOString(),
             default: false
           },
           updated_at: new Date().toISOString()
-        })
-        .eq('category', 'ai')
-        .eq('key', 'rewriter_system_prompt');
+        }, {
+          onConflict: 'category,key'
+        });
 
       if (error) throw error;
 
@@ -176,16 +178,18 @@ const AIPromptEditor: React.FC = () => {
       
       const { error } = await supabase
         .from('settings')
-        .update({
+        .upsert({
+          category: 'ai',
+          key: 'rewriter_system_prompt',
           value: {
             prompt: DEFAULT_PROMPT,
             updated_at: new Date().toISOString(),
             default: true
           },
           updated_at: new Date().toISOString()
-        })
-        .eq('category', 'ai')
-        .eq('key', 'rewriter_system_prompt');
+        }, {
+          onConflict: 'category,key'
+        });
 
       if (error) throw error;
 

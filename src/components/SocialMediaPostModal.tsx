@@ -63,7 +63,8 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
       title: article.title,
       category: article.category,
       url: articleUrl,
-      author: isColumnist ? article.columnist_name || undefined : undefined
+      author: isColumnist ? article.columnist_name || undefined : undefined,
+      excerpt: article.excerpt
     });
     
     setCaption(captionText);
