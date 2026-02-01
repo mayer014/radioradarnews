@@ -60,6 +60,7 @@ interface SiteAnalytics {
   totalVisits: number;
   uniqueVisitors: number;
   monthlyVisits: number;
+  monthlyUniqueVisitors: number;
   todayVisits: number;
   isLoading: boolean;
 }
@@ -88,6 +89,7 @@ const ColumnistActivityDashboard: React.FC = () => {
     totalVisits: 0,
     uniqueVisitors: 0,
     monthlyVisits: 0,
+    monthlyUniqueVisitors: 0,
     todayVisits: 0,
     isLoading: true
   });
@@ -100,23 +102,31 @@ const ColumnistActivityDashboard: React.FC = () => {
         const startOfCurrentMonth = startOfMonth(now);
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-        // Fetch total visits and unique visitors
+        // Fetch total visits (all time)
         const { count: totalVisits } = await supabase
           .from('site_analytics')
           .select('*', { count: 'exact', head: true });
 
-        // Fetch unique visitors (distinct visitor_hash)
+        // Fetch unique visitors (all time - distinct visitor_hash)
         const { data: uniqueData } = await supabase
           .from('site_analytics')
           .select('visitor_hash');
         
         const uniqueVisitors = new Set(uniqueData?.map(v => v.visitor_hash) || []).size;
 
-        // Fetch monthly visits
+        // Fetch monthly visits (current month only)
         const { count: monthlyVisits } = await supabase
           .from('site_analytics')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', startOfCurrentMonth.toISOString());
+
+        // Fetch monthly unique visitors (current month only)
+        const { data: monthlyUniqueData } = await supabase
+          .from('site_analytics')
+          .select('visitor_hash')
+          .gte('created_at', startOfCurrentMonth.toISOString());
+        
+        const monthlyUniqueVisitors = new Set(monthlyUniqueData?.map(v => v.visitor_hash) || []).size;
 
         // Fetch today visits
         const { count: todayVisits } = await supabase
@@ -128,6 +138,7 @@ const ColumnistActivityDashboard: React.FC = () => {
           totalVisits: totalVisits || 0,
           uniqueVisitors: uniqueVisitors,
           monthlyVisits: monthlyVisits || 0,
+          monthlyUniqueVisitors: monthlyUniqueVisitors,
           todayVisits: todayVisits || 0,
           isLoading: false
         });
@@ -435,7 +446,7 @@ const ColumnistActivityDashboard: React.FC = () => {
 
         {/* Cards de Estatísticas */}
         {selectedMonth === 'current' ? (
-          // Dados em tempo real
+          // Dados em tempo real DO MÊS ATUAL
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 p-4">
               <div className="flex items-center gap-3">
@@ -443,10 +454,16 @@ const ColumnistActivityDashboard: React.FC = () => {
                   <Activity className="h-5 w-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Total de Visitas</p>
+                  <p className="text-xs text-muted-foreground">Visitas do Mês ({format(new Date(), 'MMMM', { locale: ptBR })})</p>
                   <p className="text-xl font-bold">
-                    {siteAnalytics.isLoading ? '...' : siteAnalytics.totalVisits.toLocaleString('pt-BR')}
+                    {siteAnalytics.isLoading ? '...' : siteAnalytics.monthlyVisits.toLocaleString('pt-BR')}
                   </p>
+                  {monthComparison && (
+                    <p className={`text-xs flex items-center gap-1 mt-1 ${monthComparison.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                      {monthComparison.isPositive ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {Math.abs(monthComparison.visitsPercent)}% vs {monthComparison.previousMonth}
+                    </p>
+                  )}
                 </div>
               </div>
             </Card>
@@ -457,9 +474,9 @@ const ColumnistActivityDashboard: React.FC = () => {
                   <Users className="h-5 w-5 text-cyan-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                  <p className="text-xs text-muted-foreground">Visitantes Únicos (Mês)</p>
                   <p className="text-xl font-bold">
-                    {siteAnalytics.isLoading ? '...' : siteAnalytics.uniqueVisitors.toLocaleString('pt-BR')}
+                    {siteAnalytics.isLoading ? '...' : siteAnalytics.monthlyUniqueVisitors.toLocaleString('pt-BR')}
                   </p>
                 </div>
               </div>
@@ -471,16 +488,13 @@ const ColumnistActivityDashboard: React.FC = () => {
                   <CalendarDays className="h-5 w-5 text-emerald-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Visitas do Mês ({format(new Date(), 'MMM', { locale: ptBR })})</p>
+                  <p className="text-xs text-muted-foreground">Média Diária</p>
                   <p className="text-xl font-bold">
-                    {siteAnalytics.isLoading ? '...' : siteAnalytics.monthlyVisits.toLocaleString('pt-BR')}
+                    {siteAnalytics.isLoading ? '...' : Math.round(siteAnalytics.monthlyVisits / Math.max(1, new Date().getDate())).toLocaleString('pt-BR')}
                   </p>
-                  {monthComparison && (
-                    <p className={`text-xs flex items-center gap-1 mt-1 ${monthComparison.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {monthComparison.isPositive ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      {Math.abs(monthComparison.visitsPercent)}% vs {monthComparison.previousMonth}
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date().getDate()} dias no mês
+                  </p>
                 </div>
               </div>
             </Card>
