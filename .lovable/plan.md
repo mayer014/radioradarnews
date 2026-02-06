@@ -1,196 +1,63 @@
 
-# Plano de Correção: Prompt de Reescrita e Legenda do Feed
+# Plano: Corrigir Acúmulo de Imagens de Artes Sociais
 
-## Resumo Executivo
-Este plano corrige dois problemas identificados no sistema sem alterar o fluxo existente:
+## Problema
+Cada postagem nas redes sociais cria 1-2 imagens novas na VPS (e/ou Supabase Storage) que nunca sao apagadas nem sobrescritas. Com o tempo isso enche o disco da VPS.
 
-1. **Prompt de Reescrita**: O salvamento usa `update()` que não cria o registro se ele não existir. Vamos mudar para `upsert`.
-2. **Legenda Curta**: A função `generateCaption` não inclui o resumo da matéria. Vamos adicionar o campo `excerpt` e formatar melhor a legenda.
+## Solucao (3 correcoes, zero quebra de fluxo)
+
+### Correcao 1: Nome fixo por artigo (sobrescrever em vez de acumular)
+
+**Arquivo**: `src/components/SocialMediaPostModal.tsx`
+
+Mudar o nome do arquivo de:
+```
+social-art-{articleId}-{Date.now()}.png
+```
+Para um nome fixo por artigo:
+```
+social-art-{articleId}.png
+```
+
+Isso garante que cada artigo tenha no maximo **1 imagem** de arte social na VPS/Storage, sobrescrevendo a anterior automaticamente.
+
+### Correcao 2: Cache da URL para evitar upload duplicado (FB + IG)
+
+**Arquivo**: `src/components/SocialMediaPostModal.tsx`
+
+Adicionar uma variavel de estado `uploadedArtUrl` que armazena a URL apos o primeiro upload. Quando o usuario postar na segunda rede social, reutilizar a URL ja carregada em vez de fazer um novo upload.
+
+Fluxo corrigido:
+```text
+Gerar Arte --> Postar no Facebook --> Upload (1x) --> Salvar URL
+                                                        |
+Postar no Instagram ------> Reutilizar URL salva -------+
+```
+
+### Correcao 3: Nome fixo na Edge Function vps-image-service
+
+**Arquivo**: `supabase/functions/vps-image-service/index.ts`
+
+Quando o `file_name` recebido ja contiver um nome fixo (como `social-art-{id}.png`), usar esse nome diretamente em vez de gerar um novo nome aleatorio. Isso permite que o VPS sobrescreva o arquivo existente.
+
+### Correcao 4: Nome fixo na Edge Function generate-social-art
+
+**Arquivo**: `supabase/functions/generate-social-art/index.ts`
+
+Mudar o nome do arquivo de `social-art-${Date.now()}.png` para usar o ID do artigo (quando disponivel), garantindo sobrescrita no Supabase Storage via `upsert: true`.
 
 ---
 
-## Correção 1: Prompt de Reescrita
+## Resumo das Alteracoes
 
-### Problema Identificado
-O componente `AIPromptEditor.tsx` usa `.update()` para salvar o prompt, mas se o registro na tabela `settings` não existir previamente, o update silenciosamente não faz nada.
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/components/SocialMediaPostModal.tsx` | Nome fixo por artigo + cache da URL entre FB/IG |
+| `supabase/functions/vps-image-service/index.ts` | Respeitar nome fixo recebido do frontend |
+| `supabase/functions/generate-social-art/index.ts` | Nome fixo por artigo no Storage |
 
-### Solução
-Substituir `.update()` por `.upsert()` com `onConflict` para garantir que o registro seja criado se não existir, ou atualizado se já existir.
-
-### Arquivo a Modificar
-`src/components/AIPromptEditor.tsx`
-
-### Alterações
-
-**Função `handleSave` (linhas 122-167):**
-```typescript
-// Antes:
-const { error } = await supabase
-  .from('settings')
-  .update({
-    value: { ... },
-    updated_at: new Date().toISOString()
-  })
-  .eq('category', 'ai')
-  .eq('key', 'rewriter_system_prompt');
-
-// Depois:
-const { error } = await supabase
-  .from('settings')
-  .upsert({
-    category: 'ai',
-    key: 'rewriter_system_prompt',
-    value: {
-      prompt: prompt,
-      updated_at: new Date().toISOString(),
-      default: false
-    },
-    updated_at: new Date().toISOString()
-  }, {
-    onConflict: 'category,key'
-  });
-```
-
-**Função `handleRestore` (linhas 169-210):**
-Aplicar a mesma correção de `update()` para `upsert()`.
-
----
-
-## Correção 2: Legenda do Feed (generateCaption)
-
-### Problema Identificado
-A função `generateCaption` em `shareHelpers.ts` não inclui o `excerpt` (resumo) da matéria, resultando em legendas muito curtas para redes sociais.
-
-### Solução
-1. Adicionar `excerpt` à interface `CaptionData`
-2. Incluir o resumo formatado na legenda gerada
-3. Atualizar as chamadas em `ShareMenu.tsx` e `SocialMediaPostModal.tsx`
-
-### Arquivos a Modificar
-
-**1. `src/utils/shareHelpers.ts` (linhas 59-101)**
-
-```typescript
-// Antes:
-interface CaptionData {
-  title: string;
-  url: string;
-  category: string;
-  author?: string;
-}
-
-export const generateCaption = ({ title, url, category, author }: CaptionData): string => {
-  const hashtags = categoryHashtags[category] || ['#notícias', '#brasil'];
-  const authorCredit = author ? `\n\n📝 Por: ${author}` : '';
-  
-  return `${title}${authorCredit}
-
-🔗 Leia mais: ${url}
-
-${hashtags.join(' ')} #portalnews #notícias`;
-};
-
-// Depois:
-interface CaptionData {
-  title: string;
-  url: string;
-  category: string;
-  author?: string;
-  excerpt?: string; // NOVO: resumo da matéria
-}
-
-export const generateCaption = ({ title, url, category, author, excerpt }: CaptionData): string => {
-  const hashtags = categoryHashtags[category] || ['#notícias', '#brasil'];
-  const authorCredit = author ? `\n\n📝 Por: ${author}` : '';
-  
-  // Formatar excerpt para ter no máximo 200 caracteres
-  const summaryText = excerpt 
-    ? `\n\n📰 ${excerpt.length > 200 ? excerpt.substring(0, 197) + '...' : excerpt}`
-    : '';
-  
-  return `${title}${summaryText}${authorCredit}
-
-🔗 Leia mais: ${url}
-
-${hashtags.join(' ')} #radioradarnews #notícias`;
-};
-```
-
-**2. `src/components/share/ShareMenu.tsx` (linha 72)**
-
-```typescript
-// Antes:
-const caption = generateCaption({ title, url, category, author });
-
-// Depois:
-const caption = generateCaption({ title, url, category, author, excerpt });
-```
-
-**3. `src/components/SocialMediaPostModal.tsx` (linhas 62-67)**
-
-```typescript
-// Antes:
-const captionText = generateCaption({
-  title: article.title,
-  category: article.category,
-  url: articleUrl,
-  author: isColumnist ? article.columnist_name || undefined : undefined
-});
-
-// Depois:
-const captionText = generateCaption({
-  title: article.title,
-  category: article.category,
-  url: articleUrl,
-  author: isColumnist ? article.columnist_name || undefined : undefined,
-  excerpt: article.excerpt // NOVO: incluir resumo
-});
-```
-
----
-
-## Exemplo de Resultado
-
-### Legenda Atual (muito curta):
-```
-Título da Matéria
-
-📝 Por: João Silva
-
-🔗 Leia mais: https://radioradar.news/artigo/123
-
-#política #brasil #governo #democracia #portalnews #notícias
-```
-
-### Legenda Corrigida (com resumo):
-```
-Título da Matéria
-
-📰 Resumo breve da matéria com as informações principais em 2-3 linhas que ajudam o leitor a entender o contexto...
-
-📝 Por: João Silva
-
-🔗 Leia mais: https://radioradar.news/artigo/123
-
-#política #brasil #governo #democracia #radioradarnews #notícias
-```
-
----
-
-## Resumo das Modificações
-
-| Arquivo | Tipo de Alteração |
-|---------|-------------------|
-| `src/components/AIPromptEditor.tsx` | Trocar `.update()` por `.upsert()` com `onConflict` |
-| `src/utils/shareHelpers.ts` | Adicionar `excerpt` à interface e função |
-| `src/components/share/ShareMenu.tsx` | Passar `excerpt` para `generateCaption` |
-| `src/components/SocialMediaPostModal.tsx` | Passar `excerpt` para `generateCaption` |
-
----
-
-## Impacto nas Funcionalidades Existentes
-
-- **Zero quebras**: As alterações são retrocompatíveis
-- O campo `excerpt` é opcional (`excerpt?: string`), então chamadas antigas continuam funcionando
-- O `upsert` funciona tanto para criar quanto para atualizar registros
-- Nenhum fluxo existente é alterado, apenas corrigido
+## Impacto
+- **Zero quebra de fluxo**: As mesmas funcoes continuam sendo chamadas, apenas os nomes de arquivo mudam
+- **Reducao imediata**: De ~2 imagens por postagem para no maximo 1 por artigo (sobrescrita)
+- **Retrocompativel**: Imagens ja existentes continuam funcionando normalmente
+- **Futuro**: Se a VPS encher, as imagens antigas de artigos que nao existem mais podem ser limpas manualmente ou via script agendado
