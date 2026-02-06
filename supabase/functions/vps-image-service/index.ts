@@ -36,19 +36,24 @@ serve(async (req) => {
       const base64Data = file_data.split(',')[1]
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
       
-      // Generate unique filename
-      const timestamp = Date.now()
-      const randomStr = Math.random().toString(36).substring(2, 8)
-      // Map proper extension from mime type (no implicit conversion here)
-      const extMap: Record<string, string> = {
-        'image/jpeg': 'jpg',
-        'image/jpg': 'jpg',
-        'image/png': 'png',
-        'image/webp': 'jpg',
-        'image/gif': 'gif',
+      // Use fixed filename if provided (e.g. social-art-{id}.png), otherwise generate unique
+      let newFileName: string
+      if (file_name && /^social-art-.+\.\w+$/.test(file_name)) {
+        // Respect fixed filename to allow overwriting on VPS
+        newFileName = file_name
+      } else {
+        const timestamp = Date.now()
+        const randomStr = Math.random().toString(36).substring(2, 8)
+        const extMap: Record<string, string> = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/webp': 'jpg',
+          'image/gif': 'gif',
+        }
+        const extension = extMap[mime_type] ?? 'bin'
+        newFileName = `${timestamp}-${randomStr}.${extension}`
       }
-      const extension = extMap[mime_type] ?? 'bin'
-      const newFileName = `${timestamp}-${randomStr}.${extension}`
       
       // Upload to VPS
       const fileBlob = new Blob([binaryData], { type: mime_type })

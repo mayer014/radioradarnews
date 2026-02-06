@@ -16,6 +16,7 @@ interface GenerateArtRequest {
   category: string
   featured_image: string
   is_columnist: boolean
+  article_id?: string
   columnist?: {
     name: string
     specialty: string
@@ -163,7 +164,8 @@ Ultra high quality, sharp text, vibrant colors.`
     const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
     
     // Upload para Supabase Storage (bucket art-templates é público)
-    const fileName = `social-art-${Date.now()}.png`
+    // Nome fixo por artigo para sobrescrever em vez de acumular
+    const fileName = payload.article_id ? `social-art-${payload.article_id}.png` : `social-art-${Date.now()}.png`
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('art-templates')
       .upload(`generated/${fileName}`, binaryData, {
