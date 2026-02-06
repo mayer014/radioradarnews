@@ -34,6 +34,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
   const [isPostingInstagram, setIsPostingInstagram] = useState(false);
   const [facebookSuccess, setFacebookSuccess] = useState(false);
   const [instagramSuccess, setInstagramSuccess] = useState(false);
+  const [uploadedArtUrl, setUploadedArtUrl] = useState<string | null>(null);
 
   // Gerar arte quando o modal abre
   useEffect(() => {
@@ -43,6 +44,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     } else {
       // Reset state when modal closes
       setArtImageUrl(null);
+      setUploadedArtUrl(null);
       setFacebookSuccess(false);
       setInstagramSuccess(false);
     }
@@ -125,7 +127,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     try {
       console.log('🔄 Iniciando upload da arte para redes sociais...');
       
-      const fileName = `social-art-${article.id}-${Date.now()}.png`;
+      const fileName = `social-art-${article.id}.png`;
       
       // ESTRATÉGIA DEFINITIVA: Usar Edge Function como proxy (contorna CORS em produção)
       // A Edge Function tem a API key e faz o upload diretamente para o VPS
@@ -217,13 +219,16 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     
     setIsPostingFacebook(true);
     try {
-      // Fazer upload da arte primeiro
-      const imageUrl = await uploadArtToStorage();
+      // Reutilizar URL já carregada ou fazer upload
+      const imageUrl = uploadedArtUrl || await uploadArtToStorage();
       if (!imageUrl) {
         toast.error('Erro ao fazer upload da imagem');
         setIsPostingFacebook(false);
         return;
       }
+      
+      // Cache da URL para reutilizar no Instagram
+      if (!uploadedArtUrl) setUploadedArtUrl(imageUrl);
 
       const isColumnist = !!article.columnist_id;
       const articleUrl = isColumnist 
@@ -273,12 +278,15 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     
     setIsPostingInstagram(true);
     try {
-      // Fazer upload da arte primeiro
-      const imageUrl = await uploadArtToStorage();
+      // Reutilizar URL já carregada ou fazer upload
+      const imageUrl = uploadedArtUrl || await uploadArtToStorage();
       if (!imageUrl) {
         toast.error('Erro ao fazer upload da imagem');
         return;
       }
+      
+      // Cache da URL para reutilizar
+      if (!uploadedArtUrl) setUploadedArtUrl(imageUrl);
 
       const isColumnist = !!article.columnist_id;
       const articleUrl = isColumnist 
