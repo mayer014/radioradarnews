@@ -26,45 +26,25 @@ interface ClickStat {
 }
 
 interface ServiceProvider {
-  id: string;
-  name: string;
-  description: string;
-  city: string;
-  whatsapp: string;
-  is_active: boolean;
-  created_at: string;
-  user_id: string;
+  id: string; name: string; description: string; city: string;
+  whatsapp: string; is_active: boolean; created_at: string; user_id: string;
 }
 
 interface JobListing {
-  id: string;
-  title: string;
-  company: string;
-  city: string;
-  whatsapp: string;
-  is_active: boolean;
-  created_at: string;
-  user_id: string;
+  id: string; title: string; company: string; city: string;
+  whatsapp: string; is_active: boolean; created_at: string; user_id: string;
 }
 
 interface PublicUser {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  city: string | null;
-  is_active: boolean;
-  created_at: string;
+  id: string; full_name: string; email: string; phone: string | null;
+  city: string | null; is_active: boolean; created_at: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────
 const CHART_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--secondary))',
-  'hsl(142 76% 36%)',
-  'hsl(217 91% 60%)',
-  'hsl(280 67% 55%)',
-  'hsl(25 95% 53%)',
+  'hsl(var(--primary))', 'hsl(var(--secondary))',
+  'hsl(142 76% 36%)', 'hsl(217 91% 60%)',
+  'hsl(280 67% 55%)', 'hsl(25 95% 53%)',
 ];
 
 const chartConfig = {
@@ -81,6 +61,7 @@ const UtilityCRM: React.FC = () => {
   const [period, setPeriod] = useState('30');
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState('analytics');
+  const [managementTab, setManagementTab] = useState('providers');
 
   // Management state
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
@@ -151,7 +132,7 @@ const UtilityCRM: React.FC = () => {
   const handleResetPassword = async () => {
     if (!resetUserId || !newPassword) return;
     if (newPassword.length < 6) {
-      toast({ title: 'Senha muito curta', description: 'A senha deve ter pelo menos 6 caracteres.', variant: 'destructive' });
+      toast({ title: 'Senha muito curta', description: 'Mínimo 6 caracteres.', variant: 'destructive' });
       return;
     }
     setResettingPassword(true);
@@ -161,11 +142,11 @@ const UtilityCRM: React.FC = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: 'Senha redefinida', description: 'A nova senha foi aplicada com sucesso.' });
+      toast({ title: 'Senha redefinida com sucesso!' });
       setResetUserId(null);
       setNewPassword('');
     } catch (err: any) {
-      toast({ title: 'Erro ao redefinir senha', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     } finally {
       setResettingPassword(false);
     }
@@ -211,25 +192,29 @@ const UtilityCRM: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" /> CRM – Utilidade Pública
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">Métricas e gerenciamento</p>
-        </div>
-      </div>
-
+      {/* ─── Top-level Tabs: 3 clear sections ─── */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
-        <TabsList className="w-full grid grid-cols-2">
-          <TabsTrigger value="analytics" className="gap-2"><TrendingUp className="h-4 w-4" /> Métricas</TabsTrigger>
-          <TabsTrigger value="management" className="gap-2"><Shield className="h-4 w-4" /> Gerenciar</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-3 h-12">
+          <TabsTrigger value="analytics" className="gap-2 text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TrendingUp className="h-4 w-4" /> Métricas
+          </TabsTrigger>
+          <TabsTrigger value="management" className="gap-2 text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Shield className="h-4 w-4" /> Gerenciar
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2 text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Users className="h-4 w-4" /> Usuários
+          </TabsTrigger>
         </TabsList>
 
-        {/* ─── Analytics Tab ─────────────────────────────── */}
-        <TabsContent value="analytics" className="space-y-6 mt-4">
-          <div className="flex justify-end">
+        {/* ═══════════════════════════════════════════════════
+            TAB 1: MÉTRICAS (Analytics)
+        ═══════════════════════════════════════════════════ */}
+        <TabsContent value="analytics" className="space-y-6 mt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 rounded-full bg-primary" />
+              <h3 className="text-lg font-bold">Engajamento</h3>
+            </div>
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[160px]">
                 <Calendar className="h-4 w-4 mr-2" /><SelectValue />
@@ -243,18 +228,26 @@ const UtilityCRM: React.FC = () => {
             </Select>
           </div>
 
+          {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KPICard label="Total de Cliques" value={totalClicks} sub={periodLabel} icon={<MousePointerClick className="h-6 w-6 text-primary" />} bgClass="bg-primary/10" />
-            <KPICard label="Prestadores" value={totalProviderClicks} sub={`${providerStats.length} ativos`} icon={<Wrench className="h-6 w-6 text-green-500" />} bgClass="bg-green-500/10" />
-            <KPICard label="Vagas" value={totalJobClicks} sub={`${jobStats.length} ativas`} icon={<Briefcase className="h-6 w-6 text-blue-500" />} bgClass="bg-blue-500/10" />
+            <KPICard label="Total de Cliques" value={totalClicks} sub={periodLabel}
+              icon={<MousePointerClick className="h-6 w-6" />}
+              accentClass="text-primary bg-primary/10 border-primary/20" />
+            <KPICard label="Prestadores" value={totalProviderClicks} sub={`${providerStats.length} ativos`}
+              icon={<Wrench className="h-6 w-6" />}
+              accentClass="text-green-500 bg-green-500/10 border-green-500/20" />
+            <KPICard label="Vagas" value={totalJobClicks} sub={`${jobStats.length} ativas`}
+              icon={<Briefcase className="h-6 w-6" />}
+              accentClass="text-blue-500 bg-blue-500/10 border-blue-500/20" />
           </div>
 
+          {/* Charts */}
           {!loading && stats.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Mais Clicados</CardTitle>
-                  <CardDescription>Top 8 por volume de cliques</CardDescription>
+                  <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Mais Clicados</CardTitle>
+                  <CardDescription>Top 8 por volume</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig} className="h-[280px] w-full">
@@ -270,7 +263,7 @@ const UtilityCRM: React.FC = () => {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Distribuição</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-secondary" /> Distribuição</CardTitle>
                   <CardDescription>Prestadores vs Vagas</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center">
@@ -288,71 +281,207 @@ const UtilityCRM: React.FC = () => {
             </div>
           )}
 
-          <Tabs defaultValue="providers">
-            <TabsList className="w-full grid grid-cols-2">
-              <TabsTrigger value="providers" className="gap-2"><Wrench className="h-4 w-4" /> Prestadores</TabsTrigger>
-              <TabsTrigger value="jobs" className="gap-2"><Briefcase className="h-4 w-4" /> Vagas</TabsTrigger>
-            </TabsList>
-            <TabsContent value="providers">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-yellow-500" /> Ranking de Prestadores</CardTitle></CardHeader>
-                <CardContent><RankingList items={providerStats} loading={loading} colorClass="bg-green-500" /></CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="jobs">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-yellow-500" /> Ranking de Vagas</CardTitle></CardHeader>
-                <CardContent><RankingList items={jobStats} loading={loading} colorClass="bg-blue-500" /></CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+          {/* Rankings */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" /> Ranking Prestadores
+                </CardTitle>
+              </CardHeader>
+              <CardContent><RankingList items={providerStats} loading={loading} colorClass="bg-green-500" /></CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" /> Ranking Vagas
+                </CardTitle>
+              </CardHeader>
+              <CardContent><RankingList items={jobStats} loading={loading} colorClass="bg-blue-500" /></CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        {/* ─── Management Tab ────────────────────────────── */}
-        <TabsContent value="management" className="space-y-6 mt-4">
+        {/* ═══════════════════════════════════════════════════
+            TAB 2: GERENCIAR (Providers + Jobs)
+        ═══════════════════════════════════════════════════ */}
+        <TabsContent value="management" className="space-y-4 mt-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Shield className="h-4 w-4" /> Gerencie cadastros e usuários
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 rounded-full bg-accent" />
+              <h3 className="text-lg font-bold">Gerenciar Cadastros</h3>
+            </div>
             <Button variant="outline" size="sm" onClick={loadManagementData} disabled={managementLoading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${managementLoading ? 'animate-spin' : ''}`} /> Atualizar
             </Button>
           </div>
 
-          {/* ── Usuários Públicos ── */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-4 w-4" /> Usuários Cadastrados
-                <Badge variant="secondary" className="ml-auto">{publicUsers.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          {/* Sub-tabs for Providers vs Jobs */}
+          <Tabs value={managementTab} onValueChange={setManagementTab}>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="providers" className="gap-2">
+                <Wrench className="h-4 w-4" /> Prestadores
+                <Badge variant="outline" className="ml-1 text-[10px]">{providers.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="jobs" className="gap-2">
+                <Briefcase className="h-4 w-4" /> Vagas
+                <Badge variant="outline" className="ml-1 text-[10px]">{jobs.length}</Badge>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Providers management */}
+            <TabsContent value="providers" className="mt-4">
+              <Card className="border-t-4 border-t-green-500">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Wrench className="h-5 w-5 text-green-500" /> Prestadores de Serviço
+                    </CardTitle>
+                    <Badge className="bg-green-500/10 text-green-500 border-green-500/30">{filteredProviders.length} exibidos</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Buscar por nome, cidade ou WhatsApp..." value={providerSearch} onChange={e => setProviderSearch(e.target.value)} className="pl-9" />
+                  </div>
+                  {managementLoading ? <LoadingSkeleton count={3} /> : filteredProviders.length === 0 ? (
+                    <EmptyState text="Nenhum prestador encontrado." />
+                  ) : (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                      {filteredProviders.map(p => (
+                        <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-green-500/10 hover:border-green-500/30 transition-colors bg-card">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Wrench className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                              <span className="font-medium text-sm">{p.name}</span>
+                              <Badge variant={p.is_active ? 'default' : 'outline'} className={`text-[10px] ${p.is_active ? 'bg-green-500/20 text-green-400 border-green-500/30' : ''}`}>
+                                {p.is_active ? '● Ativo' : '○ Inativo'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.city}</span>
+                              <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{p.whatsapp}</span>
+                              <span>{new Date(p.created_at).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button variant="outline" size="sm" onClick={() => handleToggleActive('service_provider', p.id, p.is_active)}>
+                              {p.is_active ? 'Desativar' : 'Ativar'}
+                            </Button>
+                            <Button variant="destructive" size="sm" disabled={deletingId === p.id} onClick={() => handleDelete('service_provider', p.id, p.name)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Jobs management */}
+            <TabsContent value="jobs" className="mt-4">
+              <Card className="border-t-4 border-t-blue-500">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-blue-500" /> Vagas de Emprego
+                    </CardTitle>
+                    <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/30">{filteredJobs.length} exibidas</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Buscar por título, empresa ou cidade..." value={jobSearch} onChange={e => setJobSearch(e.target.value)} className="pl-9" />
+                  </div>
+                  {managementLoading ? <LoadingSkeleton count={3} /> : filteredJobs.length === 0 ? (
+                    <EmptyState text="Nenhuma vaga encontrada." />
+                  ) : (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                      {filteredJobs.map(j => (
+                        <div key={j.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-blue-500/10 hover:border-blue-500/30 transition-colors bg-card">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Briefcase className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                              <span className="font-medium text-sm">{j.title}</span>
+                              <Badge variant={j.is_active ? 'default' : 'outline'} className={`text-[10px] ${j.is_active ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}>
+                                {j.is_active ? '● Ativa' : '○ Inativa'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                              <span className="font-medium">{j.company}</span>
+                              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{j.city}</span>
+                              <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{j.whatsapp}</span>
+                              <span>{new Date(j.created_at).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button variant="outline" size="sm" onClick={() => handleToggleActive('job_listing', j.id, j.is_active)}>
+                              {j.is_active ? 'Desativar' : 'Ativar'}
+                            </Button>
+                            <Button variant="destructive" size="sm" disabled={deletingId === j.id} onClick={() => handleDelete('job_listing', j.id, j.title)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        {/* ═══════════════════════════════════════════════════
+            TAB 3: USUÁRIOS (Password reset, user list)
+        ═══════════════════════════════════════════════════ */}
+        <TabsContent value="users" className="space-y-4 mt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1 rounded-full bg-secondary" />
+              <h3 className="text-lg font-bold">Usuários Cadastrados</h3>
+              <Badge variant="secondary">{publicUsers.length}</Badge>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadManagementData} disabled={managementLoading}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${managementLoading ? 'animate-spin' : ''}`} /> Atualizar
+            </Button>
+          </div>
+
+          <Card className="border-t-4 border-t-secondary">
+            <CardContent className="pt-4 space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar por nome, e-mail ou cidade..." value={userSearch} onChange={e => setUserSearch(e.target.value)} className="pl-9" />
               </div>
-              {managementLoading ? <LoadingSkeleton count={3} /> : filteredUsers.length === 0 ? (
+              {managementLoading ? <LoadingSkeleton count={4} /> : filteredUsers.length === 0 ? (
                 <EmptyState text="Nenhum usuário encontrado." />
               ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                   {filteredUsers.map(u => (
-                    <div key={u.id} className="p-3 rounded-lg border space-y-2">
+                    <div key={u.id} className="p-3 rounded-lg border hover:border-secondary/30 transition-colors bg-card space-y-2">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <span className="font-medium text-sm">{u.full_name}</span>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 text-secondary flex-shrink-0" />
+                            <span className="font-medium text-sm">{u.full_name}</span>
+                          </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                             <span>{u.email}</span>
                             {u.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{u.phone}</span>}
                             {u.city && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{u.city}</span>}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => { setResetUserId(resetUserId === u.id ? null : u.id); setNewPassword(''); }}>
-                          <KeyRound className="h-4 w-4 mr-1" /> Redefinir Senha
+                        <Button variant="outline" size="sm" className="gap-1 border-secondary/30 hover:bg-secondary/10"
+                          onClick={() => { setResetUserId(resetUserId === u.id ? null : u.id); setNewPassword(''); }}>
+                          <KeyRound className="h-4 w-4" /> Redefinir Senha
                         </Button>
                       </div>
                       {resetUserId === u.id && (
-                        <div className="flex items-center gap-2 pt-2 border-t">
+                        <div className="flex items-center gap-2 pt-2 border-t border-secondary/20">
                           <div className="relative flex-1">
                             <Input
                               type={showPassword ? 'text' : 'password'}
@@ -361,7 +490,8 @@ const UtilityCRM: React.FC = () => {
                               onChange={e => setNewPassword(e.target.value)}
                               className="pr-10"
                             />
-                            <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
+                            <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowPassword(!showPassword)}>
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
@@ -376,101 +506,6 @@ const UtilityCRM: React.FC = () => {
               )}
             </CardContent>
           </Card>
-
-          {/* ── Prestadores ── */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Wrench className="h-4 w-4" /> Prestadores de Serviço
-                <Badge variant="secondary" className="ml-auto">{providers.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por nome, cidade ou WhatsApp..." value={providerSearch} onChange={e => setProviderSearch(e.target.value)} className="pl-9" />
-              </div>
-              {managementLoading ? <LoadingSkeleton count={3} /> : filteredProviders.length === 0 ? (
-                <EmptyState text="Nenhum prestador encontrado." />
-              ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {filteredProviders.map(p => (
-                    <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm">{p.name}</span>
-                          <Badge variant={p.is_active ? 'default' : 'outline'} className="text-[10px]">
-                            {p.is_active ? '✅ Ativo' : '⏸ Inativo'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.city}</span>
-                          <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{p.whatsapp}</span>
-                          <span>{new Date(p.created_at).toLocaleDateString('pt-BR')}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => handleToggleActive('service_provider', p.id, p.is_active)}>
-                          {p.is_active ? 'Desativar' : 'Ativar'}
-                        </Button>
-                        <Button variant="destructive" size="sm" disabled={deletingId === p.id} onClick={() => handleDelete('service_provider', p.id, p.name)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ── Vagas ── */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Briefcase className="h-4 w-4" /> Vagas de Emprego
-                <Badge variant="secondary" className="ml-auto">{jobs.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por título, empresa ou cidade..." value={jobSearch} onChange={e => setJobSearch(e.target.value)} className="pl-9" />
-              </div>
-              {managementLoading ? <LoadingSkeleton count={3} /> : filteredJobs.length === 0 ? (
-                <EmptyState text="Nenhuma vaga encontrada." />
-              ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {filteredJobs.map(j => (
-                    <div key={j.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm">{j.title}</span>
-                          <Badge variant={j.is_active ? 'default' : 'outline'} className="text-[10px]">
-                            {j.is_active ? '✅ Ativa' : '⏸ Inativa'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                          <span className="font-medium">{j.company}</span>
-                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{j.city}</span>
-                          <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{j.whatsapp}</span>
-                          <span>{new Date(j.created_at).toLocaleDateString('pt-BR')}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button variant="outline" size="sm" onClick={() => handleToggleActive('job_listing', j.id, j.is_active)}>
-                          {j.is_active ? 'Desativar' : 'Ativar'}
-                        </Button>
-                        <Button variant="destructive" size="sm" disabled={deletingId === j.id} onClick={() => handleDelete('job_listing', j.id, j.title)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
@@ -478,16 +513,16 @@ const UtilityCRM: React.FC = () => {
 };
 
 // ─── Sub-components ──────────────────────────────────────────
-const KPICard: React.FC<{ label: string; value: number; sub: string; icon: React.ReactNode; bgClass: string }> = ({ label, value, sub, icon, bgClass }) => (
-  <Card>
+const KPICard: React.FC<{ label: string; value: number; sub: string; icon: React.ReactNode; accentClass: string }> = ({ label, value, sub, icon, accentClass }) => (
+  <Card className={`border-l-4 ${accentClass.includes('primary') ? 'border-l-primary' : accentClass.includes('green') ? 'border-l-green-500' : 'border-l-blue-500'}`}>
     <CardContent className="p-5">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
           <p className="text-3xl font-bold mt-1">{value}</p>
           <p className="text-xs text-muted-foreground mt-1">{sub}</p>
         </div>
-        <div className={`h-12 w-12 rounded-full ${bgClass} flex items-center justify-center`}>{icon}</div>
+        <div className={`h-12 w-12 rounded-xl ${accentClass} flex items-center justify-center border`}>{icon}</div>
       </div>
     </CardContent>
   </Card>
