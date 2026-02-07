@@ -1,23 +1,97 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Wrench, Briefcase, UserPlus } from 'lucide-react';
+import { Wrench, Briefcase, UserPlus, MapPin, Star, Phone, Users, Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+/* ── Typing text ── */
+const CardTypingText: React.FC<{ texts: string[] }> = ({ texts }) => {
+  const [index, setIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = texts[index];
+    const speed = deleting ? 25 : 50;
+    if (!deleting && charIndex === current.length) {
+      const t = setTimeout(() => setDeleting(true), 2200);
+      return () => clearTimeout(t);
+    }
+    if (deleting && charIndex === 0) {
+      setDeleting(false);
+      setIndex((i) => (i + 1) % texts.length);
+      return;
+    }
+    const t = setTimeout(() => setCharIndex(prev => prev + (deleting ? -1 : 1)), speed);
+    return () => clearTimeout(t);
+  }, [charIndex, deleting, index, texts]);
+
+  return (
+    <span className="text-yellow-300 font-black">
+      {texts[index].substring(0, charIndex)}
+      <span className="animate-pulse">|</span>
+    </span>
+  );
+};
+
+/* ── Marquee ── */
+const MarqueeTicker: React.FC<{ items: string[]; colorClass: string }> = ({ items, colorClass }) => {
+  if (items.length === 0) return null;
+  const tickerContent = [...items, ...items];
+  return (
+    <div className="relative overflow-hidden rounded-lg bg-background/50 border border-muted/30 py-2">
+      <div className="flex animate-[marquee_30s_linear_infinite] whitespace-nowrap gap-8">
+        {tickerContent.map((item, i) => (
+          <span key={i} className={`inline-flex items-center gap-2 text-xs font-medium ${colorClass} flex-shrink-0`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const UtilityLanding: React.FC = () => {
   const navigate = useNavigate();
+  const [providerTicker, setProviderTicker] = useState<string[]>([]);
+  const [jobTicker, setJobTicker] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [provRes, jobRes] = await Promise.all([
+        supabase.from('service_providers').select('name, description').eq('is_active', true).limit(20),
+        supabase.from('job_listings').select('title, company, salary').eq('is_active', true).limit(20),
+      ]);
+      if (provRes.data) setProviderTicker(provRes.data.map(p => `${p.name} — ${p.description.substring(0, 40)}${p.description.length > 40 ? '…' : ''}`));
+      if (jobRes.data) setJobTicker(jobRes.data.map(j => `${j.title} • ${j.company}${j.salary ? ` • ${j.salary}` : ''}`));
+    };
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
       <main className="pt-24 pb-16">
         {/* Hero */}
-        <section className="px-4 sm:px-6 py-16 text-center max-w-4xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-4">
-            Utilidade Pública
+        <section className="px-4 sm:px-6 py-12 text-center max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-4 animate-fade-in">
+            <Sparkles className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: '3s' }} />
+            🏙️ Serviços Locais
+            <Zap className="h-3.5 w-3.5 text-yellow-400" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground mb-3">
+            Utilidade <span className="bg-gradient-hero bg-clip-text text-transparent">Pública</span>
           </h1>
-          <p className="text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
             Cadastre-se gratuitamente e divulgue seus serviços ou vagas de emprego para toda a região.
           </p>
           <p className="text-sm text-muted-foreground mb-8">
@@ -30,23 +104,115 @@ const UtilityLanding: React.FC = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            <div className="p-8 rounded-2xl bg-gradient-card border border-primary/20 hover:border-primary/40 transition-all cursor-pointer" onClick={() => navigate('/prestadores')}>
-              <Wrench className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">🧰 Ofertar meus serviços</h2>
-              <p className="text-sm text-muted-foreground">
-                Eletricista, encanador, pintor, mecânico... Divulgue seus serviços e receba contatos direto no WhatsApp.
-              </p>
-              <Button variant="outline" className="mt-4 border-primary/50">Ver Prestadores</Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* ═══ Prestadores Card ═══ */}
+            <div
+              onClick={() => navigate('/prestadores')}
+              className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 animate-fade-in text-left"
+              style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+            >
+              <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-green-500 via-emerald-400 to-teal-500 opacity-40 group-hover:opacity-100 transition-opacity duration-500 blur-[1px]" />
+              <div className="relative bg-card rounded-2xl overflow-hidden m-[1px]">
+                <div className="relative h-1.5 bg-gradient-to-r from-green-500 via-emerald-400 to-teal-500 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer 2.5s ease-in-out infinite' }} />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-green-600/15 via-transparent to-emerald-600/10" />
+                <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/10 rounded-full blur-3xl group-hover:bg-green-500/20 transition-all duration-700" />
+
+                <div className="relative p-6 sm:p-8">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                      <Wrench className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-2xl sm:text-3xl font-black mb-1 leading-tight animate-fade-in">
+                        <span>🧰 </span>
+                        <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(34,197,94,0.4)]">
+                          Prestadores de Serviço
+                        </span>
+                      </h3>
+                      <p className="text-xs sm:text-sm font-medium">
+                        <CardTypingText texts={['Encontre profissionais!', 'Na sua região!', 'Contato direto!', 'Orçamento grátis!']} />
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {[
+                      { icon: MapPin, text: 'Sua região' },
+                      { icon: Star, text: 'Verificados' },
+                      { icon: Phone, text: 'WhatsApp direto' },
+                    ].map(({ icon: Icon, text }) => (
+                      <span key={text} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium">
+                        <Icon className="h-3 w-3" /> {text}
+                      </span>
+                    ))}
+                  </div>
+
+                  <MarqueeTicker items={providerTicker} colorClass="text-white/80" />
+
+                  <div className="mt-5 flex items-center gap-2 text-green-400 font-bold text-sm">
+                    <Sparkles className="h-4 w-4" />
+                    Encontrar profissionais
+                    <ArrowRight className="h-4 w-4 animate-[bounce-x_1.5s_ease-in-out_infinite]" />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="p-8 rounded-2xl bg-gradient-card border border-secondary/20 hover:border-secondary/40 transition-all cursor-pointer" onClick={() => navigate('/vagas')}>
-              <Briefcase className="h-12 w-12 text-secondary mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">💼 Publicar uma vaga de emprego</h2>
-              <p className="text-sm text-muted-foreground">
-                Publique vagas CLT, PJ, freelancer ou temporárias. Receba currículos pelo WhatsApp.
-              </p>
-              <Button variant="outline" className="mt-4 border-secondary/50">Ver Vagas</Button>
+            {/* ═══ Vagas Card ═══ */}
+            <div
+              onClick={() => navigate('/vagas')}
+              className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 animate-fade-in text-left"
+              style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+            >
+              <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-500 opacity-40 group-hover:opacity-100 transition-opacity duration-500 blur-[1px]" />
+              <div className="relative bg-card rounded-2xl overflow-hidden m-[1px]">
+                <div className="relative h-1.5 bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-500 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer 2.5s ease-in-out infinite' }} />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/15 via-transparent to-indigo-600/10" />
+                <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-700" />
+
+                <div className="relative p-6 sm:p-8">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+                      <Briefcase className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-2xl sm:text-3xl font-black mb-1 leading-tight animate-fade-in">
+                        <span>💼 </span>
+                        <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(59,130,246,0.4)]">
+                          Vagas de Emprego
+                        </span>
+                      </h3>
+                      <p className="text-xs sm:text-sm font-medium">
+                        <CardTypingText texts={['Oportunidades reais!', 'CLT, PJ, Freelancer!', 'Na sua cidade!', 'Envie pelo WhatsApp!']} />
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {[
+                      { icon: MapPin, text: 'Vagas locais' },
+                      { icon: Star, text: 'Diversas áreas' },
+                      { icon: Users, text: 'Cadastro grátis' },
+                    ].map(({ icon: Icon, text }) => (
+                      <span key={text} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium">
+                        <Icon className="h-3 w-3" /> {text}
+                      </span>
+                    ))}
+                  </div>
+
+                  <MarqueeTicker items={jobTicker} colorClass="text-white/80" />
+
+                  <div className="mt-5 flex items-center gap-2 text-blue-400 font-bold text-sm">
+                    <Sparkles className="h-4 w-4" />
+                    Ver oportunidades
+                    <ArrowRight className="h-4 w-4 animate-[bounce-x_1.5s_ease-in-out_infinite]" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
