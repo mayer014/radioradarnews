@@ -23,32 +23,33 @@ const AnimatedCount: React.FC<{ target: number; suffix?: string }> = ({ target, 
   return <span>{count}{suffix}</span>;
 };
 
-/* ── Typing text for card headlines ── */
-const CardTypingText: React.FC<{ texts: string[] }> = ({ texts }) => {
+/* ── Rotating text with vertical slide + fade ── */
+const CardRotatingText: React.FC<{ texts: string[] }> = ({ texts }) => {
   const [index, setIndex] = useState(0);
-  const [charIndex, setCharIndex] = useState(0);
-  const [deleting, setDeleting] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const current = texts[index];
-    const speed = deleting ? 25 : 50;
-    if (!deleting && charIndex === current.length) {
-      const t = setTimeout(() => setDeleting(true), 2200);
-      return () => clearTimeout(t);
-    }
-    if (deleting && charIndex === 0) {
-      setDeleting(false);
-      setIndex((i) => (i + 1) % texts.length);
-      return;
-    }
-    const t = setTimeout(() => setCharIndex(prev => prev + (deleting ? -1 : 1)), speed);
-    return () => clearTimeout(t);
-  }, [charIndex, deleting, index, texts]);
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % texts.length);
+        setVisible(true);
+      }, 400);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [texts.length]);
 
   return (
-    <span className="text-yellow-300 font-black">
-      {texts[index].substring(0, charIndex)}
-      <span className="animate-pulse">|</span>
+    <span className="inline-block overflow-hidden h-[1.4em] align-bottom">
+      <span
+        className="inline-block text-yellow-300 font-black transition-all duration-400 ease-out"
+        style={{
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          opacity: visible ? 1 : 0,
+        }}
+      >
+        {texts[index]}
+      </span>
     </span>
   );
 };
@@ -150,7 +151,7 @@ const HomeUtilitySection: React.FC = () => {
                       </span>
                     </h3>
                     <p className="text-xs sm:text-sm text-green-400/80 font-medium">
-                      <CardTypingText texts={['Encontre profissionais!', 'Na sua região!', 'Contato direto!', 'Orçamento grátis!']} />
+                      <CardRotatingText texts={['Encontre profissionais!', 'Na sua região!', 'Contato direto!', 'Orçamento grátis!']} />
                     </p>
                   </div>
                 </div>
@@ -215,7 +216,7 @@ const HomeUtilitySection: React.FC = () => {
                       </span>
                     </h3>
                     <p className="text-xs sm:text-sm text-blue-400/80 font-medium">
-                      <CardTypingText texts={['Oportunidades reais!', 'CLT, PJ, Freelancer!', 'Na sua cidade!', 'Envie pelo WhatsApp!']} />
+                      <CardRotatingText texts={['Oportunidades reais!', 'CLT, PJ, Freelancer!', 'Na sua cidade!', 'Envie pelo WhatsApp!']} />
                     </p>
                   </div>
                 </div>
