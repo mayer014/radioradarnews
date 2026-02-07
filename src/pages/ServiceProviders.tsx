@@ -9,6 +9,7 @@ import PublicUserBar from '@/components/utility/PublicUserBar';
 import { useServiceProviders } from '@/hooks/useServiceProviders';
 import { Search, Filter, ArrowLeft, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PasswordResetRequestDialog from '@/components/utility/PasswordResetRequestDialog';
 
 const ServiceProviders: React.FC = () => {
   const { providers, categories, loading, fetchProviders } = useServiceProviders();
@@ -39,9 +40,12 @@ const ServiceProviders: React.FC = () => {
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-1">🧰 Prestadores de Serviço</h1>
               <p className="text-muted-foreground">Encontre profissionais de confiança na sua região</p>
             </div>
-            <Link to="/vagas" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium">
-              <Briefcase className="h-4 w-4" /> Ver Vagas de Emprego
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to="/vagas" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium">
+                <Briefcase className="h-4 w-4" /> Ver Vagas de Emprego
+              </Link>
+              <PasswordResetRequestDialog />
+            </div>
           </div>
         </div>
 

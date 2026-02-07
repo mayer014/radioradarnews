@@ -9,6 +9,7 @@ import PublicUserBar from '@/components/utility/PublicUserBar';
 import { useJobListings, JOB_TYPES } from '@/hooks/useJobListings';
 import { Search, Filter, ArrowLeft, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PasswordResetRequestDialog from '@/components/utility/PasswordResetRequestDialog';
 
 const JobListings: React.FC = () => {
   const { jobs, loading, fetchJobs } = useJobListings();
@@ -39,9 +40,12 @@ const JobListings: React.FC = () => {
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-1">💼 Vagas de Emprego</h1>
               <p className="text-muted-foreground">Encontre oportunidades na sua região</p>
             </div>
-            <Link to="/prestadores" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors text-sm font-medium">
-              <Wrench className="h-4 w-4" /> Ver Prestadores de Serviço
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to="/prestadores" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors text-sm font-medium">
+                <Wrench className="h-4 w-4" /> Ver Prestadores de Serviço
+              </Link>
+              <PasswordResetRequestDialog />
+            </div>
           </div>
         </div>
 
