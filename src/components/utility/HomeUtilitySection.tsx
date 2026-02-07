@@ -143,7 +143,7 @@ const HomeUtilitySection: React.FC = () => {
                     <Wrench className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-black mb-0.5 leading-tight">
+                    <h3 className="text-2xl sm:text-3xl font-black mb-1 leading-tight animate-fade-in">
                       <span className="text-foreground">🧰 </span>
                       <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(34,197,94,0.4)]">
                         Prestadores de Serviço
@@ -153,22 +153,6 @@ const HomeUtilitySection: React.FC = () => {
                       <CardTypingText texts={['Encontre profissionais!', 'Na sua região!', 'Contato direto!', 'Orçamento grátis!']} />
                     </p>
                   </div>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-                    <Users className="h-3.5 w-3.5 text-green-400" />
-                    <span className="text-xs font-bold text-green-400">
-                      <AnimatedCount target={providers.length} /> profissionais
-                    </span>
-                  </div>
-                  {providers.length > 0 && (
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-                    </span>
-                  )}
                 </div>
 
                 {/* Pills */}
@@ -185,7 +169,7 @@ const HomeUtilitySection: React.FC = () => {
                 </div>
 
                 {/* Marquee */}
-                <MarqueeTicker items={providerTicker} colorClass="text-green-400/80" />
+                <MarqueeTicker items={providerTicker} colorClass="text-white/80" />
 
                 {/* CTA */}
                 <div className="mt-5 flex items-center gap-2 text-green-400 font-bold text-sm">
@@ -224,7 +208,7 @@ const HomeUtilitySection: React.FC = () => {
                     <Briefcase className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-black mb-0.5 leading-tight">
+                    <h3 className="text-2xl sm:text-3xl font-black mb-1 leading-tight animate-fade-in">
                       <span className="text-foreground">💼 </span>
                       <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(59,130,246,0.4)]">
                         Vagas de Emprego
@@ -234,22 +218,6 @@ const HomeUtilitySection: React.FC = () => {
                       <CardTypingText texts={['Oportunidades reais!', 'CLT, PJ, Freelancer!', 'Na sua cidade!', 'Envie pelo WhatsApp!']} />
                     </p>
                   </div>
-                </div>
-
-                {/* Stats */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-                    <Briefcase className="h-3.5 w-3.5 text-blue-400" />
-                    <span className="text-xs font-bold text-blue-400">
-                      <AnimatedCount target={jobs.length} /> vagas abertas
-                    </span>
-                  </div>
-                  {jobs.length > 0 && (
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500" />
-                    </span>
-                  )}
                 </div>
 
                 {/* Pills */}
@@ -266,7 +234,7 @@ const HomeUtilitySection: React.FC = () => {
                 </div>
 
                 {/* Marquee */}
-                <MarqueeTicker items={jobTicker} colorClass="text-blue-400/80" />
+                <MarqueeTicker items={jobTicker} colorClass="text-white/80" />
 
                 {/* CTA */}
                 <div className="mt-5 flex items-center gap-2 text-blue-400 font-bold text-sm">
