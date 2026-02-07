@@ -13,28 +13,27 @@ const JobListingCard: React.FC<{ job: JobListing; index?: number }> = ({ job, in
   return (
     <div
       className="group relative rounded-2xl overflow-hidden bg-card cursor-pointer transition-all duration-500 hover:-translate-y-2 animate-fade-in"
-      style={{ animationDelay: `${index * 80}ms`, animationFillMode: 'both' }}
+      style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
       onClick={() => navigate(`/vagas/${job.id}`)}
     >
-      {/* Animated border glow */}
-      <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-30 group-hover:opacity-100 transition-opacity duration-500 blur-[1px]" />
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
+      {/* Always-visible animated border */}
+      <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-40 group-hover:opacity-100 transition-opacity duration-500 blur-[1px]" />
 
       {/* Inner content */}
       <div className="relative bg-card rounded-2xl overflow-hidden m-[1px]">
-        {/* Top gradient bar with shimmer */}
+        {/* Shimmer bar — always animating */}
         <div className="relative h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer 2s infinite' }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer 2.5s ease-in-out infinite' }} />
         </div>
 
         <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-4 space-y-3">
-          {/* Title + badge row */}
+          {/* Title + badge */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <h3 className="text-lg sm:text-xl font-extrabold text-foreground group-hover:text-blue-400 transition-colors duration-300 leading-tight line-clamp-2">
                 {job.title}
               </h3>
-              <div className="h-0.5 w-0 group-hover:w-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 mt-1 rounded-full" />
+              <div className="h-0.5 w-12 group-hover:w-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 mt-1 rounded-full" />
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1.5">
                 <Building2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                 <span className="truncate">{job.company}</span>
@@ -63,11 +62,11 @@ const JobListingCard: React.FC<{ job: JobListing; index?: number }> = ({ job, in
             </span>
           </div>
 
-          {/* "Ver detalhes" teaser */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-blue-400 transition-colors duration-300">
+          {/* "Ver detalhes" — visible always, arrow pulses */}
+          <div className="flex items-center gap-1 text-xs text-blue-400/70">
             <Sparkles className="h-3 w-3" />
             <span>Ver detalhes</span>
-            <ArrowRight className="h-3 w-3 translate-x-0 group-hover:translate-x-1 transition-transform duration-300" />
+            <ArrowRight className="h-3 w-3 animate-[bounce-x_1.5s_ease-in-out_infinite]" />
           </div>
 
           {/* WhatsApp */}
