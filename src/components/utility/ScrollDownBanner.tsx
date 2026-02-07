@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronDown, Sparkles } from 'lucide-react';
 
 interface ScrollDownBannerProps {
   text: string;
@@ -7,40 +6,70 @@ interface ScrollDownBannerProps {
   colorScheme?: 'green' | 'blue';
 }
 
-const ScrollDownBanner: React.FC<ScrollDownBannerProps> = ({ text, emoji = '👇', colorScheme = 'green' }) => {
-  const colors = colorScheme === 'green'
-    ? { gradient: 'from-green-600 via-emerald-500 to-teal-500', glow: 'shadow-green-500/30', text: 'text-green-100', arrow: 'text-yellow-300' }
-    : { gradient: 'from-blue-600 via-indigo-500 to-purple-500', glow: 'shadow-blue-500/30', text: 'text-blue-100', arrow: 'text-yellow-300' };
+const ScrollDownBanner: React.FC<ScrollDownBannerProps> = ({ text, emoji, colorScheme = 'green' }) => {
+  const isGreen = colorScheme === 'green';
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-r ${colors.gradient} shadow-lg ${colors.glow} mb-8`}>
-      {/* Subtle pattern */}
-      <div className="absolute inset-0 opacity-10" style={{
-        backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-        backgroundSize: '20px 20px',
-      }} />
+    <div className={`relative overflow-hidden rounded-2xl mb-8 ${
+      isGreen 
+        ? 'bg-gradient-to-br from-emerald-900 via-green-800 to-teal-900' 
+        : 'bg-gradient-to-br from-indigo-900 via-blue-800 to-slate-900'
+    }`}>
+      {/* Animated gradient overlay */}
+      <div className={`absolute inset-0 opacity-40 bg-[length:400%_400%] animate-gradient-flow ${
+        isGreen
+          ? 'bg-gradient-to-r from-emerald-400/20 via-transparent to-teal-400/20'
+          : 'bg-gradient-to-r from-blue-400/20 via-transparent to-purple-400/20'
+      }`} />
 
-      {/* Glow orbs */}
-      <div className="absolute -top-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-pulse" />
-      <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-[pulse_3s_ease-in-out_infinite_1s]" />
+      {/* Horizontal light streak */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className={`absolute top-1/2 -translate-y-1/2 h-px w-full ${
+          isGreen ? 'bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent' 
+                  : 'bg-gradient-to-r from-transparent via-blue-400/50 to-transparent'
+        } animate-[pulse_3s_ease-in-out_infinite]`} />
+      </div>
 
-      <div className="relative px-6 py-5 sm:py-6 flex flex-col items-center gap-3">
-        {/* Sparkle + text */}
-        <div className="flex items-center gap-3 flex-wrap justify-center">
-          <Sparkles className={`h-5 w-5 ${colors.arrow} animate-spin`} style={{ animationDuration: '3s' }} />
-          <span className={`text-base sm:text-lg font-black ${colors.text} text-center`}>
-            {emoji} {text} {emoji}
-          </span>
-          <Sparkles className={`h-5 w-5 ${colors.arrow} animate-spin`} style={{ animationDuration: '3s' }} />
-        </div>
+      <div className="relative px-6 py-8 sm:py-10 flex flex-col items-center gap-5">
+        {/* Main text */}
+        <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white text-center tracking-tight leading-tight animate-fade-in">
+          {emoji && <span className="mr-2">{emoji}</span>}
+          {text}
+          {emoji && <span className="ml-2">{emoji}</span>}
+        </h3>
 
-        {/* Animated bouncing arrows */}
-        <div className="flex items-center gap-1">
-          <ChevronDown className={`h-6 w-6 ${colors.arrow} animate-bounce`} style={{ animationDelay: '0ms' }} />
-          <ChevronDown className={`h-7 w-7 ${colors.arrow} animate-bounce`} style={{ animationDelay: '150ms' }} />
-          <ChevronDown className={`h-6 w-6 ${colors.arrow} animate-bounce`} style={{ animationDelay: '300ms' }} />
+        {/* Elegant fade-in staggered arrows */}
+        <div className="flex flex-col items-center -space-y-3">
+          {[0, 1, 2].map((i) => (
+            <svg
+              key={i}
+              viewBox="0 0 40 12"
+              className="w-10 sm:w-14"
+              style={{
+                animation: `scrollArrowFade 2s ease-in-out ${i * 0.3}s infinite`,
+              }}
+            >
+              <path
+                d="M4 2 L20 10 L36 2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={isGreen ? 'text-emerald-300' : 'text-blue-300'}
+              />
+            </svg>
+          ))}
         </div>
       </div>
+
+      <style>{`
+        @keyframes scrollArrowFade {
+          0%, 100% { opacity: 0; transform: translateY(-6px); }
+          40%, 60% { opacity: 1; transform: translateY(0); }
+          80% { opacity: 0; transform: translateY(6px); }
+        }
+      `}</style>
     </div>
   );
 };
