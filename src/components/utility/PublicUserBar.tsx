@@ -120,6 +120,16 @@ const PublicUserBar: React.FC = () => {
                   Cadastrar Grátis
                 </Button>
               </Link>
+              <Link to="/utilidade-publica/auth" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto border-2 border-white/40 text-white hover:bg-white/15 hover:border-white/60 font-bold text-base px-8 py-6 rounded-2xl backdrop-blur-sm transition-all duration-300"
+                >
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  Já tenho conta · Entrar
+                </Button>
+              </Link>
               <PasswordResetRequestDialog />
             </div>
           </div>
