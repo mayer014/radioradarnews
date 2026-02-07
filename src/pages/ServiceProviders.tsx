@@ -35,17 +35,9 @@ const ServiceProviders: React.FC = () => {
           <Link to="/utilidade-publica" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" /> Utilidade Pública
           </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+          <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-1">🧰 Prestadores de Serviço</h1>
               <p className="text-muted-foreground">Encontre profissionais de confiança na sua região</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link to="/vagas" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium">
-                <Briefcase className="h-4 w-4" /> Ver Vagas de Emprego
-              </Link>
-              
-            </div>
           </div>
         </div>
 
@@ -53,7 +45,7 @@ const ServiceProviders: React.FC = () => {
         <PublicUserBar />
 
         {/* Filtros */}
-        <div className="bg-gradient-card border border-primary/20 rounded-lg p-4 mb-8">
+        <div className="bg-gradient-card border border-primary/20 rounded-lg p-4 mb-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -71,6 +63,13 @@ const ServiceProviders: React.FC = () => {
               <Button onClick={handleSearch} className="bg-gradient-hero"><Filter className="h-4 w-4" /></Button>
             </div>
           </div>
+        </div>
+
+        {/* Cross-navigation */}
+        <div className="mb-8">
+          <Link to="/vagas" className="inline-flex items-center gap-2 w-full justify-center px-5 py-3 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-semibold">
+            <Briefcase className="h-5 w-5" /> 💼 Ver Vagas de Emprego
+          </Link>
         </div>
 
         {/* Grid */}
