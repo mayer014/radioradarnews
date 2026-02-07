@@ -127,7 +127,7 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
     try {
       console.log('🔄 Iniciando upload da arte para redes sociais...');
       
-      const fileName = `social-art-${article.id}.png`;
+      const fileName = 'social-art-latest.png';
       
       // ESTRATÉGIA DEFINITIVA: Usar Edge Function como proxy (contorna CORS em produção)
       // A Edge Function tem a API key e faz o upload diretamente para o VPS
