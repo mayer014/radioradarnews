@@ -42,7 +42,7 @@ const PasswordResetRequestDialog: React.FC = () => {
         p_phone: form.whatsapp.trim(),
         p_subject: '[REDEFINIÇÃO DE SENHA] Solicitação de redefinição',
         p_message: `Olá, solicito a redefinição da minha senha de acesso ao sistema de Utilidade Pública.\n\nNome: ${form.name.trim()}\nE-mail cadastrado: ${form.email.trim()}\nWhatsApp: ${form.whatsapp.trim()}\n\nPor favor, redefina minha senha e me avise pelo WhatsApp informado.`,
-        p_ip_address: '0.0.0.0' as any,
+        p_ip_address: null as any,
       });
 
       if (error) throw error;
