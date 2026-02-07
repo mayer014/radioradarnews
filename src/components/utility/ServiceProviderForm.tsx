@@ -53,10 +53,27 @@ const ServiceProviderForm: React.FC<ServiceProviderFormProps> = ({ userId, exist
     }));
   };
 
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(f => ({ ...f, whatsapp: formatWhatsApp(e.target.value) }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.description || !form.city || !form.whatsapp) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+
+    const whatsDigits = form.whatsapp.replace(/\D/g, '');
+    if (whatsDigits.length < 10 || whatsDigits.length > 11) {
+      toast({ title: 'WhatsApp inválido', description: 'Digite o DDD + número (10 ou 11 dígitos)', variant: 'destructive' });
       return;
     }
 
@@ -119,8 +136,8 @@ const ServiceProviderForm: React.FC<ServiceProviderFormProps> = ({ userId, exist
               <Input value={form.neighborhood} onChange={e => setForm(f => ({ ...f, neighborhood: e.target.value }))} />
             </div>
             <div>
-              <Label>WhatsApp *</Label>
-              <Input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="(67) 99999-9999" />
+              <Label>WhatsApp * <span className="text-xs text-muted-foreground font-normal">(DDD + número)</span></Label>
+              <Input value={form.whatsapp} onChange={handleWhatsAppChange} placeholder="(67) 99999-9999" inputMode="tel" />
             </div>
           </div>
 
