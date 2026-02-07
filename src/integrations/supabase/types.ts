@@ -680,6 +680,65 @@ export type Database = {
         }
         Relationships: []
       }
+      job_listings: {
+        Row: {
+          city: string
+          company: string
+          created_at: string | null
+          description: string
+          id: string
+          is_active: boolean | null
+          job_type: string
+          neighborhood: string | null
+          requirements: string | null
+          salary: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          whatsapp: string
+        }
+        Insert: {
+          city: string
+          company: string
+          created_at?: string | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          job_type: string
+          neighborhood?: string | null
+          requirements?: string | null
+          salary?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          whatsapp: string
+        }
+        Update: {
+          city?: string
+          company?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          job_type?: string
+          neighborhood?: string | null
+          requirements?: string | null
+          salary?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_listings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_content: {
         Row: {
           content: string
@@ -1034,6 +1093,144 @@ export type Database = {
         }
         Relationships: []
       }
+      public_user_profiles: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active?: boolean | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      service_categories: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      service_providers: {
+        Row: {
+          available_days: string[] | null
+          category_id: string | null
+          charges_displacement: boolean | null
+          charges_estimate: boolean | null
+          city: string
+          created_at: string | null
+          description: string
+          end_time: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          neighborhood: string | null
+          notes: string | null
+          start_time: string | null
+          updated_at: string | null
+          user_id: string
+          whatsapp: string
+        }
+        Insert: {
+          available_days?: string[] | null
+          category_id?: string | null
+          charges_displacement?: boolean | null
+          charges_estimate?: boolean | null
+          city: string
+          created_at?: string | null
+          description: string
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          neighborhood?: string | null
+          notes?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp: string
+        }
+        Update: {
+          available_days?: string[] | null
+          category_id?: string | null
+          charges_displacement?: boolean | null
+          charges_estimate?: boolean | null
+          city?: string
+          created_at?: string | null
+          description?: string
+          end_time?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          neighborhood?: string | null
+          notes?: string | null
+          start_time?: string | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_providers_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_providers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           category: string
@@ -1302,6 +1499,33 @@ export type Database = {
         }
         Relationships: []
       }
+      utility_click_tracking: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action?: string
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       comments_public: {
@@ -1494,6 +1718,16 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_utility_click_stats: {
+        Args: { days_back?: number }
+        Returns: {
+          click_count: number
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          last_click: string
+        }[]
+      }
       hard_delete_article: {
         Args: { article_id_param: string }
         Returns: boolean
@@ -1513,6 +1747,7 @@ export type Database = {
       is_active_columnist_user: { Args: { user_id: string }; Returns: boolean }
       is_admin: { Args: { user_id: string }; Returns: boolean }
       is_admin_user: { Args: { user_id: string }; Returns: boolean }
+      is_public_user: { Args: { p_user_id: string }; Returns: boolean }
       submit_contact_message: {
         Args: {
           p_email: string

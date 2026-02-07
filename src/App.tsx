@@ -37,6 +37,15 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivateRoute from "./components/PrivateRoute";
 import ScrollToTop from "./components/ScrollToTop";
 import SecurityProvider from "./components/SecurityProvider";
+import { PublicAuthProvider } from "./contexts/PublicAuthContext";
+import UtilityLanding from "./pages/UtilityLanding";
+import PublicAuth from "./pages/PublicAuth";
+import PasswordRecovery from "./pages/PasswordRecovery";
+import ServiceProviders from "./pages/ServiceProviders";
+import ServiceProviderDetail from "./pages/ServiceProviderDetail";
+import JobListings from "./pages/JobListings";
+import JobListingDetail from "./pages/JobListingDetail";
+import PublicDashboard from "./pages/PublicDashboard";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +74,14 @@ const AppContent = () => {
           <Route path="/colunista/:columnistId/artigo/:id" element={<ColumnistArticlePage />} />
           <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
           <Route path="/termos-uso" element={<TermsOfService />} />
+          <Route path="/utilidade-publica" element={<UtilityLanding />} />
+          <Route path="/utilidade-publica/auth" element={<PublicAuth />} />
+          <Route path="/utilidade-publica/recuperar-senha" element={<PasswordRecovery />} />
+          <Route path="/utilidade-publica/painel" element={<PublicDashboard />} />
+          <Route path="/prestadores" element={<ServiceProviders />} />
+          <Route path="/prestadores/:id" element={<ServiceProviderDetail />} />
+          <Route path="/vagas" element={<JobListings />} />
+          <Route path="/vagas/:id" element={<JobListingDetail />} />
           <Route path="/admin/auth" element={<AdminAuth />} />
           <Route path="/admin/login" element={<Navigate to="/admin/auth" replace />} />
           <Route path="/admin/security" element={<AccountSecurity />} />
@@ -102,7 +119,9 @@ const App = () => (
                                   <UsersProvider>
                                     <ContactProvider>
                                       <CommentsProvider>
-                                          <AppContent />
+                                        <PublicAuthProvider>
+                                           <AppContent />
+                                        </PublicAuthProvider>
                                       </CommentsProvider>
                                     </ContactProvider>
                                   </UsersProvider>

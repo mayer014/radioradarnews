@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import WeatherWidget from '@/components/WeatherWidget';
 import CurrencyWidget from '@/components/CurrencyWidget';
+import HomeUtilitySection from '@/components/utility/HomeUtilitySection';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -42,6 +43,9 @@ const Index = () => {
       
       {/* Cotações */}
       <CurrencyWidget />
+
+      {/* Utilidade Pública */}
+      <HomeUtilitySection />
       
       {/* Últimas Notícias */}
       <LatestNews />

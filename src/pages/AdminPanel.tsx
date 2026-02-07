@@ -81,6 +81,7 @@ import DailySummaryGenerator from '@/components/DailySummaryGenerator';
 import ArtTemplateManager from '@/components/ArtTemplateManager';
 import SocialMediaConfigPanel from '@/components/SocialMediaConfigPanel';
 import TokenExpirationAlert from '@/components/TokenExpirationAlert';
+import UtilityCRM from '@/components/utility/UtilityCRM';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -103,7 +104,7 @@ const AdminPanel = () => {
   }, [profile, users, articles]);
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary' | 'art-templates' | 'social-media'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'messages' | 'users' | 'columnists' | 'activity' | 'contact' | 'ai-config' | 'profile' | 'comments' | 'banners' | 'legal' | 'system' | 'storage' | 'radio' | 'daily-summary' | 'art-templates' | 'social-media' | 'utility-crm'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
