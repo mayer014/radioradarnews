@@ -143,8 +143,11 @@ const HomeUtilitySection: React.FC = () => {
                     <Wrench className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-black text-foreground mb-0.5 group-hover:text-green-400 transition-colors duration-300">
-                      🧰 Prestadores
+                    <h3 className="text-xl sm:text-2xl font-black mb-0.5 leading-tight">
+                      <span className="text-foreground">🧰 </span>
+                      <span className="bg-gradient-to-r from-green-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(34,197,94,0.4)]">
+                        Prestadores de Serviço
+                      </span>
                     </h3>
                     <p className="text-xs sm:text-sm text-green-400/80 font-medium">
                       <CardTypingText texts={['Encontre profissionais!', 'Na sua região!', 'Contato direto!', 'Orçamento grátis!']} />
@@ -221,8 +224,11 @@ const HomeUtilitySection: React.FC = () => {
                     <Briefcase className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xl sm:text-2xl font-black text-foreground mb-0.5 group-hover:text-blue-400 transition-colors duration-300">
-                      💼 Vagas
+                    <h3 className="text-xl sm:text-2xl font-black mb-0.5 leading-tight">
+                      <span className="text-foreground">💼 </span>
+                      <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent drop-shadow-[0_0_12px_rgba(59,130,246,0.4)]">
+                        Vagas de Emprego
+                      </span>
                     </h3>
                     <p className="text-xs sm:text-sm text-blue-400/80 font-medium">
                       <CardTypingText texts={['Oportunidades reais!', 'CLT, PJ, Freelancer!', 'Na sua cidade!', 'Envie pelo WhatsApp!']} />
