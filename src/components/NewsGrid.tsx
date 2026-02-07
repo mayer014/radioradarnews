@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import CategoryNewsSection from '@/components/CategoryNewsSection';
 import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
-import UtilityMiniBanner from '@/components/utility/UtilityMiniBanner';
+
 
 const NewsGrid: React.FC = () => {
   const { articles, loading } = useSupabaseNews();
@@ -155,16 +155,13 @@ const NewsGrid: React.FC = () => {
           </Card>
         ) : (
           <div className="space-y-12">
-            {Object.entries(categoriesWithArticles).map(([category, categoryArticles], idx) => (
-              <React.Fragment key={category}>
-                <CategoryNewsSection
-                  category={category}
-                  articles={categoryArticles}
-                  onViewMore={handleViewMore}
-                />
-                {/* Insert mini utility banner after the 2nd category */}
-                {idx === 1 && <UtilityMiniBanner />}
-              </React.Fragment>
+            {Object.entries(categoriesWithArticles).map(([category, categoryArticles]) => (
+              <CategoryNewsSection
+                key={category}
+                category={category}
+                articles={categoryArticles}
+                onViewMore={handleViewMore}
+              />
             ))}
           </div>
         )}

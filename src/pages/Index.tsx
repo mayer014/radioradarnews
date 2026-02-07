@@ -4,6 +4,7 @@ import HeroSection from '@/components/HeroSection';
 import WeatherWidget from '@/components/WeatherWidget';
 import CurrencyWidget from '@/components/CurrencyWidget';
 import HomeUtilitySection from '@/components/utility/HomeUtilitySection';
+import UtilityMiniBanner from '@/components/utility/UtilityMiniBanner';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -46,6 +47,11 @@ const Index = () => {
 
       {/* Utilidade Pública */}
       <HomeUtilitySection />
+
+      {/* Mini banner utilidade pública */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-4 mb-4">
+        <UtilityMiniBanner />
+      </div>
       
       {/* Últimas Notícias */}
       <LatestNews />
