@@ -36,10 +36,27 @@ const JobListingForm: React.FC<JobListingFormProps> = ({ userId, existing, onSav
     }
   }, [existing]);
 
+  const formatWhatsApp = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(f => ({ ...f, whatsapp: formatWhatsApp(e.target.value) }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.company || !form.description || !form.city || !form.whatsapp) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+
+    const whatsDigits = form.whatsapp.replace(/\D/g, '');
+    if (whatsDigits.length < 10 || whatsDigits.length > 11) {
+      toast({ title: 'WhatsApp inválido', description: 'Digite o DDD + número (10 ou 11 dígitos)', variant: 'destructive' });
       return;
     }
 
@@ -97,7 +114,7 @@ const JobListingForm: React.FC<JobListingFormProps> = ({ userId, existing, onSav
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><Label>Salário (opcional)</Label><Input value={form.salary} onChange={e => setForm(f => ({ ...f, salary: e.target.value }))} placeholder="Ex: R$ 2.000 - R$ 3.000" /></div>
-            <div><Label>WhatsApp *</Label><Input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" /></div>
+            <div><Label>WhatsApp * <span className="text-xs text-muted-foreground font-normal">(DDD + número)</span></Label><Input value={form.whatsapp} onChange={handleWhatsAppChange} placeholder="(67) 99999-9999" inputMode="tel" /></div>
           </div>
 
           <div><Label>Requisitos</Label><Textarea value={form.requirements} onChange={e => setForm(f => ({ ...f, requirements: e.target.value }))} rows={2} /></div>
