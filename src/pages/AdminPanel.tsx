@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useSupabaseNews, BASE_NEWS_CATEGORIES } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { useContact } from '@/contexts/ContactContext';
 import { validateAllLocalStorageData, exportDataForMigration } from '@/utils/dataIntegrity';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -110,6 +111,22 @@ const AdminPanel = () => {
   const [searchTitle, setSearchTitle] = useState<string>('');
   const [showColumnistManager, setShowColumnistManager] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [dbUnreadCount, setDbUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    const { count } = await supabase
+      .from('contact_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('read', false);
+    setDbUnreadCount(count || 0);
+  }, []);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll every 30 seconds for new messages
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
   
   // Verificar integridade dos dados
   const handleDataIntegrityCheck = () => {
@@ -402,17 +419,23 @@ const AdminPanel = () => {
               </Button>
               <Button
                 variant={activeTab === 'messages' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('messages')}
+                onClick={() => { setActiveTab('messages'); fetchUnreadCount(); }}
                 className={`${activeTab === 'messages' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm relative`}
                 size="sm"
               >
                 <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Mensagens</span>
                 <span className="sm:hidden">Msg</span>
-                {getUnreadCount() > 0 && (
-                  <Badge className="ml-1 sm:ml-2 bg-destructive text-destructive-foreground text-xs px-1 py-0">
-                    {getUnreadCount()}
-                  </Badge>
+                {dbUnreadCount > 0 && (
+                  <>
+                    <Badge className="ml-1 sm:ml-2 bg-destructive text-destructive-foreground text-xs px-1 py-0">
+                      {dbUnreadCount}
+                    </Badge>
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
+                    </span>
+                  </>
                 )}
               </Button>
               <Button
