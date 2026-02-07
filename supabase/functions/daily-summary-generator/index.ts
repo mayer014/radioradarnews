@@ -156,9 +156,14 @@ serve(async (req) => {
     console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
     console.log(`📰 [${requestId}] Gerando resumos para ${articles.length} artigos usando GROQ (sem consumir créditos Lovable)`);
 
-    // Preparar prompt para a IA
-    const articlesText = articles.map((a, i) => 
-      `${i + 1}. [${a.category}] ${a.title}\nResumo original: ${a.excerpt}\nConteúdo: ${a.content}`
+    // Limitar para não exceder limites de tokens do modelo Groq
+    // Envia apenas título + excerpt curto (sem conteúdo completo)
+    // Máximo 20 artigos por lote para ficar dentro do limite de TPM
+    const MAX_ARTICLES = 20;
+    const articlesBatch = articles.slice(0, MAX_ARTICLES);
+    
+    const articlesText = articlesBatch.map((a, i) => 
+      `${i + 1}. [${a.category}] ${a.title}\nResumo: ${(a.excerpt || '').substring(0, 150)}`
     ).join('\n\n');
 
     const systemPrompt = `Você é um redator de rádio experiente. Sua função é criar resumos curtos e objetivos de notícias para leitura ao vivo.
@@ -238,6 +243,14 @@ FORMATO DE RESPOSTA (JSON):
           }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil(waitTime / 1000)) } }
         );
+      }
+
+      // Erro 413 (request too large): tratar como rate limit mas sem retry
+      if (response.status === 413) {
+        const errorText = await response.text();
+        console.error(`❌ [${requestId}] Request too large:`, errorText);
+        lastError = new Error('Prompt muito grande para o modelo. Reduza o número de artigos.');
+        break;
       }
 
       // Outros erros
