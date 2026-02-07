@@ -138,7 +138,7 @@ const JobListings: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.map(j => <JobListingCard key={j.id} job={j} />)}
+            {jobs.map((j, i) => <JobListingCard key={j.id} job={j} index={i} />)}
           </div>
         )}
       </main>
