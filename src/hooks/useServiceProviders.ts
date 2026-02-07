@@ -55,7 +55,7 @@ export function useServiceProviders() {
 
     if (filters?.category_id) query = query.eq('category_id', filters.category_id);
     if (filters?.city) query = query.ilike('city', `%${filters.city}%`);
-    if (filters?.search) query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+    if (filters?.search) query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%,city.ilike.%${filters.search}%`);
 
     const { data } = await query;
     if (data) setProviders(data as any);

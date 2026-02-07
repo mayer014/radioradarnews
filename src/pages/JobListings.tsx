@@ -1,31 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import JobListingCard from '@/components/utility/JobListingCard';
 import PublicUserBar from '@/components/utility/PublicUserBar';
 import ScrollDownBanner from '@/components/utility/ScrollDownBanner';
-import { useJobListings, JOB_TYPES } from '@/hooks/useJobListings';
-import { Search, Filter, ArrowLeft, Wrench, Briefcase, Users } from 'lucide-react';
+import { useJobListings } from '@/hooks/useJobListings';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Search, ArrowLeft, Wrench, Briefcase, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const JobListings: React.FC = () => {
   const { jobs, loading, fetchJobs } = useJobListings();
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [cityFilter, setCityFilter] = useState('');
+  const debouncedSearch = useDebounce(search, 400);
 
-  const handleSearch = () => {
-    fetchJobs({
-      search: search || undefined,
-      job_type: typeFilter !== 'all' ? typeFilter : undefined,
-      city: cityFilter || undefined,
-    });
-  };
-
-  React.useEffect(() => { handleSearch(); }, [typeFilter]);
+  useEffect(() => {
+    fetchJobs({ search: debouncedSearch || undefined });
+  }, [debouncedSearch, fetchJobs]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,39 +52,18 @@ const JobListings: React.FC = () => {
         {/* User status banner */}
         <PublicUserBar />
 
-        {/* Filters */}
+        {/* Search */}
         <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 mb-6">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-600/5" />
           <div className="relative p-4 sm:p-5">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  value={search} 
-                  onChange={e => setSearch(e.target.value)} 
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()} 
-                  placeholder="Buscar por vaga, empresa..." 
-                  className="pl-9 rounded-xl border-blue-500/20 focus:border-blue-500" 
-                />
-              </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="rounded-xl border-blue-500/20"><SelectValue placeholder="Tipo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  {JOB_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <div className="flex gap-2">
-                <Input 
-                  value={cityFilter} 
-                  onChange={e => setCityFilter(e.target.value)} 
-                  placeholder="Cidade..." 
-                  className="flex-1 rounded-xl border-blue-500/20" 
-                />
-                <Button onClick={handleSearch} className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl px-4 hover:scale-105 transition-transform">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+                placeholder="Buscar por vaga, empresa, cidade, tipo..." 
+                className="pl-9 rounded-xl border-blue-500/20 focus:border-blue-500" 
+              />
             </div>
           </div>
         </div>
