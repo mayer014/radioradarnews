@@ -1,0 +1,1 @@
+UPDATE service_providers SET whatsapp = '67992773931' WHERE id = '010eb3bb-01ab-4125-8d26-d2c21cae1223' AND whatsapp = 'Campo Grande';
