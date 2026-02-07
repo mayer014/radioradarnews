@@ -39,7 +39,7 @@ export function useJobListings() {
 
     if (filters?.job_type) query = query.eq('job_type', filters.job_type);
     if (filters?.city) query = query.ilike('city', `%${filters.city}%`);
-    if (filters?.search) query = query.or(`title.ilike.%${filters.search}%,company.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+    if (filters?.search) query = query.or(`title.ilike.%${filters.search}%,company.ilike.%${filters.search}%,description.ilike.%${filters.search}%,city.ilike.%${filters.search}%,job_type.ilike.%${filters.search}%`);
 
     const { data } = await query;
     if (data) setJobs(data as JobListing[]);
