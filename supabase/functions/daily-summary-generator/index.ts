@@ -156,163 +156,129 @@ serve(async (req) => {
     console.log(`🎯 [${requestId}] Using Groq model: ${selectedModel}`);
     console.log(`📰 [${requestId}] Gerando resumos para ${articles.length} artigos usando GROQ (sem consumir créditos Lovable)`);
 
-    // Limitar para não exceder limites de tokens do modelo Groq
-    // Envia apenas título + excerpt curto (sem conteúdo completo)
-    // Máximo 20 artigos por lote para ficar dentro do limite de TPM
-    const MAX_ARTICLES = 20;
-    const articlesBatch = articles.slice(0, MAX_ARTICLES);
+    // Processar TODOS os artigos em lotes automáticos (sem limite)
+    const BATCH_SIZE = 15;
+    const batches: ArticleInput[][] = [];
+    for (let i = 0; i < articles.length; i += BATCH_SIZE) {
+      batches.push(articles.slice(i, i + BATCH_SIZE));
+    }
     
-    const articlesText = articlesBatch.map((a, i) => 
-      `${i + 1}. [${a.category}] ${a.title}\nResumo: ${(a.excerpt || '').substring(0, 150)}`
-    ).join('\n\n');
+    console.log(`📦 [${requestId}] Processando ${articles.length} artigos em ${batches.length} lote(s) de até ${BATCH_SIZE}`);
 
-    const systemPrompt = `Você é um redator de rádio experiente. Sua função é criar resumos curtos e objetivos de notícias para leitura ao vivo.
+    const systemPrompt = `Você é um redator de rádio experiente. Crie resumos curtos e objetivos para leitura ao vivo.
 
 REGRAS:
-- Cada resumo deve ter 2 a 3 linhas no máximo
-- Use linguagem jornalística clara e direta
-- O texto deve fluir naturalmente para leitura em voz alta
-- Evite siglas desconhecidas sem explicação
-- Não use jargões técnicos complexos
-- Comece cada resumo de forma diferente para variar a leitura
-- Mantenha a objetividade e a informação essencial
+- Cada resumo: 2 a 3 linhas no máximo
+- Linguagem jornalística clara e direta
+- Texto fluido para leitura em voz alta
+- Comece cada resumo de forma diferente
+- Mantenha objetividade e informação essencial
 
-FORMATO DE RESPOSTA (JSON):
-{
-  "summaries": [
-    {
-      "title": "Título original da matéria",
-      "category": "Categoria da matéria",
-      "summary": "Resumo de 2-3 linhas para leitura em rádio"
-    }
-  ]
-}`;
+FORMATO (JSON):
+{"summaries":[{"title":"Título original","category":"Categoria","summary":"Resumo 2-3 linhas"}]}`;
 
-    const userPrompt = `Crie resumos para leitura em rádio das seguintes matérias publicadas hoje:\n\n${articlesText}`;
+    let allSummaries: ArticleSummary[] = [];
+    let totalUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
-    // Usar exclusivamente Groq API com retry automático para rate limits
-    const maxRetries = 3;
-    let lastError: Error | null = null;
-    let response: Response | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`🔄 [${requestId}] Tentativa ${attempt}/${maxRetries}...`);
+    for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+      const batch = batches[batchIdx];
       
-      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 4096
-        }),
-      });
+      const articlesText = batch.map((a, i) => 
+        `${i + 1}. [${a.category}] ${a.title}\nResumo: ${(a.excerpt || '').substring(0, 120)}`
+      ).join('\n\n');
 
-      if (response.ok) {
-        break; // Sucesso, sair do loop
+      const userPrompt = `Crie resumos para rádio:\n\n${articlesText}`;
+
+      // Aguardar entre lotes para evitar rate limit
+      if (batchIdx > 0) {
+        const waitBetween = 5000;
+        console.log(`⏳ [${requestId}] Aguardando ${waitBetween/1000}s antes do lote ${batchIdx + 1}...`);
+        await new Promise(resolve => setTimeout(resolve, waitBetween));
       }
 
-      if (response.status === 429) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData?.error?.message || '';
+      let batchSuccess = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`🔄 [${requestId}] Lote ${batchIdx + 1}/${batches.length} - Tentativa ${attempt}/3`);
         
-        // Extrair tempo de espera sugerido da mensagem de erro
-        const waitMatch = errorMessage.match(/try again in (\d+\.?\d*)s/i);
-        const waitTime = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) : (attempt * 10000);
-        
-        console.warn(`⚠️ [${requestId}] Rate limit atingido. Aguardando ${waitTime/1000}s antes de tentar novamente...`);
-        
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
+        try {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GROQ_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: selectedModel,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 2048
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const content = data.choices?.[0]?.message?.content;
+            const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+            
+            totalUsage.prompt_tokens += usage.prompt_tokens;
+            totalUsage.completion_tokens += usage.completion_tokens;
+            totalUsage.total_tokens += usage.total_tokens;
+
+            if (content) {
+              try {
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  allSummaries = allSummaries.concat(parsed.summaries || []);
+                  batchSuccess = true;
+                  console.log(`✅ [${requestId}] Lote ${batchIdx + 1} concluído: ${(parsed.summaries || []).length} resumos`);
+                }
+              } catch {
+                console.warn(`⚠️ [${requestId}] Parse error lote ${batchIdx + 1}`);
+              }
+            }
+            break;
+          }
+
+          // Rate limit ou request too large
+          if (response.status === 429 || response.status === 413) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData?.error?.message || '';
+            const waitMatch = errorMessage.match(/try again in (\d+\.?\d*)s/i);
+            const waitTime = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) : (attempt * 15000);
+            
+            console.warn(`⚠️ [${requestId}] Rate/size limit lote ${batchIdx + 1}. Aguardando ${waitTime/1000}s...`);
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              continue;
+            }
+          } else {
+            const errorText = await response.text();
+            console.error(`❌ [${requestId}] Groq error lote ${batchIdx + 1}:`, response.status, errorText);
+            break;
+          }
+        } catch (fetchError) {
+          console.error(`❌ [${requestId}] Fetch error lote ${batchIdx + 1}:`, fetchError);
+          break;
         }
-        
-        // Última tentativa falhou
-        return new Response(
-          JSON.stringify({ 
-            error: 'Limite de requisições da Groq excedido.',
-            message: 'O limite de tokens por minuto foi atingido. Aguarde alguns segundos e tente novamente.',
-            retryAfter: Math.ceil(waitTime / 1000)
-          }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(Math.ceil(waitTime / 1000)) } }
-        );
       }
 
-      // Erro 413 (request too large): tratar como rate limit mas sem retry
-      if (response.status === 413) {
-        const errorText = await response.text();
-        console.error(`❌ [${requestId}] Request too large:`, errorText);
-        lastError = new Error('Prompt muito grande para o modelo. Reduza o número de artigos.');
-        break;
+      // Fallback para lote que falhou
+      if (!batchSuccess) {
+        console.warn(`⚠️ [${requestId}] Lote ${batchIdx + 1} falhou, usando excerpts originais`);
+        allSummaries = allSummaries.concat(batch.map(a => ({
+          title: a.title, category: a.category,
+          summary: a.excerpt || 'Confira mais detalhes em nosso portal.'
+        })));
       }
-
-      // Outros erros
-      const errorText = await response.text();
-      console.error(`❌ [${requestId}] Groq API error:`, response.status, errorText);
-      lastError = new Error(`Groq API error: ${response.status} - ${errorText}`);
-      break;
     }
 
-    if (!response || !response.ok) {
-      throw lastError || new Error('Falha na comunicação com Groq API');
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-
-    if (!content) {
-      throw new Error('Resposta vazia da Groq');
-    }
-
-    console.log(`✅ [${requestId}] Resposta da Groq recebida - Length: ${content.length} chars`);
-    console.log(`📊 [${requestId}] Token usage:`, usage);
-
-    // Log usage to database
-    try {
-      const costUsd = calculateCost(usage.prompt_tokens, usage.completion_tokens, selectedModel);
-      await supabase.from('llm_usage_logs').insert({
-        provider: 'groq',
-        model: selectedModel,
-        function_name: 'daily-summary-generator',
-        input_tokens: usage.prompt_tokens,
-        output_tokens: usage.completion_tokens,
-        total_tokens: usage.total_tokens,
-        cost_usd: costUsd,
-        request_id: requestId,
-        metadata: { articles_count: articles.length }
-      });
-      console.log(`💾 [${requestId}] Usage logged to database`);
-    } catch (logError) {
-      console.warn(`⚠️ [${requestId}] Failed to log usage:`, logError);
-    }
-
-    // Extrair JSON da resposta
-    let summaries: ArticleSummary[] = [];
-    try {
-      // Tentar extrair JSON do conteúdo
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        summaries = parsed.summaries || [];
-      }
-    } catch (parseError) {
-      console.error(`⚠️ [${requestId}] Erro ao parsear resposta:`, parseError);
-      
-      // Fallback: criar resumos simples se a IA falhar no parse
-      summaries = articles.map(a => ({
-        title: a.title,
-        category: a.category,
-        summary: a.excerpt || 'Confira mais detalhes em nosso portal.'
-      }));
-    }
+    const summaries = allSummaries;
+    const usage = totalUsage;
+    console.log(`✅ [${requestId}] Total: ${summaries.length} resumos em ${batches.length} lote(s)`);
 
     console.log(`✅ [${requestId}] ${summaries.length} resumos gerados com sucesso usando Groq (sem créditos Lovable)`);
 
