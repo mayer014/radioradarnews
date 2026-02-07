@@ -540,6 +540,16 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Redes Sociais</span>
                 <span className="sm:hidden">Social</span>
               </Button>
+              <Button
+                variant={activeTab === 'utility-crm' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('utility-crm')}
+                className={`${activeTab === 'utility-crm' ? 'bg-gradient-hero' : ''} flex-shrink-0 text-xs sm:text-sm`}
+                size="sm"
+              >
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Utilidade Pública</span>
+                <span className="sm:hidden">Utilidade</span>
+              </Button>
             </div>
           </div>
         )}
@@ -905,6 +915,11 @@ const AdminPanel = () => {
         {/* Redes Sociais - apenas para admin */}
         {activeTab === 'social-media' && isAdmin && (
           <SocialMediaConfigPanel />
+        )}
+
+        {/* Utilidade Pública CRM - apenas para admin */}
+        {activeTab === 'utility-crm' && isAdmin && (
+          <UtilityCRM />
         )}
       </div>
       
