@@ -67,7 +67,7 @@ const ServiceProviders: React.FC = () => {
 
         {/* Cross-navigation */}
         <div className="mb-8">
-          <Link to="/vagas" className="inline-flex items-center gap-2 w-full justify-center px-5 py-3 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-semibold">
+          <Link to="/vagas" className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400 transition-all shadow-lg shadow-blue-500/25 text-base font-bold">
             <Briefcase className="h-5 w-5" /> 💼 Ver Vagas de Emprego
           </Link>
         </div>

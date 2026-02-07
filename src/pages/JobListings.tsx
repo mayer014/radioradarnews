@@ -67,7 +67,7 @@ const JobListings: React.FC = () => {
 
         {/* Cross-navigation */}
         <div className="mb-8">
-          <Link to="/prestadores" className="inline-flex items-center gap-2 w-full justify-center px-5 py-3 rounded-lg border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors text-sm font-semibold">
+          <Link to="/prestadores" className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-400 transition-all shadow-lg shadow-green-500/25 text-base font-bold">
             <Wrench className="h-5 w-5" /> 🧰 Ver Prestadores de Serviço
           </Link>
         </div>
