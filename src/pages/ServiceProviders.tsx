@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ServiceProviderCard from '@/components/utility/ServiceProviderCard';
+import PublicUserBar from '@/components/utility/PublicUserBar';
 import { useServiceProviders } from '@/hooks/useServiceProviders';
 import { Search, Filter, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -29,13 +30,16 @@ const ServiceProviders: React.FC = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <main className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-6">
           <Link to="/utilidade-publica" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" /> Utilidade Pública
           </Link>
-          <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">🧰 Prestadores de Serviço</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">🧰 Prestadores de Serviço</h1>
           <p className="text-muted-foreground">Encontre profissionais de confiança na sua região</p>
         </div>
+
+        {/* User status bar */}
+        <PublicUserBar />
 
         {/* Filtros */}
         <div className="bg-gradient-card border border-primary/20 rounded-lg p-4 mb-8">
@@ -56,13 +60,6 @@ const ServiceProviders: React.FC = () => {
               <Button onClick={handleSearch} className="bg-gradient-hero"><Filter className="h-4 w-4" /></Button>
             </div>
           </div>
-        </div>
-
-        {/* CTA */}
-        <div className="mb-6">
-          <Link to="/utilidade-publica/auth">
-            <Button className="bg-gradient-hero">Cadastre-se e divulgue seus serviços!</Button>
-          </Link>
         </div>
 
         {/* Grid */}
