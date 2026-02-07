@@ -21,16 +21,21 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
   const url = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
 
-  const handleClick = async () => {
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     await trackClick(entityType, entityId, 'whatsapp_click');
-    window.open(url, '_blank', 'noopener,noreferrer');
+    // Use direct location change to avoid popup blockers
+    window.location.href = url;
   };
 
   return (
-    <Button onClick={handleClick} className={`bg-green-600 hover:bg-green-700 text-white ${className || ''}`}>
-      <MessageCircle className="h-4 w-4 mr-2" />
-      {label}
-    </Button>
+    <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleClick} className="block">
+      <Button type="button" className={`bg-green-600 hover:bg-green-700 text-white w-full ${className || ''}`}>
+        <MessageCircle className="h-4 w-4 mr-2" />
+        {label}
+      </Button>
+    </a>
   );
 };
 

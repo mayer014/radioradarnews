@@ -58,13 +58,19 @@ const ServiceProviders: React.FC = () => {
           </div>
         </div>
 
+        {/* CTA */}
+        <div className="mb-6">
+          <Link to="/utilidade-publica/auth">
+            <Button className="bg-gradient-hero">Cadastre-se e divulgue seus serviços!</Button>
+          </Link>
+        </div>
+
         {/* Grid */}
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Carregando...</div>
         ) : providers.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-lg text-muted-foreground mb-4">Nenhum prestador encontrado.</p>
-            <Link to="/utilidade-publica/auth"><Button className="bg-gradient-hero">Cadastre-se e seja o primeiro!</Button></Link>
+            <p className="text-lg text-muted-foreground">Nenhum prestador encontrado.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

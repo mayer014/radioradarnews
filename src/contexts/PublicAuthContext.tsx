@@ -121,7 +121,8 @@ export const PublicAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (user) await fetchProfile(user.id);
   };
 
-  const isAuthenticated = !!user && !!profile;
+  // Consider authenticated if user exists AND (profile loaded OR is a public user awaiting profile)
+  const isAuthenticated = !!user && (!!profile || !!user.user_metadata?.is_public_user);
 
   return (
     <PublicAuthContext.Provider value={{ user, session, profile, loading, isAuthenticated, signUp, signIn, signOut, refreshProfile }}>
