@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import JobListingCard from '@/components/utility/JobListingCard';
 import PublicUserBar from '@/components/utility/PublicUserBar';
+import ScrollDownBanner from '@/components/utility/ScrollDownBanner';
 import { useJobListings, JOB_TYPES } from '@/hooks/useJobListings';
 import { Search, Filter, ArrowLeft, Wrench, Briefcase, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -104,6 +105,9 @@ const JobListings: React.FC = () => {
           <Wrench className="h-5 w-5 group-hover:scale-110 transition-transform" /> 
           🧰 Ver Prestadores de Serviço
         </Link>
+
+        {/* Scroll down banner */}
+        <ScrollDownBanner text="Confira abaixo as Vagas de Emprego" emoji="💼" colorScheme="blue" />
 
         {/* Stats bar */}
         {!loading && jobs.length > 0 && (

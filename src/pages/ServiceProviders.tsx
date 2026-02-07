@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ServiceProviderCard from '@/components/utility/ServiceProviderCard';
 import PublicUserBar from '@/components/utility/PublicUserBar';
+import ScrollDownBanner from '@/components/utility/ScrollDownBanner';
 import { useServiceProviders } from '@/hooks/useServiceProviders';
 import { Search, Filter, ArrowLeft, Briefcase, Wrench, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -104,6 +105,9 @@ const ServiceProviders: React.FC = () => {
           <Briefcase className="h-5 w-5 group-hover:scale-110 transition-transform" /> 
           💼 Ver Vagas de Emprego
         </Link>
+
+        {/* Scroll down banner */}
+        <ScrollDownBanner text="Confira abaixo os Prestadores de Serviço" emoji="🧰" colorScheme="green" />
 
         {/* Stats bar */}
         {!loading && providers.length > 0 && (
