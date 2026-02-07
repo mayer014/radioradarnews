@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { usePublicAuth } from '@/contexts/PublicAuthContext';
 import { LogIn, LayoutDashboard, LogOut, UserPlus } from 'lucide-react';
+import PasswordResetRequestDialog from '@/components/utility/PasswordResetRequestDialog';
 
 const PublicUserBar: React.FC = () => {
   const { isAuthenticated, profile, loading, signOut } = usePublicAuth();
@@ -18,12 +19,13 @@ const PublicUserBar: React.FC = () => {
             <p className="text-base font-semibold text-foreground">Quer divulgar seus serviços ou vagas?</p>
             <p className="text-sm text-muted-foreground">Cadastre-se gratuitamente e apareça para toda a região.</p>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex flex-col gap-2 w-full sm:w-auto">
             <Link to="/utilidade-publica/auth" className="flex-1 sm:flex-initial">
               <Button className="bg-gradient-hero w-full text-sm sm:text-base px-5 py-2.5">
                 <UserPlus className="h-4 w-4 mr-2" /> Cadastrar / Entrar
               </Button>
             </Link>
+            <PasswordResetRequestDialog />
           </div>
         </div>
       </div>
