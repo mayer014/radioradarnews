@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import JobListingCard from '@/components/utility/JobListingCard';
 import PublicUserBar from '@/components/utility/PublicUserBar';
 import { useJobListings, JOB_TYPES } from '@/hooks/useJobListings';
-import { Search, Filter, ArrowLeft } from 'lucide-react';
+import { Search, Filter, ArrowLeft, Wrench } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const JobListings: React.FC = () => {
@@ -34,8 +34,15 @@ const JobListings: React.FC = () => {
           <Link to="/utilidade-publica" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" /> Utilidade Pública
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">💼 Vagas de Emprego</h1>
-          <p className="text-muted-foreground">Encontre oportunidades na sua região</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-1">💼 Vagas de Emprego</h1>
+              <p className="text-muted-foreground">Encontre oportunidades na sua região</p>
+            </div>
+            <Link to="/prestadores" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors text-sm font-medium">
+              <Wrench className="h-4 w-4" /> Ver Prestadores de Serviço
+            </Link>
+          </div>
         </div>
 
         {/* User status bar */}

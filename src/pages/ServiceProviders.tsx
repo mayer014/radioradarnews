@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import ServiceProviderCard from '@/components/utility/ServiceProviderCard';
 import PublicUserBar from '@/components/utility/PublicUserBar';
 import { useServiceProviders } from '@/hooks/useServiceProviders';
-import { Search, Filter, ArrowLeft } from 'lucide-react';
+import { Search, Filter, ArrowLeft, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ServiceProviders: React.FC = () => {
@@ -34,8 +34,15 @@ const ServiceProviders: React.FC = () => {
           <Link to="/utilidade-publica" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="h-4 w-4" /> Utilidade Pública
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-2">🧰 Prestadores de Serviço</h1>
-          <p className="text-muted-foreground">Encontre profissionais de confiança na sua região</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent mb-1">🧰 Prestadores de Serviço</h1>
+              <p className="text-muted-foreground">Encontre profissionais de confiança na sua região</p>
+            </div>
+            <Link to="/vagas" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors text-sm font-medium">
+              <Briefcase className="h-4 w-4" /> Ver Vagas de Emprego
+            </Link>
+          </div>
         </div>
 
         {/* User status bar */}
