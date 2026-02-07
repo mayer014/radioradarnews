@@ -165,7 +165,7 @@ Ultra high quality, sharp text, vibrant colors.`
     
     // Upload para Supabase Storage (bucket art-templates é público)
     // Nome fixo por artigo para sobrescrever em vez de acumular
-    const fileName = payload.article_id ? `social-art-${payload.article_id}.png` : `social-art-${Date.now()}.png`
+    const fileName = 'social-art-latest.png'
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('art-templates')
       .upload(`generated/${fileName}`, binaryData, {
