@@ -274,6 +274,12 @@
     100% { transform: translateX(100%); }
   }
 
+  /* Bounce-x for arrow hints */
+  @keyframes bounce-x {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+  }
+
   /* Melhorar responsividade de imagens */
   img {
     max-width: 100%;

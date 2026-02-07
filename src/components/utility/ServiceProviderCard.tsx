@@ -14,21 +14,20 @@ const ServiceProviderCard: React.FC<{ provider: ServiceProvider; index?: number 
   return (
     <div
       className="group relative rounded-2xl overflow-hidden bg-card cursor-pointer transition-all duration-500 hover:-translate-y-2 animate-fade-in"
-      style={{ animationDelay: `${index * 80}ms`, animationFillMode: 'both' }}
+      style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
       onClick={() => navigate(`/prestadores/${provider.id}`)}
     >
-      {/* Animated border glow */}
-      <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 opacity-30 group-hover:opacity-100 transition-opacity duration-500 blur-[1px]" />
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
+      {/* Always-visible animated border */}
+      <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-blue-500 opacity-40 group-hover:opacity-100 transition-opacity duration-500 blur-[1px]" />
 
       {/* Inner content */}
       <div className="relative bg-card rounded-2xl overflow-hidden m-[1px]">
-        {/* Top gradient bar with shimmer */}
+        {/* Shimmer bar — always animating */}
         <div className="relative h-2 bg-gradient-to-r from-primary via-purple-500 to-blue-500 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite] -translate-x-full" style={{ animation: 'shimmer 2s infinite' }} />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer 2.5s ease-in-out infinite' }} />
         </div>
 
-        {/* Category ribbon */}
+        {/* Category + live dot */}
         <div className="flex items-center justify-between px-4 sm:px-5 pt-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary">
             <span className="text-sm">{categoryIcon}</span> {categoryName}
@@ -42,12 +41,12 @@ const ServiceProviderCard: React.FC<{ provider: ServiceProvider; index?: number 
         </div>
 
         <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 space-y-3">
-          {/* Name with animated underline on hover */}
+          {/* Name — always shows gradient underline */}
           <div>
             <h3 className="text-lg sm:text-xl font-extrabold text-foreground group-hover:text-primary transition-colors duration-300 leading-tight">
               {provider.name}
             </h3>
-            <div className="h-0.5 w-0 group-hover:w-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500 mt-1 rounded-full" />
+            <div className="h-0.5 w-12 group-hover:w-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500 mt-1 rounded-full" />
           </div>
 
           {/* Description */}
@@ -62,16 +61,16 @@ const ServiceProviderCard: React.FC<{ provider: ServiceProvider; index?: number 
           {/* Availability */}
           <AvailabilityBadge availableDays={provider.available_days} startTime={provider.start_time} endTime={provider.end_time} />
 
-          {/* Charges pills */}
+          {/* Charges */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
               provider.charges_estimate 
                 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' 
                 : 'bg-green-500/10 border border-green-500/20 text-green-400'
             }`}>
               {provider.charges_estimate ? '💰 Cobra orçamento' : '✅ Orçamento grátis'}
             </span>
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
               provider.charges_displacement 
                 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' 
                 : 'bg-green-500/10 border border-green-500/20 text-green-400'
@@ -80,11 +79,11 @@ const ServiceProviderCard: React.FC<{ provider: ServiceProvider; index?: number 
             </span>
           </div>
 
-          {/* "Ver detalhes" teaser */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors duration-300">
+          {/* "Ver detalhes" — visible always, arrow pulses */}
+          <div className="flex items-center gap-1 text-xs text-primary/70">
             <Sparkles className="h-3 w-3" />
             <span>Ver detalhes</span>
-            <ArrowRight className="h-3 w-3 translate-x-0 group-hover:translate-x-1 transition-transform duration-300" />
+            <ArrowRight className="h-3 w-3 animate-[bounce-x_1.5s_ease-in-out_infinite]" />
           </div>
 
           {/* WhatsApp */}
