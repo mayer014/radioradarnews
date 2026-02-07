@@ -82,6 +82,7 @@ import ArtTemplateManager from '@/components/ArtTemplateManager';
 import SocialMediaConfigPanel from '@/components/SocialMediaConfigPanel';
 import TokenExpirationAlert from '@/components/TokenExpirationAlert';
 import UtilityCRM from '@/components/utility/UtilityCRM';
+import AdminMessagesTab from '@/components/AdminMessagesTab';
 
 const AdminPanel = () => {
   const { profile, signOut } = useSupabaseAuth();
@@ -745,95 +746,11 @@ const AdminPanel = () => {
 
         {/* Lista de Mensagens - Apenas para admin */}
         {activeTab === 'messages' && isAdmin && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                Mensagens de Contato ({messages.length})
-              </h2>
-            </div>
-
-            {messages.length === 0 ? (
-              <Card className="bg-gradient-card border-primary/30 p-12 text-center">
-                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhuma mensagem encontrada</h3>
-                <p className="text-muted-foreground mb-4">
-                  As mensagens enviadas pelo formulário de contato aparecerão aqui.
-                </p>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {messages
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map((message) => (
-                  <Card 
-                    key={message.id} 
-                    className={`bg-gradient-card border-primary/30 p-6 ${!message.read ? 'border-l-4 border-l-primary' : ''}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-foreground">
-                            {message.subject}
-                          </h3>
-                          {!message.read && (
-                            <Badge className="bg-primary text-primary-foreground">
-                              Nova
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <User className="h-4 w-4" />
-                            <span>{message.name}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <Mail className="h-4 w-4" />
-                            <span>{message.email}</span>
-                          </div>
-                          {message.phone && (
-                            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                              <Phone className="h-4 w-4" />
-                              <span>{message.phone}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(message.createdAt).toLocaleString('pt-BR')}</span>
-                          </div>
-                        </div>
-                        
-                        <p className="text-muted-foreground text-sm mb-4 p-3 bg-muted/30 rounded-lg">
-                          {message.message}
-                        </p>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 ml-4">
-                        {!message.read && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleMarkAsRead(message.id)}
-                            className="border-primary/50 hover:bg-primary/10"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteMessage(message.id, message.subject)}
-                          className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          <AdminMessagesTab
+            messages={messages}
+            onMarkAsRead={handleMarkAsRead}
+            onDelete={handleDeleteMessage}
+          />
         )}
 
 
