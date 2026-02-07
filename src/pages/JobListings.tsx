@@ -58,12 +58,18 @@ const JobListings: React.FC = () => {
           </div>
         </div>
 
+        {/* CTA */}
+        <div className="mb-6">
+          <Link to="/utilidade-publica/auth">
+            <Button className="bg-gradient-hero">Cadastre-se e publique uma vaga!</Button>
+          </Link>
+        </div>
+
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Carregando...</div>
         ) : jobs.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-lg text-muted-foreground mb-4">Nenhuma vaga encontrada.</p>
-            <Link to="/utilidade-publica/auth"><Button className="bg-gradient-hero">Cadastre-se e publique uma vaga!</Button></Link>
+            <p className="text-lg text-muted-foreground">Nenhuma vaga encontrada.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
