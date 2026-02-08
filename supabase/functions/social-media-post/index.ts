@@ -109,6 +109,52 @@ interface SocialMediaConfig {
   is_active: boolean
 }
 
+async function waitForImageAvailable(imageUrl: string, maxAttempts = 5): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch(imageUrl, { method: 'HEAD' })
+      if (res.ok) {
+        console.log(`✅ Imagem disponível após ${i + 1} tentativa(s)`)
+        return true
+      }
+      console.log(`⏳ Imagem não disponível (${res.status}), tentativa ${i + 1}/${maxAttempts}...`)
+    } catch {
+      console.log(`⏳ Imagem inacessível, tentativa ${i + 1}/${maxAttempts}...`)
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }
+  return false
+}
+
+async function postWithRetry(
+  fn: () => Promise<{ success: boolean; postId?: string; error?: string }>,
+  maxRetries = 3,
+  delayMs = 3000
+): Promise<{ success: boolean; postId?: string; error?: string }> {
+  let lastResult: { success: boolean; postId?: string; error?: string } = { success: false, error: 'Nenhuma tentativa realizada' }
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    lastResult = await fn()
+    
+    if (lastResult.success) return lastResult
+    
+    // Only retry on transient/image errors
+    const isTransient = lastResult.error?.includes('Missing or invalid image') ||
+                        lastResult.error?.includes('transient') ||
+                        lastResult.error?.includes('temporarily')
+    
+    if (!isTransient || attempt === maxRetries) {
+      console.log(`❌ Erro não-transitório ou última tentativa (${attempt}/${maxRetries})`)
+      return lastResult
+    }
+    
+    console.log(`🔄 Tentativa ${attempt}/${maxRetries} falhou com erro transitório, aguardando ${delayMs}ms...`)
+    await new Promise(resolve => setTimeout(resolve, delayMs))
+  }
+  
+  return lastResult
+}
+
 async function postToFacebook(
   config: SocialMediaConfig, 
   payload: PostRequest
@@ -116,7 +162,11 @@ async function postToFacebook(
   try {
     console.log('📘 Postando no Facebook...')
     
-    // Primeiro, obter o Page Access Token
+    // Verificar se a imagem está acessível antes de postar
+    console.log('🔍 Verificando disponibilidade da imagem...')
+    await waitForImageAvailable(payload.image_url)
+    
+    // Obter o Page Access Token
     let pageAccessToken = config.access_token
     
     console.log('🔍 Obtendo Page Access Token...')
@@ -138,45 +188,45 @@ async function postToFacebook(
       }
     } else if (pagesResult.error) {
       console.warn('⚠️ Não foi possível obter páginas:', pagesResult.error)
-      // Continuar com o token original (pode ser um Page Token)
     }
     
-    // Montar mensagem com link
     const messageWithLink = `${payload.caption}\n\n👉 Leia a matéria completa: ${payload.article_url}`
     
-    // Postar usando endpoint /photos
-    console.log('📤 Enviando para Facebook /photos...')
-    
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${config.page_id}/photos`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: payload.image_url,
-          message: messageWithLink,
-          access_token: pageAccessToken
-        })
-      }
-    )
-    
-    const result = await response.json()
-    
-    if (!response.ok) {
-      console.error('❌ Facebook error:', result)
+    // Postar com retry automático para erros transitórios
+    return await postWithRetry(async () => {
+      console.log('📤 Enviando para Facebook /photos...')
       
-      let errorMsg = result.error?.message || 'Erro desconhecido'
-      if (result.error?.code === 200) {
-        errorMsg = 'Token sem permissão. Gere um novo Page Access Token.'
-      } else if (result.error?.code === 190) {
-        errorMsg = 'Token expirado. Renove o token de acesso.'
+      const response = await fetch(
+        `https://graph.facebook.com/v18.0/${config.page_id}/photos`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: payload.image_url,
+            message: messageWithLink,
+            access_token: pageAccessToken
+          })
+        }
+      )
+      
+      const result = await response.json()
+      
+      if (!response.ok) {
+        console.error('❌ Facebook error:', result)
+        
+        let errorMsg = result.error?.message || 'Erro desconhecido'
+        if (result.error?.code === 200) {
+          errorMsg = 'Token sem permissão. Gere um novo Page Access Token.'
+        } else if (result.error?.code === 190) {
+          errorMsg = 'Token expirado. Renove o token de acesso.'
+        }
+        
+        return { success: false, error: errorMsg }
       }
       
-      return { success: false, error: errorMsg }
-    }
-    
-    console.log('✅ Facebook publicado:', result.id || result.post_id)
-    return { success: true, postId: result.id || result.post_id }
+      console.log('✅ Facebook publicado:', result.id || result.post_id)
+      return { success: true, postId: result.id || result.post_id }
+    })
   } catch (error) {
     console.error('❌ Facebook exception:', error)
     return { success: false, error: (error as Error).message }
@@ -195,66 +245,73 @@ async function postToInstagram(
     console.log('📸 Postando no Instagram...')
     console.log('📷 URL da imagem:', payload.image_url)
     
-    // Etapa 1: Criar container de mídia
-    console.log('📦 Criando container de mídia...')
+    // Verificar se a imagem está acessível antes de postar
+    console.log('🔍 Verificando disponibilidade da imagem...')
+    await waitForImageAvailable(payload.image_url)
     
-    const containerResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${config.instagram_user_id}/media`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_url: payload.image_url,
-          caption: payload.caption,
-          access_token: config.access_token
-        })
-      }
-    )
-    
-    const containerResult = await containerResponse.json()
-    
-    if (!containerResponse.ok) {
-      console.error('❌ Instagram container error:', containerResult)
+    // Postar com retry automático
+    return await postWithRetry(async () => {
+      // Etapa 1: Criar container de mídia
+      console.log('📦 Criando container de mídia...')
       
-      let errorMsg = containerResult.error?.message || 'Erro ao criar container'
-      if (containerResult.error?.code === 190) {
-        errorMsg = 'Token expirado. Renove o token de acesso.'
+      const containerResponse = await fetch(
+        `https://graph.facebook.com/v18.0/${config.instagram_user_id}/media`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_url: payload.image_url,
+            caption: payload.caption,
+            access_token: config.access_token
+          })
+        }
+      )
+      
+      const containerResult = await containerResponse.json()
+      
+      if (!containerResponse.ok) {
+        console.error('❌ Instagram container error:', containerResult)
+        
+        let errorMsg = containerResult.error?.message || 'Erro ao criar container'
+        if (containerResult.error?.code === 190) {
+          errorMsg = 'Token expirado. Renove o token de acesso.'
+        }
+        
+        return { success: false, error: errorMsg }
       }
       
-      return { success: false, error: errorMsg }
-    }
-    
-    const creationId = containerResult.id
-    console.log('📦 Container criado:', creationId)
-    
-    // Aguardar processamento do container (Instagram precisa de tempo)
-    console.log('⏳ Aguardando processamento do Instagram...')
-    await new Promise(resolve => setTimeout(resolve, 5000))
-    
-    // Etapa 2: Publicar container
-    console.log('📤 Publicando container...')
-    
-    const publishResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${config.instagram_user_id}/media_publish`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          creation_id: creationId,
-          access_token: config.access_token
-        })
+      const creationId = containerResult.id
+      console.log('📦 Container criado:', creationId)
+      
+      // Aguardar processamento do container
+      console.log('⏳ Aguardando processamento do Instagram...')
+      await new Promise(resolve => setTimeout(resolve, 5000))
+      
+      // Etapa 2: Publicar container
+      console.log('📤 Publicando container...')
+      
+      const publishResponse = await fetch(
+        `https://graph.facebook.com/v18.0/${config.instagram_user_id}/media_publish`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            creation_id: creationId,
+            access_token: config.access_token
+          })
+        }
+      )
+      
+      const publishResult = await publishResponse.json()
+      
+      if (!publishResponse.ok) {
+        console.error('❌ Instagram publish error:', publishResult)
+        return { success: false, error: publishResult.error?.message || 'Erro ao publicar' }
       }
-    )
-    
-    const publishResult = await publishResponse.json()
-    
-    if (!publishResponse.ok) {
-      console.error('❌ Instagram publish error:', publishResult)
-      return { success: false, error: publishResult.error?.message || 'Erro ao publicar' }
-    }
-    
-    console.log('✅ Instagram publicado:', publishResult.id)
-    return { success: true, postId: publishResult.id }
+      
+      console.log('✅ Instagram publicado:', publishResult.id)
+      return { success: true, postId: publishResult.id }
+    }, 3, 4000)
   } catch (error) {
     console.error('❌ Instagram exception:', error)
     return { success: false, error: (error as Error).message }

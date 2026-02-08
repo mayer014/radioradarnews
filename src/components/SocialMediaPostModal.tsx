@@ -237,7 +237,6 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       console.log('📤 Enviando para Edge Function social-media-post...');
       
-      // Usar Edge Function para contornar CORS em produção
       const response = await supabase.functions.invoke('social-media-post', {
         body: {
           platform: 'facebook',
@@ -251,17 +250,14 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       console.log('📥 Resposta da Edge Function:', response);
 
-      if (response.error) {
-        console.error('❌ Erro na Edge Function:', response.error);
-        toast.error(`Erro ao postar no Facebook: ${response.error.message}`);
-        return;
-      }
-
-      if (response.data?.success) {
+      // supabase.functions.invoke coloca dados em response.data mesmo com non-2xx
+      const result = response.data;
+      
+      if (result?.success) {
         setFacebookSuccess(true);
         toast.success('Publicado no Facebook!');
       } else {
-        const errorMsg = response.data?.error || 'Erro desconhecido';
+        const errorMsg = result?.error || response.error?.message || 'Erro desconhecido';
         console.error('❌ Facebook error:', errorMsg);
         toast.error(`Erro no Facebook: ${errorMsg}`);
       }
@@ -295,9 +291,8 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       console.log('📤 Enviando para Edge Function social-media-post (Instagram)...');
       
-      toast.info('Processando imagem no Instagram...');
+      toast.info('Processando imagem no Instagram... isso pode levar alguns segundos.');
       
-      // Usar Edge Function para contornar CORS em produção
       const response = await supabase.functions.invoke('social-media-post', {
         body: {
           platform: 'instagram',
@@ -311,17 +306,13 @@ export function SocialMediaPostModal({ open, onOpenChange, article }: SocialMedi
 
       console.log('📥 Resposta da Edge Function (Instagram):', response);
 
-      if (response.error) {
-        console.error('❌ Erro na Edge Function:', response.error);
-        toast.error(`Erro ao postar no Instagram: ${response.error.message}`);
-        return;
-      }
-
-      if (response.data?.success) {
+      const result = response.data;
+      
+      if (result?.success) {
         setInstagramSuccess(true);
         toast.success('Publicado no Instagram!');
       } else {
-        const errorMsg = response.data?.error || 'Erro desconhecido';
+        const errorMsg = result?.error || response.error?.message || 'Erro desconhecido';
         console.error('❌ Instagram error:', errorMsg);
         toast.error(`Erro no Instagram: ${errorMsg}`);
       }
