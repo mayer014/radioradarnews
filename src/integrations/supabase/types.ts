@@ -1661,7 +1661,6 @@ export type Database = {
         Returns: boolean
       }
       cleanup_obsolete_data: { Args: never; Returns: undefined }
-      ensure_super_admin: { Args: never; Returns: undefined }
       execute_full_cleanup: { Args: never; Returns: Json }
       get_columnist_info: {
         Args: { columnist_id: string }
@@ -1758,10 +1757,6 @@ export type Database = {
           p_subject: string
         }
         Returns: Json
-      }
-      update_user_password: {
-        Args: { new_password: string; user_email: string }
-        Returns: boolean
       }
     }
     Enums: {
