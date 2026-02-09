@@ -117,28 +117,7 @@ export async function generateUtilityArt(data: UtilityArtData, logoUrl?: string)
     ctx.textBaseline = 'middle';
     ctx.fillText(badgeText, canvas.width / 2, badgeY + badgeH / 2);
 
-    // ─── Logo (replaces icon circle) ───
-    const iconY = 200;
-    if (logoImage) {
-      const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
-      const logoH = 120, logoW = logoH * logoAspect;
-      const logoX = (canvas.width / 2) - (logoW / 2);
-      const logoY2 = iconY - (logoH / 2);
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.4)';
-      ctx.shadowBlur = 12;
-      ctx.drawImage(logoImage, logoX, logoY2, logoW, logoH);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.beginPath();
-      ctx.arc(canvas.width / 2, iconY, 70, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.font = '72px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(colors.icon, canvas.width / 2, iconY);
-    }
+    // ─── Espaço reservado central (sem ícone) ───
 
     // ─── Main content area ───
     const contentStartY = 320;

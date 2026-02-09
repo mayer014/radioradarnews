@@ -491,21 +491,7 @@ const ArtTemplateManager: React.FC = () => {
       ctx.fillStyle = '#fff'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('PRESTADOR DE SERVIÇO', t.canvas.width / 2, badgeY + 22);
 
-      // Logo central (replaces icon circle)
-      if (logoImage && logoImage.complete && logoImage.naturalWidth > 0) {
-        const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
-        const logoH = 120, logoW = logoH * logoAspect;
-        const logoX = (t.canvas.width / 2) - (logoW / 2);
-        const logoY = 200 - (logoH / 2);
-        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 12;
-        ctx.drawImage(logoImage, logoX, logoY, logoW, logoH);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.beginPath(); ctx.arc(t.canvas.width / 2, 200, 70, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('LOGO', t.canvas.width / 2, 200);
-      }
+      // Espaço reservado central (sem ícone)
 
       // Title
       ctx.fillStyle = t.title.color;
