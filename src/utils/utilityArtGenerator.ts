@@ -218,9 +218,12 @@ function drawServiceProviderContent(
     }
   }
 
-  // CTA
+  // CTA with WhatsApp number
   y = Math.max(y + 20, canvas.height - 180);
-  drawCTA(ctx, canvas, y, accent, t.ctaText.provider);
+  const ctaLabel = data.whatsapp
+    ? `📱 ${formatWhatsApp(data.whatsapp)}`
+    : t.ctaText.provider;
+  drawCTA(ctx, canvas, y, accent, ctaLabel);
 }
 
 function drawJobListingContent(
@@ -285,9 +288,12 @@ function drawJobListingContent(
     }
   }
 
-  // CTA
+  // CTA with WhatsApp number
   y = Math.max(y + 20, canvas.height - 180);
-  drawCTA(ctx, canvas, y, accent, t.ctaText.job);
+  const ctaLabel = data.whatsapp
+    ? `📱 ${formatWhatsApp(data.whatsapp)}`
+    : t.ctaText.job;
+  drawCTA(ctx, canvas, y, accent, ctaLabel);
 }
 
 function drawCTA(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, y: number, color: string, text: string) {
