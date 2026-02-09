@@ -87,6 +87,11 @@ const UtilityCRM: React.FC = () => {
   // Social media modal state
   const [socialModalOpen, setSocialModalOpen] = useState(false);
   const [socialModalData, setSocialModalData] = useState<UtilityArtData | null>(null);
+  const [socialModalEntityId, setSocialModalEntityId] = useState<string | undefined>();
+  const [socialModalEntityType, setSocialModalEntityType] = useState<'service_provider' | 'job_listing' | undefined>();
+  
+  // Shared tracking: set of entity IDs that have been shared
+  const [sharedIds, setSharedIds] = useState<Record<string, Set<string>>>({});
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -97,19 +102,40 @@ const UtilityCRM: React.FC = () => {
 
   const loadManagementData = useCallback(async () => {
     setManagementLoading(true);
-    const [provRes, jobRes, usersRes] = await Promise.all([
+    const [provRes, jobRes, usersRes, sharedRes] = await Promise.all([
       supabase.from('service_providers').select('id, name, description, city, whatsapp, is_active, created_at, user_id').order('created_at', { ascending: false }),
       supabase.from('job_listings').select('id, title, company, city, whatsapp, is_active, created_at, user_id, job_type, salary').order('created_at', { ascending: false }),
       supabase.from('public_user_profiles').select('id, full_name, email, phone, city, is_active, created_at').order('created_at', { ascending: false }),
+      supabase.from('utility_click_tracking').select('entity_id, action').like('action', 'social_shared_%'),
     ]);
     setProviders((provRes.data || []) as ServiceProvider[]);
     setJobs((jobRes.data || []) as JobListing[]);
     setPublicUsers((usersRes.data || []) as PublicUser[]);
+    
+    // Build shared IDs map: { entityId: Set<platform> }
+    const shared: Record<string, Set<string>> = {};
+    (sharedRes.data || []).forEach((row: { entity_id: string; action: string }) => {
+      if (!shared[row.entity_id]) shared[row.entity_id] = new Set();
+      const platform = row.action.replace('social_shared_', '');
+      shared[row.entity_id].add(platform);
+    });
+    setSharedIds(shared);
+    
     setManagementLoading(false);
   }, []);
 
   useEffect(() => { loadStats(); }, [period]);
   useEffect(() => { if (mainTab === 'management') loadManagementData(); }, [mainTab]);
+  
+  const handleShareSuccess = (entityId: string, platform: string) => {
+    setSharedIds(prev => {
+      const updated = { ...prev };
+      if (!updated[entityId]) updated[entityId] = new Set();
+      else updated[entityId] = new Set(updated[entityId]);
+      updated[entityId].add(platform);
+      return updated;
+    });
+  };
 
   const handleDelete = async (type: 'service_provider' | 'job_listing', id: string, name: string) => {
     if (!confirm(`Tem certeza que deseja excluir "${name}"? Esta ação é irreversível.`)) return;
@@ -365,6 +391,13 @@ const UtilityCRM: React.FC = () => {
                               <Badge variant={p.is_active ? 'default' : 'outline'} className={`text-[10px] ${p.is_active ? 'bg-green-500/20 text-green-400 border-green-500/30' : ''}`}>
                                 {p.is_active ? '● Ativo' : '○ Inativo'}
                               </Badge>
+                              {sharedIds[p.id] && (
+                                <Badge variant="outline" className="text-[10px] gap-1 bg-purple-500/10 text-purple-400 border-purple-500/30">
+                                  📢 Compartilhado
+                                  {sharedIds[p.id].has('facebook') && sharedIds[p.id].has('instagram') ? ' (FB + IG)' :
+                                   sharedIds[p.id].has('facebook') ? ' (FB)' : ' (IG)'}
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.city}</span>
@@ -382,9 +415,12 @@ const UtilityCRM: React.FC = () => {
                                   city: p.city,
                                   whatsapp: p.whatsapp,
                                 });
+                                setSocialModalEntityId(p.id);
+                                setSocialModalEntityType('service_provider');
                                 setSocialModalOpen(true);
                               }}>
                               <Share2 className="h-4 w-4" />
+                              {sharedIds[p.id] ? '↻' : ''}
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleToggleActive('service_provider', p.id, p.is_active)}>
                               {p.is_active ? 'Desativar' : 'Ativar'}
@@ -430,6 +466,13 @@ const UtilityCRM: React.FC = () => {
                               <Badge variant={j.is_active ? 'default' : 'outline'} className={`text-[10px] ${j.is_active ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : ''}`}>
                                 {j.is_active ? '● Ativa' : '○ Inativa'}
                               </Badge>
+                              {sharedIds[j.id] && (
+                                <Badge variant="outline" className="text-[10px] gap-1 bg-purple-500/10 text-purple-400 border-purple-500/30">
+                                  📢 Compartilhado
+                                  {sharedIds[j.id].has('facebook') && sharedIds[j.id].has('instagram') ? ' (FB + IG)' :
+                                   sharedIds[j.id].has('facebook') ? ' (FB)' : ' (IG)'}
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               <span className="font-medium">{j.company}</span>
@@ -450,9 +493,12 @@ const UtilityCRM: React.FC = () => {
                                   jobType: j.job_type,
                                   salary: j.salary || undefined,
                                 });
+                                setSocialModalEntityId(j.id);
+                                setSocialModalEntityType('job_listing');
                                 setSocialModalOpen(true);
                               }}>
                               <Share2 className="h-4 w-4" />
+                              {sharedIds[j.id] ? '↻' : ''}
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleToggleActive('job_listing', j.id, j.is_active)}>
                               {j.is_active ? 'Desativar' : 'Ativar'}
@@ -548,6 +594,9 @@ const UtilityCRM: React.FC = () => {
         open={socialModalOpen}
         onOpenChange={setSocialModalOpen}
         data={socialModalData}
+        entityId={socialModalEntityId}
+        entityType={socialModalEntityType}
+        onShareSuccess={handleShareSuccess}
       />
     </div>
   );
