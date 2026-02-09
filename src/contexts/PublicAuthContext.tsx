@@ -102,6 +102,48 @@ export const PublicAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       },
     });
 
+    // If user already exists (e.g. columnist), try to sign in and create public profile
+    if (error && (error.message?.includes('already') || error.message?.includes('User already registered'))) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (signInError) {
+        return { error: { message: 'Este e-mail já possui uma conta. Faça login com sua senha existente ou use "Esqueci minha senha" para recuperá-la.' } };
+      }
+
+      // User signed in successfully - ensure they have a public_user_profile
+      if (signInData.user) {
+        const { data: existingProfile } = await supabase
+          .from('public_user_profiles')
+          .select('id')
+          .eq('id', signInData.user.id)
+          .maybeSingle();
+
+        if (!existingProfile) {
+          // Create public user profile for existing auth user
+          await supabase.from('public_user_profiles').insert({
+            id: signInData.user.id,
+            full_name: data.full_name,
+            email: data.email,
+            phone: data.phone || null,
+            city: data.city || null,
+          });
+        }
+
+        // Update user metadata to include is_public_user
+        await supabase.auth.updateUser({
+          data: { is_public_user: true, full_name: data.full_name },
+        });
+
+        // Refresh profile
+        await fetchProfile(signInData.user.id);
+      }
+
+      return { error: null };
+    }
+
     return { error };
   };
 
