@@ -4,15 +4,17 @@ import {
   ArtTemplatesConfig, 
   DEFAULT_TEMPLATES, 
   RegularArtTemplate, 
-  ColumnistArtTemplate 
+  ColumnistArtTemplate,
+  UtilityArtTemplate,
+  DEFAULT_UTILITY_TEMPLATE
 } from '@/types/artTemplate';
 
 interface ArtTemplateContextType {
   templates: ArtTemplatesConfig;
   loading: boolean;
   error: string | null;
-  getTemplate: (type: 'regular' | 'columnist') => RegularArtTemplate | ColumnistArtTemplate;
-  updateTemplate: (type: 'regular' | 'columnist', template: RegularArtTemplate | ColumnistArtTemplate) => Promise<void>;
+  getTemplate: (type: 'regular' | 'columnist' | 'utility') => RegularArtTemplate | ColumnistArtTemplate | UtilityArtTemplate;
+  updateTemplate: (type: 'regular' | 'columnist' | 'utility', template: RegularArtTemplate | ColumnistArtTemplate | UtilityArtTemplate) => Promise<void>;
   refreshTemplates: () => Promise<void>;
 }
 
@@ -92,12 +94,40 @@ export const ArtTemplateProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
               }
             } as ColumnistArtTemplate;
+          } else if (row.key === 'utility' && row.value) {
+            const savedValue = row.value as object;
+            const savedRecord = savedValue as Record<string, unknown>;
+            loadedTemplates.utility = {
+              ...DEFAULT_UTILITY_TEMPLATE,
+              ...savedValue,
+              background: {
+                ...DEFAULT_UTILITY_TEMPLATE.background,
+                ...savedRecord.background as object | undefined
+              },
+              logo: {
+                ...DEFAULT_UTILITY_TEMPLATE.logo,
+                ...savedRecord.logo as object | undefined,
+                position: {
+                  ...DEFAULT_UTILITY_TEMPLATE.logo.position,
+                  ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+                }
+              },
+              colors: {
+                ...DEFAULT_UTILITY_TEMPLATE.colors,
+                ...savedRecord.colors as object | undefined
+              },
+              ctaText: {
+                ...DEFAULT_UTILITY_TEMPLATE.ctaText,
+                ...savedRecord.ctaText as object | undefined
+              }
+            } as UtilityArtTemplate;
           }
         });
 
         setTemplates({
           regular: loadedTemplates.regular || DEFAULT_TEMPLATES.regular,
-          columnist: loadedTemplates.columnist || DEFAULT_TEMPLATES.columnist
+          columnist: loadedTemplates.columnist || DEFAULT_TEMPLATES.columnist,
+          utility: loadedTemplates.utility || DEFAULT_TEMPLATES.utility
         });
         
         console.log('✅ [ArtTemplates] Templates carregados:', loadedTemplates);
@@ -118,13 +148,14 @@ export const ArtTemplateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     fetchTemplates();
   }, [fetchTemplates]);
 
-  const getTemplate = useCallback((type: 'regular' | 'columnist') => {
+  const getTemplate = useCallback((type: 'regular' | 'columnist' | 'utility') => {
+    if (type === 'utility') return templates.utility || DEFAULT_UTILITY_TEMPLATE;
     return type === 'regular' ? templates.regular : templates.columnist;
   }, [templates]);
 
   const updateTemplate = useCallback(async (
-    type: 'regular' | 'columnist', 
-    template: RegularArtTemplate | ColumnistArtTemplate
+    type: 'regular' | 'columnist' | 'utility', 
+    template: RegularArtTemplate | ColumnistArtTemplate | UtilityArtTemplate
   ) => {
     try {
       console.log(`🎨 [ArtTemplates] Salvando template ${type}...`, template);
@@ -266,12 +297,40 @@ export const fetchArtTemplatesFromDB = async (): Promise<ArtTemplatesConfig> => 
               }
             }
           } as ColumnistArtTemplate;
+        } else if (row.key === 'utility' && row.value) {
+          const savedValue = row.value as object;
+          const savedRecord = savedValue as Record<string, unknown>;
+          loadedTemplates.utility = {
+            ...DEFAULT_UTILITY_TEMPLATE,
+            ...savedValue,
+            background: {
+              ...DEFAULT_UTILITY_TEMPLATE.background,
+              ...savedRecord.background as object | undefined
+            },
+            logo: {
+              ...DEFAULT_UTILITY_TEMPLATE.logo,
+              ...savedRecord.logo as object | undefined,
+              position: {
+                ...DEFAULT_UTILITY_TEMPLATE.logo.position,
+                ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+              }
+            },
+            colors: {
+              ...DEFAULT_UTILITY_TEMPLATE.colors,
+              ...savedRecord.colors as object | undefined
+            },
+            ctaText: {
+              ...DEFAULT_UTILITY_TEMPLATE.ctaText,
+              ...savedRecord.ctaText as object | undefined
+            }
+          } as UtilityArtTemplate;
         }
       });
 
       return {
         regular: loadedTemplates.regular || DEFAULT_TEMPLATES.regular,
-        columnist: loadedTemplates.columnist || DEFAULT_TEMPLATES.columnist
+        columnist: loadedTemplates.columnist || DEFAULT_TEMPLATES.columnist,
+        utility: loadedTemplates.utility || DEFAULT_TEMPLATES.utility
       };
     }
 

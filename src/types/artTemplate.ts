@@ -59,11 +59,45 @@ export interface ColumnistArtTemplate extends ArtTemplateSettings {
   };
 }
 
-export type ArtTemplate = RegularArtTemplate | ColumnistArtTemplate;
+export interface UtilityArtTemplate {
+  id: 'utility';
+  name: string;
+  canvas: { width: number; height: number };
+  background: { imageUrl: string };
+  logo: {
+    enabled: boolean;
+    position: FreePosition;
+    size: number;
+    imageUrl: string;
+  };
+  colors: {
+    providerGradient1: string;
+    providerGradient2: string;
+    providerAccent: string;
+    jobGradient1: string;
+    jobGradient2: string;
+    jobAccent: string;
+  };
+  title: {
+    fontSize: number;
+    fontWeight: string;
+    maxLines: number;
+    lineHeight: number;
+    color: string;
+  };
+  ctaText: {
+    provider: string;
+    job: string;
+  };
+  branding: string;  // Texto do rodapé
+}
+
+export type ArtTemplate = RegularArtTemplate | ColumnistArtTemplate | UtilityArtTemplate;
 
 export interface ArtTemplatesConfig {
   regular: RegularArtTemplate;
   columnist: ColumnistArtTemplate;
+  utility?: UtilityArtTemplate;
 }
 
 // Valores padrão otimizados - imagem grande, posição livre para sobreposição
@@ -144,7 +178,41 @@ export const DEFAULT_COLUMNIST_TEMPLATE: ColumnistArtTemplate = {
   }
 };
 
+export const DEFAULT_UTILITY_TEMPLATE: UtilityArtTemplate = {
+  id: 'utility',
+  name: 'Utilidade Pública',
+  canvas: { width: 1080, height: 1080 },
+  background: { imageUrl: '' },
+  logo: {
+    enabled: true,
+    position: { x: 85, y: 92 },
+    size: 100,
+    imageUrl: ''
+  },
+  colors: {
+    providerGradient1: '#064e3b',
+    providerGradient2: '#065f46',
+    providerAccent: '#10b981',
+    jobGradient1: '#1e3a5f',
+    jobGradient2: '#1e40af',
+    jobAccent: '#3b82f6',
+  },
+  title: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    maxLines: 2,
+    lineHeight: 58,
+    color: '#ffffff'
+  },
+  ctaText: {
+    provider: 'Entre em contato pelo WhatsApp!',
+    job: 'Candidate-se pelo WhatsApp!',
+  },
+  branding: 'radioradar.news • Utilidade Pública',
+};
+
 export const DEFAULT_TEMPLATES: ArtTemplatesConfig = {
   regular: DEFAULT_REGULAR_TEMPLATE,
-  columnist: DEFAULT_COLUMNIST_TEMPLATE
+  columnist: DEFAULT_COLUMNIST_TEMPLATE,
+  utility: DEFAULT_UTILITY_TEMPLATE,
 };
