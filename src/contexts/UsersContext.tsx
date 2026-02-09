@@ -289,7 +289,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const columnists = useMemo(() => {
-    const filtered = users.filter(u => u.role === 'colunista');
+    const filtered = users.filter(u => u.role === 'colunista' && u.name !== 'Administrador');
     console.log('UsersContext: Columnists memo update:', filtered.length, 'active:', filtered.filter(c => c.columnistProfile?.isActive).length);
     return filtered;
   }, [users]);
