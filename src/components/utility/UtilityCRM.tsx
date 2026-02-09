@@ -12,8 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   BarChart3, TrendingUp, MousePointerClick, Wrench, Briefcase,
   Trophy, Calendar, Trash2, Shield, Phone, MapPin, RefreshCw,
-  Search, KeyRound, Users, Eye, EyeOff,
+  Search, KeyRound, Users, Eye, EyeOff, Share2,
 } from 'lucide-react';
+import { UtilitySocialMediaModal } from './UtilitySocialMediaModal';
+import { UtilityArtData } from '@/utils/utilityArtGenerator';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -33,6 +35,7 @@ interface ServiceProvider {
 interface JobListing {
   id: string; title: string; company: string; city: string;
   whatsapp: string; is_active: boolean; created_at: string; user_id: string;
+  job_type?: string; salary?: string;
 }
 
 interface PublicUser {
@@ -81,6 +84,10 @@ const UtilityCRM: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
+  // Social media modal state
+  const [socialModalOpen, setSocialModalOpen] = useState(false);
+  const [socialModalData, setSocialModalData] = useState<UtilityArtData | null>(null);
+
   const loadStats = useCallback(async () => {
     setLoading(true);
     const { data } = await getStats(parseInt(period));
@@ -92,7 +99,7 @@ const UtilityCRM: React.FC = () => {
     setManagementLoading(true);
     const [provRes, jobRes, usersRes] = await Promise.all([
       supabase.from('service_providers').select('id, name, description, city, whatsapp, is_active, created_at, user_id').order('created_at', { ascending: false }),
-      supabase.from('job_listings').select('id, title, company, city, whatsapp, is_active, created_at, user_id').order('created_at', { ascending: false }),
+      supabase.from('job_listings').select('id, title, company, city, whatsapp, is_active, created_at, user_id, job_type, salary').order('created_at', { ascending: false }),
       supabase.from('public_user_profiles').select('id, full_name, email, phone, city, is_active, created_at').order('created_at', { ascending: false }),
     ]);
     setProviders((provRes.data || []) as ServiceProvider[]);
@@ -366,6 +373,19 @@ const UtilityCRM: React.FC = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button variant="outline" size="sm" className="gap-1"
+                              onClick={() => {
+                                setSocialModalData({
+                                  type: 'service_provider',
+                                  name: p.name,
+                                  description: p.description,
+                                  city: p.city,
+                                  whatsapp: p.whatsapp,
+                                });
+                                setSocialModalOpen(true);
+                              }}>
+                              <Share2 className="h-4 w-4" />
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => handleToggleActive('service_provider', p.id, p.is_active)}>
                               {p.is_active ? 'Desativar' : 'Ativar'}
                             </Button>
@@ -419,6 +439,21 @@ const UtilityCRM: React.FC = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            <Button variant="outline" size="sm" className="gap-1"
+                              onClick={() => {
+                                setSocialModalData({
+                                  type: 'job_listing',
+                                  title: j.title,
+                                  company: j.company,
+                                  city: j.city,
+                                  whatsapp: j.whatsapp,
+                                  jobType: j.job_type,
+                                  salary: j.salary || undefined,
+                                });
+                                setSocialModalOpen(true);
+                              }}>
+                              <Share2 className="h-4 w-4" />
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => handleToggleActive('job_listing', j.id, j.is_active)}>
                               {j.is_active ? 'Desativar' : 'Ativar'}
                             </Button>
@@ -508,6 +543,12 @@ const UtilityCRM: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <UtilitySocialMediaModal
+        open={socialModalOpen}
+        onOpenChange={setSocialModalOpen}
+        data={socialModalData}
+      />
     </div>
   );
 };
