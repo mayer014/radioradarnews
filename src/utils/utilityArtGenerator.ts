@@ -123,7 +123,7 @@ export async function generateUtilityArt(
     ctx.fillText(label, canvas.width / 2, badgeY + 22);
 
     // ─── Main content area ───
-    const contentStartY = 200;
+    const contentStartY = 320;
 
     if (isProvider) {
       drawServiceProviderContent(ctx, canvas, data, accent, t, contentStartY);
