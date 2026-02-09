@@ -26,7 +26,7 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
   const [isPostingInstagram, setIsPostingInstagram] = useState(false);
   const [facebookSuccess, setFacebookSuccess] = useState(false);
   const [instagramSuccess, setInstagramSuccess] = useState(false);
-  const [uploadedArtUrl, setUploadedArtUrl] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (open && data) {
@@ -34,7 +34,7 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
       setCaption(generateUtilityCaption(data, PRODUCTION_URL));
     } else {
       setArtImageUrl(null);
-      setUploadedArtUrl(null);
+      
       setFacebookSuccess(false);
       setInstagramSuccess(false);
     }
@@ -57,39 +57,8 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
     }
   };
 
-  const uploadArtToStorage = async (): Promise<string | null> => {
-    if (!artImageUrl) return null;
-    try {
-      // Convert data URL to blob
-      const response = await fetch(artImageUrl);
-      const blob = await response.blob();
-
-      // Always overwrite the same file to prevent storage accumulation
-      // Use Supabase Storage (publicly accessible .png URL that Meta APIs accept)
-      const fileName = 'social-art-utility-latest.png';
-      const storagePath = `generated/${fileName}`;
-
-      const { error } = await supabase.storage
-        .from('art-templates')
-        .upload(storagePath, blob, { contentType: 'image/png', upsert: true });
-
-      if (error) {
-        console.error('Supabase storage upload error:', error);
-        toast.error('Upload falhou');
-        return null;
-      }
-
-      const { data: publicUrl } = supabase.storage
-        .from('art-templates')
-        .getPublicUrl(storagePath);
-
-      // Add cache-bust to ensure Meta fetches fresh image
-      return `${publicUrl.publicUrl}?t=${Date.now()}`;
-    } catch (error) {
-      toast.error(`Erro no upload: ${(error as Error).message}`);
-      return null;
-    }
-  };
+  // Upload is now handled server-side in the edge function
+  // We just pass the base64 image data directly
 
   const postToSocial = async (platform: 'facebook' | 'instagram') => {
     if (!data || !artImageUrl) return;
@@ -98,17 +67,13 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
 
     setPosting(true);
     try {
-      const imageUrl = uploadedArtUrl || await uploadArtToStorage();
-      if (!imageUrl) { toast.error('Erro ao fazer upload da imagem'); setPosting(false); return; }
-      if (!uploadedArtUrl) setUploadedArtUrl(imageUrl);
-
       if (platform === 'instagram') toast.info('Processando imagem no Instagram...');
 
       const response = await supabase.functions.invoke('social-media-post', {
         body: {
           platform,
           article_id: null,
-          image_url: imageUrl,
+          image_data: artImageUrl,
           caption,
           article_url: `${PRODUCTION_URL}/${data.type === 'service_provider' ? 'prestadores' : 'vagas'}`,
           is_columnist: false

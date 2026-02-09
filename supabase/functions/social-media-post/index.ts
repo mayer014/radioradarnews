@@ -13,7 +13,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 interface PostRequest {
   platform: 'facebook' | 'instagram'
   article_id: string
-  image_url: string
+  image_url?: string
+  image_data?: string // base64 data URL for server-side upload
   caption: string
   article_url: string
   is_columnist: boolean
@@ -30,10 +31,41 @@ serve(async (req) => {
     
     console.log('🚀 social-media-post: Iniciando postagem')
     console.log('📱 Plataforma:', payload.platform)
-    console.log('🖼️ URL da imagem:', payload.image_url)
     
     // Criar cliente Supabase com service role para acessar configurações
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    
+    // If image_data (base64) is provided, upload to Supabase Storage server-side
+    let imageUrl = payload.image_url || ''
+    if (payload.image_data && payload.image_data.startsWith('data:')) {
+      console.log('📤 Uploading image server-side to Supabase Storage...')
+      const base64Data = payload.image_data.split(',')[1]
+      const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
+      
+      const fileName = 'social-art-utility-latest.png'
+      const storagePath = `generated/${fileName}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('art-templates')
+        .upload(storagePath, binaryData, { contentType: 'image/png', upsert: true })
+      
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError)
+        return new Response(
+          JSON.stringify({ success: false, error: `Upload falhou: ${uploadError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('art-templates')
+        .getPublicUrl(storagePath)
+      
+      imageUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`
+      console.log('✅ Image uploaded:', imageUrl)
+    }
+    
+    console.log('🖼️ URL da imagem:', imageUrl)
     
     // Buscar configuração da rede social
     const { data: config, error: configError } = await supabase
@@ -54,9 +86,9 @@ serve(async (req) => {
     let result: { success: boolean; postId?: string; error?: string }
     
     if (payload.platform === 'facebook') {
-      result = await postToFacebook(config, payload)
+      result = await postToFacebook(config, { ...payload, image_url: imageUrl })
     } else if (payload.platform === 'instagram') {
-      result = await postToInstagram(config, payload)
+      result = await postToInstagram(config, { ...payload, image_url: imageUrl })
     } else {
       result = { success: false, error: 'Plataforma não suportada' }
     }
@@ -66,7 +98,7 @@ serve(async (req) => {
       article_id: payload.article_id,
       platform: payload.platform,
       post_id: result.postId || null,
-      image_url: payload.image_url,
+      image_url: imageUrl,
       caption: payload.caption,
       status: result.success ? 'published' : 'failed',
       error_message: result.error || null,
