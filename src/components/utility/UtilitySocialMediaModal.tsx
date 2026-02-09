@@ -13,11 +13,14 @@ interface UtilitySocialMediaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: UtilityArtData | null;
+  entityId?: string;
+  entityType?: 'service_provider' | 'job_listing';
+  onShareSuccess?: (entityId: string, platform: string) => void;
 }
 
 const PRODUCTION_URL = 'https://radioradar.news';
 
-export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySocialMediaModalProps) {
+export function UtilitySocialMediaModal({ open, onOpenChange, data, entityId, entityType, onShareSuccess }: UtilitySocialMediaModalProps) {
   const { templates } = useArtTemplates();
   const [artImageUrl, setArtImageUrl] = useState<string | null>(null);
   const [isGeneratingArt, setIsGeneratingArt] = useState(false);
@@ -84,6 +87,17 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
       if (result?.success) {
         setSuccess(true);
         toast.success(`Publicado no ${platform === 'facebook' ? 'Facebook' : 'Instagram'}!`);
+        
+        // Track the share in utility_click_tracking
+        if (entityId && entityType) {
+          await supabase.from('utility_click_tracking').insert({
+            entity_id: entityId,
+            entity_type: entityType,
+            action: `social_shared_${platform}`,
+            metadata: { platform, posted_at: new Date().toISOString() }
+          });
+          onShareSuccess?.(entityId, platform);
+        }
       } else {
         toast.error(`Erro: ${result?.error || response.error?.message || 'Desconhecido'}`);
       }
