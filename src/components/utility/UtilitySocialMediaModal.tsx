@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { generateUtilityArt, generateUtilityCaption, UtilityArtData } from '@/utils/utilityArtGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { useArtTemplates } from '@/contexts/ArtTemplateContext';
-import { VPSImageService } from '@/services/VPSImageService';
+
 
 interface UtilitySocialMediaModalProps {
   open: boolean;
@@ -60,49 +60,31 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
   const uploadArtToStorage = async (): Promise<string | null> => {
     if (!artImageUrl) return null;
     try {
-      // Always overwrite the same file to prevent VPS storage accumulation
-      const fileName = 'social-art-utility-latest.png';
-      const { data: { session } } = await supabase.auth.getSession();
-
-      // Try edge function proxy first
-      const proxyResponse = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || 'https://bwxbhircezyhwekdngdk.supabase.co'}/functions/v1/vps-image-service`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3eGJoaXJjZXp5aHdla2RuZ2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjU4NDAsImV4cCI6MjA3MzIwMTg0MH0.cRpeDixAWnMRaKsdiQJeJ4KPx7-PJAP6M5m7ljhzEls',
-            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-          },
-          body: JSON.stringify({
-            action: 'upload',
-            file_data: artImageUrl,
-            file_name: fileName,
-            mime_type: 'image/png',
-            type: 'article'
-          })
-        }
-      );
-
-      if (proxyResponse.ok) {
-        const result = await proxyResponse.json();
-        if (result.success && result.url) return result.url;
-      }
-
-      // Fallback: VPS direct
+      // Convert data URL to blob
       const response = await fetch(artImageUrl);
       const blob = await response.blob();
-      const file = new File([blob], fileName, { type: 'image/png' });
-      const vpsResult = await VPSImageService.uploadImage(file, 'article', false);
-      if (vpsResult.success && vpsResult.url) return vpsResult.url;
 
-      // Fallback: Supabase Storage
-      const { data: storageData, error } = await supabase.storage
+      // Always overwrite the same file to prevent storage accumulation
+      // Use Supabase Storage (publicly accessible .png URL that Meta APIs accept)
+      const fileName = 'social-art-utility-latest.png';
+      const storagePath = `generated/${fileName}`;
+
+      const { error } = await supabase.storage
         .from('art-templates')
-        .upload(`generated/${fileName}`, blob, { contentType: 'image/png', upsert: true });
-      if (error) { toast.error('Upload falhou'); return null; }
-      const { data: publicUrl } = supabase.storage.from('art-templates').getPublicUrl(`generated/${fileName}`);
-      return publicUrl.publicUrl;
+        .upload(storagePath, blob, { contentType: 'image/png', upsert: true });
+
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        toast.error('Upload falhou');
+        return null;
+      }
+
+      const { data: publicUrl } = supabase.storage
+        .from('art-templates')
+        .getPublicUrl(storagePath);
+
+      // Add cache-bust to ensure Meta fetches fresh image
+      return `${publicUrl.publicUrl}?t=${Date.now()}`;
     } catch (error) {
       toast.error(`Erro no upload: ${(error as Error).message}`);
       return null;
