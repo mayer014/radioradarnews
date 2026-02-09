@@ -44,8 +44,8 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
     if (!data) return;
     setIsGeneratingArt(true);
     try {
-      const logoUrl = templates.utility?.logo?.imageUrl || templates.regular?.logo?.imageUrl || '';
-      const blob = await generateUtilityArt(data, logoUrl);
+      const utilTemplate = templates.utility || undefined;
+      const blob = await generateUtilityArt(data, utilTemplate);
       const reader = new FileReader();
       reader.onloadend = () => setArtImageUrl(reader.result as string);
       reader.readAsDataURL(blob);
@@ -60,6 +60,7 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
   const uploadArtToStorage = async (): Promise<string | null> => {
     if (!artImageUrl) return null;
     try {
+      // Always overwrite the same file to prevent VPS storage accumulation
       const fileName = 'social-art-utility-latest.png';
       const { data: { session } } = await supabase.auth.getSession();
 
