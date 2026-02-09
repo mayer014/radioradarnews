@@ -66,7 +66,10 @@ export function generateUtilityCaption(data: UtilityArtData, siteUrl: string): s
   return `💼 ${data.title}${jt}${cityText}\n🏢 ${data.company || ''}${salary}\n\n📱 Candidate-se pelo WhatsApp!\n\n🔗 Veja mais: ${siteUrl}/vagas\n\n${hashtags}`;
 }
 
-export async function generateUtilityArt(data: UtilityArtData): Promise<Blob> {
+export async function generateUtilityArt(data: UtilityArtData, logoUrl?: string): Promise<Blob> {
+  // Pre-load logo if available
+  const logoImage = logoUrl ? await loadImage(logoUrl).catch(() => null) : null;
+
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -103,30 +106,39 @@ export async function generateUtilityArt(data: UtilityArtData): Promise<Blob> {
     const badgeW = ctx.measureText(badgeText).width + 48;
     const badgeX = (canvas.width - badgeW) / 2;
 
-    // Badge background
     ctx.fillStyle = colors.primary;
     const badgeH = 44;
     ctx.beginPath();
     ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 22);
     ctx.fill();
 
-    // Badge text
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(badgeText, canvas.width / 2, badgeY + badgeH / 2);
 
-    // ─── Icon circle ───
+    // ─── Logo (replaces icon circle) ───
     const iconY = 200;
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.beginPath();
-    ctx.arc(canvas.width / 2, iconY, 70, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.font = '72px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(colors.icon, canvas.width / 2, iconY);
+    if (logoImage) {
+      const logoAspect = logoImage.naturalWidth / logoImage.naturalHeight;
+      const logoH = 120, logoW = logoH * logoAspect;
+      const logoX = (canvas.width / 2) - (logoW / 2);
+      const logoY2 = iconY - (logoH / 2);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur = 12;
+      ctx.drawImage(logoImage, logoX, logoY2, logoW, logoH);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, iconY, 70, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '72px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(colors.icon, canvas.width / 2, iconY);
+    }
 
     // ─── Main content area ───
     const contentStartY = 320;
@@ -154,6 +166,16 @@ export async function generateUtilityArt(data: UtilityArtData): Promise<Blob> {
       if (blob) resolve(blob);
       else reject(new Error('Falha ao gerar imagem'));
     }, 'image/png', 1.0);
+  });
+}
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
   });
 }
 

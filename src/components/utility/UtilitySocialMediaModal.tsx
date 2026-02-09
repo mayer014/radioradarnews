@@ -6,6 +6,7 @@ import { Instagram, Facebook, Image, Loader2, Check, RefreshCw } from 'lucide-re
 import { toast } from 'sonner';
 import { generateUtilityArt, generateUtilityCaption, UtilityArtData } from '@/utils/utilityArtGenerator';
 import { supabase } from '@/integrations/supabase/client';
+import { useArtTemplates } from '@/contexts/ArtTemplateContext';
 import { VPSImageService } from '@/services/VPSImageService';
 
 interface UtilitySocialMediaModalProps {
@@ -17,6 +18,7 @@ interface UtilitySocialMediaModalProps {
 const PRODUCTION_URL = 'https://radioradar.news';
 
 export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySocialMediaModalProps) {
+  const { templates } = useArtTemplates();
   const [artImageUrl, setArtImageUrl] = useState<string | null>(null);
   const [isGeneratingArt, setIsGeneratingArt] = useState(false);
   const [caption, setCaption] = useState('');
@@ -42,7 +44,8 @@ export function UtilitySocialMediaModal({ open, onOpenChange, data }: UtilitySoc
     if (!data) return;
     setIsGeneratingArt(true);
     try {
-      const blob = await generateUtilityArt(data);
+      const logoUrl = templates.utility?.logo?.imageUrl || templates.regular?.logo?.imageUrl || '';
+      const blob = await generateUtilityArt(data, logoUrl);
       const reader = new FileReader();
       reader.onloadend = () => setArtImageUrl(reader.result as string);
       reader.readAsDataURL(blob);
