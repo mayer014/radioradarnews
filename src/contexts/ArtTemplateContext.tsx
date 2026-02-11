@@ -237,106 +237,126 @@ export const useArtTemplates = () => {
 // Hook para buscar templates sem precisar do provider (para uso em shareHelpers)
 export const fetchArtTemplatesFromDB = async (): Promise<ArtTemplatesConfig> => {
   try {
+    console.log('🔄 [fetchArtTemplatesFromDB] Buscando templates do banco...');
+    
     const { data, error } = await supabase
       .from('settings')
       .select('key, value')
       .eq('category', 'art_templates');
 
     if (error) {
-      console.warn('⚠️ [ArtTemplates] Erro ao buscar, usando defaults:', error);
+      console.warn('⚠️ [fetchArtTemplatesFromDB] Erro ao buscar, usando defaults:', error);
       return DEFAULT_TEMPLATES;
     }
+
+    console.log('📦 [fetchArtTemplatesFromDB] Dados recebidos:', data?.length, 'registros');
 
     if (data && data.length > 0) {
       const loadedTemplates: Partial<ArtTemplatesConfig> = {};
       
       data.forEach(row => {
-        if (row.key === 'regular' && row.value) {
-          const savedValue = row.value as object;
-          const savedRecord = savedValue as Record<string, unknown>;
+        const savedValue = row.value as Record<string, unknown> | null;
+        if (!savedValue) return;
+        
+        const savedLogo = savedValue.logo as Record<string, unknown> | undefined;
+        const savedBg = savedValue.background as Record<string, unknown> | undefined;
+        
+        console.log(`🔍 [fetchArtTemplatesFromDB] Template "${row.key}":`, {
+          logoImageUrl: savedLogo?.imageUrl ? String(savedLogo.imageUrl).substring(0, 80) : 'VAZIO',
+          logoEnabled: savedLogo?.enabled,
+          bgImageUrl: savedBg?.imageUrl ? String(savedBg.imageUrl).substring(0, 80) : 'VAZIO',
+        });
+        
+        if (row.key === 'regular') {
           loadedTemplates.regular = {
             ...DEFAULT_TEMPLATES.regular,
             ...savedValue,
             background: {
               ...DEFAULT_TEMPLATES.regular.background,
-              ...savedRecord.background as object | undefined
+              ...savedBg
             },
             logo: {
               ...DEFAULT_TEMPLATES.regular.logo,
-              ...savedRecord.logo as object | undefined,
+              ...savedLogo,
               position: {
                 ...DEFAULT_TEMPLATES.regular.logo.position,
-                ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+                ...savedLogo?.position as object | undefined
               }
             }
           } as RegularArtTemplate;
-        } else if (row.key === 'columnist' && row.value) {
-          const savedValue = row.value as object;
-          const savedRecord = savedValue as Record<string, unknown>;
+        } else if (row.key === 'columnist') {
+          const savedProfile = savedValue.columnistProfile as Record<string, unknown> | undefined;
           loadedTemplates.columnist = {
             ...DEFAULT_TEMPLATES.columnist,
             ...savedValue,
             background: {
               ...DEFAULT_TEMPLATES.columnist.background,
-              ...savedRecord.background as object | undefined
+              ...savedBg
             },
             logo: {
               ...DEFAULT_TEMPLATES.columnist.logo,
-              ...savedRecord.logo as object | undefined,
+              ...savedLogo,
               position: {
                 ...DEFAULT_TEMPLATES.columnist.logo.position,
-                ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+                ...savedLogo?.position as object | undefined
               }
             },
             columnistProfile: {
               ...DEFAULT_TEMPLATES.columnist.columnistProfile,
-              ...savedRecord.columnistProfile as object | undefined,
+              ...savedProfile,
               avatarPosition: {
                 ...DEFAULT_TEMPLATES.columnist.columnistProfile.avatarPosition,
-                ...(savedRecord.columnistProfile as Record<string, unknown> | undefined)?.avatarPosition as object | undefined
+                ...savedProfile?.avatarPosition as object | undefined
               }
             }
           } as ColumnistArtTemplate;
-        } else if (row.key === 'utility' && row.value) {
-          const savedValue = row.value as object;
-          const savedRecord = savedValue as Record<string, unknown>;
+        } else if (row.key === 'utility') {
           loadedTemplates.utility = {
             ...DEFAULT_UTILITY_TEMPLATE,
             ...savedValue,
             background: {
               ...DEFAULT_UTILITY_TEMPLATE.background,
-              ...savedRecord.background as object | undefined
+              ...savedBg
             },
             logo: {
               ...DEFAULT_UTILITY_TEMPLATE.logo,
-              ...savedRecord.logo as object | undefined,
+              ...savedLogo,
               position: {
                 ...DEFAULT_UTILITY_TEMPLATE.logo.position,
-                ...(savedRecord.logo as Record<string, unknown> | undefined)?.position as object | undefined
+                ...savedLogo?.position as object | undefined
               }
             },
             colors: {
               ...DEFAULT_UTILITY_TEMPLATE.colors,
-              ...savedRecord.colors as object | undefined
+              ...savedValue.colors as object | undefined
             },
             ctaText: {
               ...DEFAULT_UTILITY_TEMPLATE.ctaText,
-              ...savedRecord.ctaText as object | undefined
+              ...savedValue.ctaText as object | undefined
             }
           } as UtilityArtTemplate;
         }
       });
 
-      return {
+      const result = {
         regular: loadedTemplates.regular || DEFAULT_TEMPLATES.regular,
         columnist: loadedTemplates.columnist || DEFAULT_TEMPLATES.columnist,
         utility: loadedTemplates.utility || DEFAULT_TEMPLATES.utility
       };
+      
+      console.log('✅ [fetchArtTemplatesFromDB] Templates finais:', {
+        regularLogo: result.regular.logo.imageUrl ? 'SIM' : 'NÃO',
+        columnistLogo: result.columnist.logo.imageUrl ? 'SIM' : 'NÃO',
+        columnistBg: result.columnist.background.imageUrl ? 'SIM' : 'NÃO',
+      });
+      
+      return result;
     }
 
+    console.log('ℹ️ [fetchArtTemplatesFromDB] Nenhum registro encontrado, usando defaults');
     return DEFAULT_TEMPLATES;
-  } catch {
-    console.warn('⚠️ [ArtTemplates] Erro ao buscar, usando defaults');
+  } catch (err) {
+    console.warn('⚠️ [fetchArtTemplatesFromDB] Erro ao buscar, usando defaults:', err);
     return DEFAULT_TEMPLATES;
   }
 };
