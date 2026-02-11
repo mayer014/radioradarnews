@@ -944,36 +944,123 @@ export const generateFeedImage = async ({ title, image, category, summary, colum
     
     backgroundImage.src = '/lovable-uploads/ff5e1b42-0800-4f2f-af32-28657e649317.png?v=' + Date.now();
 
-    // 2. Background customizado (se configurado)
+    // 2. Background customizado (se configurado) - com proxy para CORS
     if (template.background?.imageUrl) {
-      console.log('🎨 Carregando background customizado:', template.background.imageUrl.substring(0, 100));
-      customBackgroundImage.onload = () => {
-        console.log('✅ Background customizado carregado');
-        customBackgroundLoaded = true;
-        checkIfReady();
-      };
-      customBackgroundImage.onerror = () => {
-        console.warn('⚠️ Falha ao carregar background customizado, usando fallback');
-        customBackgroundLoaded = true;
-        checkIfReady();
-      };
-      customBackgroundImage.src = template.background.imageUrl;
+      const bgUrl = template.background.imageUrl;
+      console.log('🎨 Carregando background customizado:', bgUrl.substring(0, 100));
+      
+      const bgNeedsProxy = bgUrl.startsWith('http') && 
+        (bgUrl.includes('supabase.co/storage') || 
+         bgUrl.includes('media.radioradar.news') ||
+         !bgUrl.includes(window.location.host));
+      
+      if (bgNeedsProxy) {
+        console.log('🔒 [CORS] Background precisa de proxy');
+        (async () => {
+          try {
+            const proxyUrl = getImageProxyUrl();
+            const resp = await fetch(proxyUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: bgUrl })
+            });
+            if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
+            const data = await resp.json();
+            if (data?.success && data?.base64 && data?.mime_type?.startsWith('image/')) {
+              const dataUrl = `data:${data.mime_type};base64,${data.base64}`;
+              customBackgroundImage.onload = () => {
+                console.log('✅ Background carregado via proxy');
+                customBackgroundLoaded = true;
+                checkIfReady();
+              };
+              customBackgroundImage.onerror = () => {
+                customBackgroundLoaded = true;
+                checkIfReady();
+              };
+              customBackgroundImage.src = dataUrl;
+            } else {
+              throw new Error('Proxy response invalid');
+            }
+          } catch (err) {
+            console.warn('⚠️ Proxy falhou para background, tentando direto:', err);
+            customBackgroundImage.onload = () => { customBackgroundLoaded = true; checkIfReady(); };
+            customBackgroundImage.onerror = () => { customBackgroundLoaded = true; checkIfReady(); };
+            customBackgroundImage.src = bgUrl;
+          }
+        })();
+      } else {
+        customBackgroundImage.onload = () => {
+          console.log('✅ Background customizado carregado');
+          customBackgroundLoaded = true;
+          checkIfReady();
+        };
+        customBackgroundImage.onerror = () => {
+          console.warn('⚠️ Falha ao carregar background customizado, usando fallback');
+          customBackgroundLoaded = true;
+          checkIfReady();
+        };
+        customBackgroundImage.src = bgUrl;
+      }
     }
     
-    // 3. Logo customizada (se configurada)
+    // 3. Logo customizada (se configurada) - com proxy para CORS
     if (template.logo?.enabled && template.logo?.imageUrl) {
-      console.log('🏷️ Carregando logo customizada:', template.logo.imageUrl.substring(0, 100));
-      logoImage.onload = () => {
-        console.log('✅ Logo customizada carregada');
-        logoLoaded = true;
-        checkIfReady();
-      };
-      logoImage.onerror = () => {
-        console.warn('⚠️ Falha ao carregar logo customizada');
-        logoLoaded = true;
-        checkIfReady();
-      };
-      logoImage.src = template.logo.imageUrl;
+      const logoUrl = template.logo.imageUrl;
+      console.log('🏷️ Carregando logo customizada:', logoUrl.substring(0, 100));
+      
+      const logoNeedsProxy = logoUrl.startsWith('http') && 
+        (logoUrl.includes('supabase.co/storage') || 
+         logoUrl.includes('media.radioradar.news') ||
+         !logoUrl.includes(window.location.host));
+      
+      if (logoNeedsProxy) {
+        console.log('🔒 [CORS] Logo precisa de proxy');
+        (async () => {
+          try {
+            const proxyUrl = getImageProxyUrl();
+            const resp = await fetch(proxyUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: logoUrl })
+            });
+            if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
+            const data = await resp.json();
+            if (data?.success && data?.base64 && data?.mime_type?.startsWith('image/')) {
+              const dataUrl = `data:${data.mime_type};base64,${data.base64}`;
+              logoImage.onload = () => {
+                console.log('✅ Logo carregada via proxy');
+                logoLoaded = true;
+                checkIfReady();
+              };
+              logoImage.onerror = () => {
+                console.warn('⚠️ Falha ao carregar logo via proxy dataUrl');
+                logoLoaded = true;
+                checkIfReady();
+              };
+              logoImage.src = dataUrl;
+            } else {
+              throw new Error('Proxy response invalid');
+            }
+          } catch (err) {
+            console.warn('⚠️ Proxy falhou para logo, tentando direto:', err);
+            logoImage.onload = () => { logoLoaded = true; checkIfReady(); };
+            logoImage.onerror = () => { logoLoaded = true; checkIfReady(); };
+            logoImage.src = logoUrl;
+          }
+        })();
+      } else {
+        logoImage.onload = () => {
+          console.log('✅ Logo customizada carregada');
+          logoLoaded = true;
+          checkIfReady();
+        };
+        logoImage.onerror = () => {
+          console.warn('⚠️ Falha ao carregar logo customizada');
+          logoLoaded = true;
+          checkIfReady();
+        };
+        logoImage.src = logoUrl;
+      }
     }
 
     // Carregar imagem do artigo se necessário (com proteção CORS)
