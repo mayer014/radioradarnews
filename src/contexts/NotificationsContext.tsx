@@ -143,7 +143,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
+        const subscription = await (registration as any).pushManager?.getSubscription();
         setIsSubscribed(!!subscription);
       }
     } catch (error) {
@@ -186,7 +186,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
+        const subscription = await (registration as any).pushManager?.getSubscription();
         
         if (subscription) {
           await subscription.unsubscribe();
