@@ -13,7 +13,7 @@ const getImageProxyUrl = () => `${ENV.SUPABASE_URL}/functions/v1/image-proxy`;
 // Cache para templates (evita múltiplas requisições)
 let templatesCache: ArtTemplatesConfig | null = null;
 let templatesCacheTime = 0;
-const CACHE_DURATION = 30000; // 30 segundos (reduzido para refletir mudanças mais rápido)
+const CACHE_DURATION = 10000; // 10 segundos para refletir mudanças rapidamente
 
 // Função para limpar cache de templates (exportada para uso externo)
 export const clearTemplatesCache = () => {
@@ -25,17 +25,19 @@ export const clearTemplatesCache = () => {
 const getTemplates = async (): Promise<ArtTemplatesConfig> => {
   const now = Date.now();
   if (templatesCache && (now - templatesCacheTime) < CACHE_DURATION) {
-    console.log('📦 [Templates] Usando cache existente');
+    console.log('📦 [Templates] Usando cache existente, logo columnist:', templatesCache.columnist?.logo?.imageUrl ? 'SIM' : 'NÃO');
     return templatesCache;
   }
   
   try {
+    console.log('🔄 [Templates] Buscando templates frescos do banco...');
     templatesCache = await fetchArtTemplatesFromDB();
     templatesCacheTime = now;
-    console.log('🎨 [Templates] Carregados do banco:', JSON.stringify(templatesCache, null, 2));
+    console.log('🎨 [Templates] Carregados do banco - columnist logo:', templatesCache.columnist?.logo?.imageUrl ? templatesCache.columnist.logo.imageUrl.substring(0, 80) : 'VAZIO');
+    console.log('🎨 [Templates] Carregados do banco - columnist bg:', templatesCache.columnist?.background?.imageUrl ? 'SIM' : 'NÃO');
     return templatesCache;
-  } catch {
-    console.warn('⚠️ [Templates] Usando defaults');
+  } catch (err) {
+    console.warn('⚠️ [Templates] Erro ao buscar, usando defaults:', err);
     return DEFAULT_TEMPLATES;
   }
 };
