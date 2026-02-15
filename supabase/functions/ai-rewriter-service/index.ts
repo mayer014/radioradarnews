@@ -62,20 +62,29 @@ interface RewrittenContent {
 // Fallback prompt caso não consiga buscar do banco
 const FALLBACK_SYSTEM_PROMPT = `
 Você é um assistente especializado em reescrita jornalística.  
-Sua tarefa é pegar uma notícia extraída e entregar um resumo curto, objetivo e atrativo para leitura, seguindo as regras abaixo:
+Sua tarefa é pegar uma notícia extraída e entregar uma matéria completa, bem desenvolvida e atrativa para leitura, seguindo as regras abaixo:
 
 ⚠️ IMPORTANTE: O TÍTULO DEVE SER COMPLETAMENTE REESCRITO - nunca use o título original igual, pois isso viola direitos autorais e prejudica o SEO no Google.
 
-1. **Tamanho**: entre 3 e 5 parágrafos no máximo.  
+1. **Tamanho OBRIGATÓRIO**: 
+   - MÍNIMO de 4 parágrafos de conteúdo (sem contar a seção de fonte).
+   - Idealmente entre 4 e 6 parágrafos.
+   - Cada parágrafo deve ter entre 3 e 5 frases completas.
+   - Somente se a matéria original for MUITO curta (menos de 3 frases), aceita-se uma reescrita mais curta.
+   - NÃO faça textos resumidos demais. O leitor quer ler uma matéria completa, não um resumo telegráfico.
 2. **Clareza**: escreva em linguagem jornalística simples, fluida e sem repetições.  
 3. **Formatação HTML OBRIGATÓRIA**:  
    - Cada parágrafo deve estar em uma tag <p> com espaçamento: <p style="margin-bottom: 1.5rem;">
    - NUNCA use texto corrido sem tags <p>
    - Exemplo correto:
-     <p style="margin-bottom: 1.5rem;">Primeiro parágrafo aqui.</p>
-     <p style="margin-bottom: 1.5rem;">Segundo parágrafo aqui.</p>
-     <p style="margin-bottom: 1.5rem;">Terceiro parágrafo aqui.</p>
-4. **Resumo**: destaque os pontos principais da matéria sem perder o sentido central.  
+     <p style="margin-bottom: 1.5rem;">Primeiro parágrafo com 3-5 frases desenvolvidas.</p>
+     <p style="margin-bottom: 1.5rem;">Segundo parágrafo com 3-5 frases desenvolvidas.</p>
+     <p style="margin-bottom: 1.5rem;">Terceiro parágrafo com 3-5 frases desenvolvidas.</p>
+     <p style="margin-bottom: 1.5rem;">Quarto parágrafo com 3-5 frases desenvolvidas.</p>
+4. **Desenvolvimento**: 
+   - Desenvolva o assunto com profundidade. Não apenas resuma, mas contextualize, explique e analise.
+   - Adicione contexto quando necessário para o leitor entender melhor a notícia.
+   - Destaque os pontos principais sem perder o sentido central.
 5. **Fonte obrigatória no final**:  
    - Adicione no último parágrafo a frase formatada como HTML:
    
@@ -97,7 +106,7 @@ Formato de resposta (JSON válido):
   "title": "Título reescrito e atrativo",
   "slug": "titulo-em-slug-format", 
   "lead": "Lead/subtítulo da matéria (1-2 frases)",
-  "content_html": "Conteúdo HTML com parágrafos <p style='margin-bottom: 1.5rem;'> bem espaçados + seção de fonte no final",
+  "content_html": "Conteúdo HTML com MÍNIMO 4 parágrafos <p style='margin-bottom: 1.5rem;'> bem espaçados e desenvolvidos + seção de fonte no final",
   "excerpt": "Resumo de 2-3 linhas para prévia",
   "category_suggestion": "Categoria sugerida",
   "tags": ["tag1", "tag2", "tag3"],
@@ -107,7 +116,7 @@ Formato de resposta (JSON válido):
   "published_at_suggestion": "Data/hora sugerida em ISO"
 }
 
-CRÍTICO: TODOS os parágrafos devem ter <p style="margin-bottom: 1.5rem;"> para espaçamento adequado. Retorne APENAS o JSON válido.
+CRÍTICO: O conteúdo DEVE ter NO MÍNIMO 4 parágrafos bem desenvolvidos com 3-5 frases cada. TODOS os parágrafos devem ter <p style="margin-bottom: 1.5rem;"> para espaçamento adequado. Retorne APENAS o JSON válido.
 `;
 
 // Modelos Groq permitidos
@@ -318,7 +327,9 @@ serve(async (req) => {
     console.log(`🧹 [${requestId}] Content cleaned - Original: ${content.length} chars, Cleaned: ${cleanedContent.length} chars`);
 
     const userPrompt = `
-TAREFA: Reescreva o conteúdo abaixo em formato jornalístico, retornando APENAS o JSON conforme instruções do sistema.
+TAREFA: Reescreva o conteúdo abaixo em formato jornalístico completo e bem desenvolvido, retornando APENAS o JSON conforme instruções do sistema.
+
+REGRA FUNDAMENTAL: O texto reescrito DEVE ter NO MÍNIMO 4 parágrafos bem desenvolvidos (3-5 frases cada). Não faça resumos curtos.
 
 CONTEÚDO ORIGINAL:
 Título: ${title}
