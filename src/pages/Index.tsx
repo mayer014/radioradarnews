@@ -5,6 +5,7 @@ import WeatherWidget from '@/components/WeatherWidget';
 import CurrencyWidget from '@/components/CurrencyWidget';
 import HomeUtilitySection from '@/components/utility/HomeUtilitySection';
 import UtilityMiniBanner from '@/components/utility/UtilityMiniBanner';
+import WhatsAppGroupBanner from '@/components/WhatsAppGroupBanner';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
@@ -52,6 +53,9 @@ const Index = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-4 mb-4">
         <UtilityMiniBanner />
       </div>
+
+      {/* Banner WhatsApp Group */}
+      <WhatsAppGroupBanner />
       
       {/* Últimas Notícias */}
       <LatestNews />
