@@ -60,7 +60,7 @@ const MarqueeTicker: React.FC<{ items: string[]; colorClass: string }> = ({ item
   const tickerContent = [...items, ...items];
   return (
     <div className="relative overflow-hidden mt-4 rounded-lg bg-background/50 border border-muted/30 py-2">
-      <div className="flex animate-[marquee_12s_linear_infinite] whitespace-nowrap gap-8">
+      <div className="flex animate-[marquee_8s_linear_infinite] whitespace-nowrap gap-8">
         {tickerContent.map((item, i) => (
           <span key={i} className={`inline-flex items-center gap-2 text-xs font-medium ${colorClass} flex-shrink-0`}>
             <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
