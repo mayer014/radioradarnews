@@ -14,6 +14,7 @@ import { useJobListings, type JobListing } from '@/hooks/useJobListings';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, LogOut, Wrench, Briefcase, Eye, MapPin, User, Mail, Phone, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SuccessPromoDialog from '@/components/utility/SuccessPromoDialog';
 
 const PublicDashboard: React.FC = () => {
   const { profile, isAuthenticated, loading: authLoading, signOut } = usePublicAuth();
@@ -28,6 +29,7 @@ const PublicDashboard: React.FC = () => {
   const [editingProvider, setEditingProvider] = useState<ServiceProvider | null>(null);
   const [showJobForm, setShowJobForm] = useState(false);
   const [editingJob, setEditingJob] = useState<JobListing | null>(null);
+  const [showPromoDialog, setShowPromoDialog] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate('/utilidade-publica/auth');
@@ -133,7 +135,7 @@ const PublicDashboard: React.FC = () => {
               <ServiceProviderForm
                 userId={profile.id}
                 existing={editingProvider}
-                onSaved={() => { setShowProviderForm(false); setEditingProvider(null); loadData(); }}
+                onSaved={() => { setShowProviderForm(false); setEditingProvider(null); loadData(); if (!editingProvider) setShowPromoDialog(true); }}
                 onCancel={() => { setShowProviderForm(false); setEditingProvider(null); }}
               />
             ) : (
@@ -197,7 +199,7 @@ const PublicDashboard: React.FC = () => {
               <JobListingForm
                 userId={profile.id}
                 existing={editingJob}
-                onSaved={() => { setShowJobForm(false); setEditingJob(null); loadData(); }}
+                onSaved={() => { setShowJobForm(false); setEditingJob(null); loadData(); if (!editingJob) setShowPromoDialog(true); }}
                 onCancel={() => { setShowJobForm(false); setEditingJob(null); }}
               />
             ) : (
@@ -257,6 +259,7 @@ const PublicDashboard: React.FC = () => {
           </TabsContent>
         </Tabs>
       </main>
+      <SuccessPromoDialog open={showPromoDialog} onClose={() => setShowPromoDialog(false)} />
       <Footer />
     </div>
   );
