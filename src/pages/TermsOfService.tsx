@@ -1,7 +1,6 @@
+import PageHeader from '@/components/layout/PageHeader';
+import { ShieldCheck } from 'lucide-react';
 import React, { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { Helmet } from 'react-helmet-async';
 import { Card } from '@/components/ui/card';
 import { useLegalContent } from '@/contexts/LegalContentContext';
@@ -18,7 +17,7 @@ const TermsOfService = () => {
 
   const formatContent = (content: string) => {
     // Converter Markdown básico para HTML
-    let formatted = content
+    const formatted = content
       .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-semibold mb-4 mt-8">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold mb-6">$1</h1>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -35,40 +34,28 @@ const TermsOfService = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
+      <div className="min-h-screen">
         <div className="pt-20 pb-16 flex items-center justify-center min-h-[60vh]">
           <LoadingState />
         </div>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Helmet>
         <title>{termsContent?.title || 'Termos de Uso'} - Portal News</title>
         <meta name="description" content="Termos de Uso do Portal News. Conheça as regras e condições para utilização de nossa plataforma de notícias." />
         <link rel="canonical" href={`${window.location.origin}/termos-uso`} />
       </Helmet>
       
-      <Navigation />
-      
-      <div className="pt-20 pb-16">
-        <div className="max-w-4xl mx-auto px-6">
-          <Card className="bg-gradient-card backdrop-blur-sm border-primary/20 p-8">
-            <header className="mb-8">
-              <h1 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
-                {termsContent?.title || 'Termos de Uso'}
-              </h1>
-              <p className="text-muted-foreground">
-                Última atualização: {termsContent ? new Date(termsContent.updated_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
-              </p>
-            </header>
+      <main id="main-content" tabIndex={-1} className="page-container page-container-narrow">
+        <div className="max-w-4xl mx-auto">
+          <PageHeader icon={ShieldCheck} eyebrow="Transparência" title={termsContent?.title || 'Termos de uso'} description={'Última atualização: ' + (termsContent ? new Date(termsContent.updated_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR'))} />
+          <Card className="p-6 sm:p-10">
 
-            <div className="prose prose-slate dark:prose-invert max-w-none">
+            <div className="rich-text-content prose prose-slate dark:prose-invert max-w-none">
               {termsContent ? (
                 <div 
                   dangerouslySetInnerHTML={{ 
@@ -85,10 +72,7 @@ const TermsOfService = () => {
             </div>
           </Card>
         </div>
-      </div>
-      
-      <Footer />
-      <RadioPlayer />
+      </main>
     </div>
   );
 };

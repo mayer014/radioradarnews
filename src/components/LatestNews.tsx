@@ -25,10 +25,10 @@ const LatestNews = () => {
   }
 
   return (
-    <section className="py-16 px-6 bg-background">
+    <section className="editorial-section py-16 px-4 sm:px-6 bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+          <h2 className="section-title text-3xl sm:text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
             Últimas Notícias
           </h2>
           <p className="text-lg text-muted-foreground">
@@ -39,7 +39,7 @@ const LatestNews = () => {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
           {latestNews.map((article) => (
             <Link key={article.id} to={getArticleLink(article)}>
-              <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden h-full">
+              <Card className="news-card group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden h-full">
                 {/* Imagem da matéria */}
                 <div className="relative h-32 md:h-48 bg-muted/20">
                   <img
@@ -63,7 +63,7 @@ const LatestNews = () => {
                 </div>
 
                 {/* Conteúdo */}
-                <div className="p-2 md:p-6 flex flex-col flex-1">
+                <div className="p-3 md:p-6 flex flex-col flex-1">
                   <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 mb-2 md:mb-3 text-[10px] md:text-xs text-muted-foreground">
                     <div className="flex items-center">
                       <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />
@@ -75,7 +75,7 @@ const LatestNews = () => {
                     </div>
                   </div>
 
-                  <h3 className="text-sm md:text-lg font-bold mb-2 md:mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 flex-1 leading-tight">
+                  <h3 className="text-sm md:text-lg font-bold mb-2 md:mb-3 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 flex-1 leading-snug">
                     {article.title}
                   </h3>
                   

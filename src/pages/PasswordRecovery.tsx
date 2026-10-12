@@ -1,14 +1,14 @@
+import PageHeader from '@/components/layout/PageHeader';
+import { UserRound } from 'lucide-react';
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import { ArrowLeft, Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Mail } from 'lucide-react';
+
 
 const PasswordRecovery: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -34,16 +34,10 @@ const PasswordRecovery: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-      <main className="pt-24 pb-16 px-4 flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md bg-gradient-card border-primary/20">
-          <CardHeader className="text-center">
-            <Link to="/utilidade-publica/auth" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2">
-              <ArrowLeft className="h-4 w-4" /> Voltar ao login
-            </Link>
-            <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">Recuperar Senha</CardTitle>
-          </CardHeader>
+    <div className="min-h-screen">
+      <main id="main-content" tabIndex={-1} className="auth-page px-4 flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md bg-card border-primary/20">
+          <CardHeader className="auth-header"><PageHeader icon={UserRound} eyebrow="Sua conta na Rádio Radar" title="Recuperar senha" description="Informe seu e-mail para receber o link de recuperação." backTo="/utilidade-publica/auth" backLabel="Voltar ao login" /></CardHeader>
           <CardContent>
             {sent ? (
               <div className="text-center py-6">
@@ -53,7 +47,7 @@ const PasswordRecovery: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleReset} className="space-y-4">
-                <div><Label>E-mail cadastrado</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" /></div>
+                <div><Label htmlFor="recovery-email">E-mail cadastrado</Label><Input id="recovery-email" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" /></div>
                 <Button type="submit" className="w-full bg-gradient-hero" disabled={loading}>
                   {loading ? 'Enviando...' : 'Enviar link de recuperação'}
                 </Button>
@@ -62,7 +56,6 @@ const PasswordRecovery: React.FC = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
     </div>
   );
 };

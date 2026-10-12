@@ -1,7 +1,6 @@
+import PageHeader from '@/components/layout/PageHeader';
+import { ShieldCheck } from 'lucide-react';
 import React, { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { Helmet } from 'react-helmet-async';
 import { Card } from '@/components/ui/card';
 import { useLegalContent } from '@/contexts/LegalContentContext';
@@ -18,7 +17,7 @@ const PrivacyPolicy = () => {
 
   const formatContent = (content: string) => {
     // Converter Markdown básico para HTML
-    let formatted = content
+    const formatted = content
       .replace(/^## (.+)$/gm, '<h2 class="text-2xl font-semibold mb-4 mt-8">$1</h2>')
       .replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold mb-6">$1</h1>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -35,40 +34,28 @@ const PrivacyPolicy = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
+      <div className="min-h-screen">
         <div className="pt-20 pb-16 flex items-center justify-center min-h-[60vh]">
           <LoadingState />
         </div>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Helmet>
         <title>{privacyContent?.title || 'Política de Privacidade'} - Portal News</title>
         <meta name="description" content="Política de Privacidade do Portal News em conformidade com a LGPD. Saiba como protegemos seus dados pessoais." />
         <link rel="canonical" href={`${window.location.origin}/politica-privacidade`} />
       </Helmet>
       
-      <Navigation />
-      
-      <div className="pt-20 pb-16">
-        <div className="max-w-4xl mx-auto px-6">
-          <Card className="bg-gradient-card backdrop-blur-sm border-primary/20 p-8">
-            <header className="mb-8">
-              <h1 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
-                {privacyContent?.title || 'Política de Privacidade'}
-              </h1>
-              <p className="text-muted-foreground">
-                Última atualização: {privacyContent ? new Date(privacyContent.updated_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
-              </p>
-            </header>
+      <main id="main-content" tabIndex={-1} className="page-container page-container-narrow">
+        <div className="max-w-4xl mx-auto">
+          <PageHeader icon={ShieldCheck} eyebrow="Transparência" title={privacyContent?.title || 'Política de privacidade'} description={'Última atualização: ' + (privacyContent ? new Date(privacyContent.updated_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR'))} />
+          <Card className="p-6 sm:p-10">
 
-            <div className="prose prose-slate dark:prose-invert max-w-none">
+            <div className="rich-text-content prose prose-slate dark:prose-invert max-w-none">
               {privacyContent ? (
                 <div 
                   dangerouslySetInnerHTML={{ 
@@ -85,10 +72,7 @@ const PrivacyPolicy = () => {
             </div>
           </Card>
         </div>
-      </div>
-      
-      <Footer />
-      <RadioPlayer />
+      </main>
     </div>
   );
 };

@@ -5,9 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { useUsers } from '@/contexts/UsersContext';
 import { getArticleLink } from '@/lib/utils';
@@ -92,31 +89,27 @@ const ColumnistPage = () => {
   // Loading state
   if (isLoading || usersLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <SEOHead 
           title="Carregando colunista..."
           description="Portal News - Carregando perfil do colunista"
         />
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-6 py-8" id="main-content">
+        <main className="page-container page-container-narrow" id="main-content">
           <ColumnistSkeleton />
         </main>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   if (!currentColumnist || !isColumnistActive) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <SEOHead 
           title="Colunista não encontrado - Portal News"
           description="O colunista solicitado não foi encontrado ou não está ativo no momento."
         />
-        <Navigation />
         <main className="flex items-center justify-center min-h-screen" id="main-content">
-          <div className="text-center">
+          <div className="error-content text-center">
             <h1 className="text-2xl font-bold mb-4">
               {!currentColumnist ? 'Colunista não encontrado' : 'Colunista não está ativo no momento'}
             </h1>
@@ -127,20 +120,18 @@ const ColumnistPage = () => {
               }
             </p>
             <Link to="/">
-              <Button className="bg-gradient-hero hover:shadow-glow-primary">
+              <Button className="bg-gradient-hero hover:bg-primary/90">
                 Voltar ao início
               </Button>
             </Link>
           </div>
         </main>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <SEOHead 
         title={pageTitle}
         description={metaDescription}
@@ -161,10 +152,8 @@ const ColumnistPage = () => {
       
       <BreadcrumbStructuredData items={breadcrumbData} />
       
-      <Navigation />
-      
       {/* Breadcrumb e botão voltar */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50">
+      <div className="internal-breadcrumb">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <Link to="/" className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -178,7 +167,7 @@ const ColumnistPage = () => {
         
         {/* Header do colunista */}
         <header className="mb-12">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 p-8 bg-gradient-card rounded-lg border border-primary/20">
+          <div className="flex flex-col md:flex-row items-center md:items-start profile-surface gap-8 p-8">
             {/* Avatar */}
             <div className="relative">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/20">
@@ -213,7 +202,7 @@ const ColumnistPage = () => {
 
             {/* Info do colunista */}
             <div className="flex-1 text-center md:text-left">
-            <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold mb-2 text-foreground">
               {currentColumnist.name}
             </h1>
             <p className="text-xl text-primary font-semibold mb-4">
@@ -239,7 +228,7 @@ const ColumnistPage = () => {
         </header>
 
         {/* Aviso de Responsabilidade */}
-        <div className="mb-8 p-4 sm:p-5 bg-muted/30 border-l-4 border-primary/60 rounded-lg">
+        <div className="mb-8 p-4 sm:p-5 editorial-note">
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
             <span className="font-semibold text-foreground">Aviso Importante:</span> Este é um colunista independente. 
             As opiniões, análises e conteúdos expressos em seus artigos são de exclusiva responsabilidade do autor, 
@@ -277,13 +266,13 @@ const ColumnistPage = () => {
               {featuredArticle && (
                 <div className="mb-12">
                   <div className="flex items-center gap-2 mb-6">
-                    <Badge className="bg-gradient-hero text-primary-foreground px-4 py-1.5 text-sm sm:text-base shadow-glow-primary">
-                      ⭐ ARTIGO EM DESTAQUE
+                    <Badge className="bg-gradient-hero text-primary-foreground px-4 py-1.5 text-sm sm:text-base shadow-sm">
+                      Artigo em destaque
                     </Badge>
                   </div>
                   
                   <Link to={getArticleLink(featuredArticle)}>
-                    <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-2 border-primary/40 hover:border-primary/70 transition-all duration-300 hover:scale-[1.01] overflow-hidden shadow-glow-primary hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]">
+                    <Card className="group bg-gradient-hero-subtle backdrop-blur-sm border-2 border-primary/40 hover:border-primary/70 transition-all duration-300 hover:border-primary/40 overflow-hidden shadow-sm ">
                       {/* Imagem grande do artigo em destaque */}
                       <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden bg-muted/20">
                         <img
@@ -294,8 +283,8 @@ const ColumnistPage = () => {
                         
                         {/* Badge destaque flutuante */}
                         <div className="absolute top-4 right-4">
-                          <Badge className="bg-gradient-hero text-primary-foreground shadow-glow-primary text-xs sm:text-sm px-3 py-1">
-                            ⭐ DESTAQUE
+                          <Badge className="bg-gradient-hero text-primary-foreground shadow-sm text-xs sm:text-sm px-3 py-1">
+                            Destaque
                           </Badge>
                         </div>
                       </div>
@@ -322,9 +311,9 @@ const ColumnistPage = () => {
 
                         <Button 
                           size="lg"
-                          className="bg-gradient-hero hover:shadow-glow-primary w-full sm:w-auto text-sm sm:text-base md:text-lg px-6 py-3 sm:px-8 sm:py-4"
+                          className="bg-gradient-hero hover:bg-primary/90 w-full sm:w-auto text-sm sm:text-base md:text-lg px-6 py-3 sm:px-8 sm:py-4"
                         >
-                          📖 Ler artigo completo
+                          Ler artigo completo
                         </Button>
                       </div>
                     </Card>
@@ -350,7 +339,7 @@ const ColumnistPage = () => {
                   <div className="grid grid-cols-1 gap-4 sm:gap-5 mb-8">
                     {paginatedArticles.map((article) => (
                     <Link key={article.id} to={getArticleLink(article)}>
-                      <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.01] overflow-hidden">
+                      <Card className="group bg-card border-border hover:border-primary/40 transition-all duration-300 hover:border-primary/40 overflow-hidden">
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 p-4 sm:p-5">
                           {/* Imagem do artigo */}
                           <div className="relative rounded-lg flex-shrink-0 bg-muted/20 w-full sm:w-28 h-40 sm:h-28">
@@ -448,9 +437,6 @@ const ColumnistPage = () => {
           )}
         </div>
       </main>
-
-      <Footer />
-      <RadioPlayer />
     </div>
   );
 };

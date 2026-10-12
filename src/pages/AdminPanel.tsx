@@ -10,11 +10,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LogOut, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  LogOut,
+  Plus,
+  Edit,
+  Trash2,
   Eye,
   Calendar,
   FileText,
@@ -36,7 +36,7 @@ import {
   Shield,
   HardDrive,
   AlertTriangle,
-  Users, 
+  Users,
   Brain,
   Newspaper,
   UserCheck,
@@ -92,7 +92,7 @@ const AdminPanel = () => {
   const { users } = useUsers();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   // Log de diagnóstico
   React.useEffect(() => {
     console.log('🔍 AdminPanel Diagnóstico:', {
@@ -127,12 +127,12 @@ const AdminPanel = () => {
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
-  
+
   // Verificar integridade dos dados
   const handleDataIntegrityCheck = () => {
     try {
       const validation = validateAllLocalStorageData();
-      
+
       if (validation.isValid) {
         toast({
           title: "✅ Dados íntegros",
@@ -160,7 +160,7 @@ const AdminPanel = () => {
   const handleExportForMigration = () => {
     try {
       const exportData = exportDataForMigration();
-      
+
       if (!exportData.validation.isValid) {
         toast({
           title: "❌ Não é possível exportar",
@@ -224,7 +224,7 @@ const AdminPanel = () => {
     // Verificar se o usuário tem permissão para deletar
     const article = articles.find(a => a.id === id);
     if (!article) return;
-    
+
     if (isColunista && article.author_id !== profile?.id) {
       toast({
         title: "Sem permissão",
@@ -249,7 +249,7 @@ const AdminPanel = () => {
     // Verificar se o usuário tem permissão para editar
     const article = articles.find(a => a.id === id);
     if (!article) return;
-    
+
     if (isColunista && article.author_id !== profile?.id) {
       toast({
         title: "Sem permissão",
@@ -288,10 +288,10 @@ const AdminPanel = () => {
 
     const categoryArticles = articles.filter(a => a.category === article.category);
     const currentFeaturedInCategory = categoryArticles.find(a => a.featured);
-    
+
     if (!currentFeatured && currentFeaturedInCategory) {
       const confirmMessage = `Há uma matéria já em destaque na categoria "${article.category}": "${currentFeaturedInCategory.title}". \n\nDeseja substituir por "${title}"?`;
-      
+
       if (confirm(confirmMessage)) {
         await toggleFeaturedArticle(id);
       }
@@ -300,11 +300,11 @@ const AdminPanel = () => {
     }
   };
 
-  const filteredArticles = selectedCategory === 'Todas' 
-    ? userFilteredArticles.filter(article => 
+  const filteredArticles = selectedCategory === 'Todas'
+    ? userFilteredArticles.filter(article =>
         searchTitle === '' || article.title.toLowerCase().includes(searchTitle.toLowerCase())
       )
-    : userFilteredArticles.filter(article => 
+    : userFilteredArticles.filter(article =>
         article.category === selectedCategory &&
         (searchTitle === '' || article.title.toLowerCase().includes(searchTitle.toLowerCase()))
       );
@@ -323,23 +323,23 @@ const AdminPanel = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Token Expiration Alert - Only for admins */}
       {isAdmin && (
         <TokenExpirationAlert onNavigateToConfig={() => setActiveTab('social-media')} />
       )}
 
       {/* Header */}
-      <div className="bg-gradient-card backdrop-blur-sm border-b border-primary/30">
+      <div className="admin-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent truncate">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                 {isAdmin ? 'Painel Administrativo' : 'Painel do Colunista'}
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground truncate">
-                {isAdmin 
-                  ? 'Sistema de Gerenciamento de Notícias' 
+                {isAdmin
+                  ? 'Sistema de Gerenciamento de Notícias'
                   : `Olá, ${profile?.name}! Gerencie seus artigos de coluna`
                 }
               </p>
@@ -369,7 +369,7 @@ const AdminPanel = () => {
               )}
               <Button
                 onClick={handleNewArticle}
-                className="bg-gradient-hero hover:shadow-glow-primary flex-shrink-0"
+                className="bg-gradient-hero hover:bg-primary/90 flex-shrink-0"
                 size="sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -391,7 +391,7 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 overflow-x-hidden">
+      <div id="main-content" tabIndex={-1} className="admin-content max-w-7xl mx-auto px-4 sm:px-6 py-8 overflow-x-hidden">
         {/* Tabs - Mostrar apenas para admins */}
         {isAdmin && (
           <div className="mb-8 bg-muted/50 p-1 rounded-lg">
@@ -596,7 +596,7 @@ const AdminPanel = () => {
         {/* Lista de Artigos */}
         {(activeTab === 'articles' || isColunista) && (
           <div className="space-y-4">
-            
+
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">
                 Gerenciar Artigos ({filteredArticles.length})
@@ -644,7 +644,7 @@ const AdminPanel = () => {
                 size="sm"
                 className={selectedCategory === 'Todas' ? 'bg-gradient-hero' : 'border-primary/30'}
               >
-                Todas ({userFilteredArticles.filter(article => 
+                Todas ({userFilteredArticles.filter(article =>
                   searchTitle === '' || article.title.toLowerCase().includes(searchTitle.toLowerCase())
                 ).length})
               </Button>
@@ -653,8 +653,8 @@ const AdminPanel = () => {
                 if (isColunista && !profile?.allowed_categories?.includes(category)) {
                   return null;
                 }
-                const count = userFilteredArticles.filter(article => 
-                  article.category === category && 
+                const count = userFilteredArticles.filter(article =>
+                  article.category === category &&
                   (searchTitle === '' || article.title.toLowerCase().includes(searchTitle.toLowerCase()))
                 ).length;
                 return (
@@ -672,20 +672,20 @@ const AdminPanel = () => {
             </div>
 
             {filteredArticles.length === 0 ? (
-              <Card className="bg-gradient-card border-primary/30 p-12 text-center">
+              <Card className="bg-card border-primary/30 p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">
                   {selectedCategory === 'Todas' ? 'Nenhum artigo encontrado' : `Nenhum artigo encontrado na categoria "${selectedCategory}"`}
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  {selectedCategory === 'Todas' 
+                  {selectedCategory === 'Todas'
                     ? 'Comece criando seu primeiro artigo para o portal de notícias.'
                     : `Não há artigos na categoria "${selectedCategory}". Crie um novo artigo ou selecione outra categoria.`
                   }
                 </p>
                 <Button
                   onClick={handleNewArticle}
-                  className="bg-gradient-hero hover:shadow-glow-primary"
+                  className="bg-gradient-hero hover:bg-primary/90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Criar Primeiro Artigo
@@ -696,7 +696,7 @@ const AdminPanel = () => {
                 {filteredArticles
                   .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                   .map((article) => (
-                  <Card key={article.id} className="bg-gradient-card border-primary/30 p-6">
+                  <Card key={article.id} className="bg-card border-primary/30 p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -712,11 +712,11 @@ const AdminPanel = () => {
                             {article.category}
                           </Badge>
                         </div>
-                        
+
                         <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
                           {article.excerpt}
                         </p>
-                        
+
                         <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
@@ -728,14 +728,14 @@ const AdminPanel = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2 ml-4">
                         <Button
                           size="sm"
                           variant={article.featured ? "default" : "outline"}
                           onClick={() => handleToggleFeatured(article.id, article.title, article.featured)}
-                          className={article.featured 
-                            ? "bg-gradient-hero hover:shadow-glow-primary" 
+                          className={article.featured
+                            ? "bg-gradient-hero hover:bg-primary/90"
                             : "border-yellow-500/50 text-yellow-600 hover:bg-yellow-500/10"
                           }
                           title={article.featured ? "Remover destaque" : "Marcar como destaque"}
@@ -862,7 +862,7 @@ const AdminPanel = () => {
           <UtilityCRM />
         )}
       </div>
-      
+
       {/* Editor de Perfil do Colunista */}
       {isColunista && (
         <ColumnistSelfProfileEditor

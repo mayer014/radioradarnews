@@ -357,7 +357,7 @@ const NewsEditor: React.FC<NewsEditorProps> = ({ articleId, onClose }) => {
   const reviewIdx = visibleSteps.findIndex((s) => s.key === 'review');
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen admin-content">
       {/* Header */}
       <div className="bg-gradient-card backdrop-blur-sm border-b border-primary/30 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

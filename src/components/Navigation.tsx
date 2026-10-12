@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, Home, Mic, Users, Shield, Building2, Car, Clapperboard, Globe, Trophy, Smartphone, Activity, ChevronDown, FileText, Scale, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUsers } from '@/contexts/UsersContext';
 import ThemeToggle from '@/components/ThemeToggle';
 import SocialMediaButtons from '@/components/SocialMediaButtons';
@@ -11,6 +11,7 @@ const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { pathname, search } = useLocation();
   const { columnists } = useUsers();
   const { contactInfo, publicContactInfo } = useSupabaseContactInfo();
   const logoUrl = '/lovable-uploads/ef193e05-ec63-47a4-9731-ac6dd613febc.png';
@@ -20,6 +21,10 @@ const Navigation = () => {
   const instagramUrl = contactInfo?.instagram_url || publicContactInfo?.instagram_url || '';
   const twitterUrl = contactInfo?.twitter_url || publicContactInfo?.twitter_url || '';
   const youtubeUrl = contactInfo?.youtube_url || publicContactInfo?.youtube_url || '';
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname, search]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -51,7 +56,7 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    <nav className={`site-navigation fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       isScrolled 
         ? 'bg-gradient-card/95 backdrop-blur-md border-b border-primary/20 shadow-glow-primary' 
         : 'bg-transparent'

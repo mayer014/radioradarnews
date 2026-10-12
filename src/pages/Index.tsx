@@ -1,5 +1,4 @@
 import React from 'react';
-import Navigation from '@/components/Navigation';
 import HeroSection from '@/components/HeroSection';
 import WeatherWidget from '@/components/WeatherWidget';
 import CurrencyWidget from '@/components/CurrencyWidget';
@@ -9,8 +8,6 @@ import WhatsAppGroupBanner from '@/components/WhatsAppGroupBanner';
 import LatestNews from '@/components/LatestNews';
 import LatestColumnistArticles from '@/components/LatestColumnistArticles';
 import NewsGrid from '@/components/NewsGrid';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { WebsiteStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
@@ -23,7 +20,7 @@ const Index = () => {
   }, [announcePageChange]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="textured-home relative min-h-screen">
       <SEOHead 
         title="Portal News - O Futuro do Jornalismo Digital"
         description="Portal de notícias inovador com rádio integrada. Notícias policiais, política, música e entretenimento com experiência imersiva e design futurista."
@@ -33,8 +30,6 @@ const Index = () => {
       />
       
       <WebsiteStructuredData url={window.location.origin} />
-      {/* Navegação Fixa */}
-      <Navigation />
       
       {/* Hero Section com Parallax */}
       <main id="main-content" tabIndex={-1}>
@@ -68,11 +63,6 @@ const Index = () => {
       
       </main>
       
-      {/* Footer */}
-      <Footer />
-
-      {/* Player de Rádio Fixo */}
-      <RadioPlayer />
     </div>
   );
 };

@@ -85,7 +85,7 @@ const WeatherWidget: React.FC = () => {
     return (
       <section className="py-4 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 flex items-center justify-center gap-2 text-muted-foreground">
+          <div className="information-panel bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 flex items-center justify-center gap-2 text-muted-foreground">
             <Cloud className="h-5 w-5" />
             <span className="text-sm">Previsão indisponível</span>
             <button 
@@ -104,7 +104,7 @@ const WeatherWidget: React.FC = () => {
   return (
     <section className="py-4 px-4 animate-fade-in" aria-label="Previsão do tempo">
       <div className="container mx-auto max-w-6xl">
-        <div className="bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-sm border border-border/50 rounded-xl p-3 md:p-4 shadow-sm">
+        <div className="information-panel bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-sm border border-border/50 rounded-xl p-3 md:p-4 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             {/* Seletor de cidade e ícone */}
             <div className="flex items-center gap-3">

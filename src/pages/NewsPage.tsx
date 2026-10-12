@@ -1,20 +1,18 @@
+import PageHeader from '@/components/layout/PageHeader';
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar } from 'lucide-react';
-import Navigation from '@/components/Navigation';
+import { Link } from 'react-router-dom';
+import { Calendar } from 'lucide-react';
 import NewsGrid from '@/components/NewsGrid';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import { useSearchParams } from 'react-router-dom';
-import { getCategoryColors } from '@/utils/categoryColors';
-import { useTheme } from '@/contexts/ThemeContext';
+
+
 import { SEOHead } from '@/components/seo/SEOHead';
 import { BreadcrumbStructuredData } from '@/components/seo/StructuredData';
 import useAccessibility from '@/hooks/useAccessibility';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+
 import { getArticleLink } from '@/lib/utils';
 import { getInternalCategorySlug, getDisplayCategoryName } from '@/utils/categoryMapper';
 import {
@@ -28,8 +26,8 @@ import {
 
 const NewsPage = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { theme } = useTheme();
+
+
   const { announcePageChange } = useAccessibility();
   const { articles, loading } = useSupabaseNews();
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,7 +48,7 @@ const NewsPage = () => {
   const filteredArticles = useMemo(() => {
     const publishedArticles = (articles ?? []).filter(article => article.status === 'published' && !article.columnist_id && !article.is_column_copy);
     if (categoria === 'Todas') return publishedArticles;
-    return publishedArticles.filter(article => article.category === categoria);
+    return publishedArticles.filter(article => getInternalCategorySlug(article.category) === getInternalCategorySlug(categoria));
   }, [articles, categoria]);
 
   const sortedArticles = useMemo(() => {
@@ -70,21 +68,6 @@ const NewsPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const getCategoryBackground = (categoryName: string) => {
-    if (theme === 'dark') return 'bg-background';
-    const backgroundMap: { [key: string]: string } = {
-      'Política': 'bg-gradient-to-br from-blue-50/80 via-background to-blue-50/40',
-      'Policial': 'bg-gradient-to-br from-red-50/80 via-background to-red-50/40',
-      'Entretenimento': 'bg-gradient-to-br from-purple-50/80 via-background to-purple-50/40',
-      'Internacional': 'bg-gradient-to-br from-green-50/80 via-background to-green-50/40',
-      'Esportes': 'bg-gradient-to-br from-orange-50/80 via-background to-orange-50/40',
-      'Tecnologia / Economia': 'bg-gradient-to-br from-cyan-50/80 via-background to-cyan-50/40',
-      'Ciência / Saúde': 'bg-gradient-to-br from-violet-50/80 via-background to-violet-50/40',
-      'Todas': 'bg-background'
-    };
-    return backgroundMap[categoryName] || 'bg-background';
-  };
-
   const categoryTitle = categoria === 'Todas' ? 'Todas as Notícias' : `Notícias de ${displayCategory}`;
   const categoryDescription = categoria === 'Todas' 
     ? 'Acompanhe todas as notícias mais recentes do Portal News.'
@@ -93,7 +76,7 @@ const NewsPage = () => {
   // "Todas" → show NewsGrid (homepage-style)
   if (categoria === 'Todas') {
     return (
-      <div className={`min-h-screen ${getCategoryBackground('Todas')}`}>
+      <div className="min-h-screen">
         <SEOHead 
           title={`${categoryTitle} - Portal News`}
           description={categoryDescription}
@@ -105,19 +88,17 @@ const NewsPage = () => {
           { name: 'Início', url: window.location.origin },
           { name: 'Notícias', url: `${window.location.origin}/noticias` },
         ]} />
-        <Navigation />
-        <main className="pt-20" id="main-content" tabIndex={-1}>
+        <main className="page-container news-overview" id="main-content" tabIndex={-1}>
+          <PageHeader icon={Calendar} eyebrow="Redação Rádio Radar" title="Todas as notícias" description="Acompanhe os destaques e explore os assuntos que importam para você." />
           <NewsGrid />
         </main>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   // Category-specific: full paginated listing
   return (
-    <div className={`min-h-screen ${getCategoryBackground(displayCategory)}`}>
+    <div className="min-h-screen">
       <SEOHead 
         title={`${categoryTitle} - Portal News`}
         description={categoryDescription}
@@ -125,36 +106,25 @@ const NewsPage = () => {
         url={window.location.href}
         canonical={`${window.location.origin}/noticias?categoria=${categoria}`}
       />
-      <Navigation />
-      <main className="pt-20 pb-12" id="main-content" tabIndex={-1}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6 mt-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/noticias')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold">{displayCategory}</h1>
-            <Badge variant="outline" className="text-muted-foreground">
-              {sortedArticles.length} {sortedArticles.length === 1 ? 'artigo' : 'artigos'}
-            </Badge>
-          </div>
-
+      <main className="page-container" id="main-content" tabIndex={-1}>
+        <div className="max-w-7xl mx-auto">
+          <PageHeader icon={Calendar} eyebrow="Notícias" title={displayCategory} description={categoryDescription} backTo="/noticias" backLabel="Todas as notícias" actions={<Badge variant="outline">{sortedArticles.length} artigos</Badge>} />
           {/* Articles Grid */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="bg-gradient-card border-primary/20 h-72 animate-pulse" />
+                <Card key={i} className="bg-card border-primary/20 h-72 animate-pulse" />
               ))}
             </div>
           ) : paginatedArticles.length === 0 ? (
-            <Card className="bg-gradient-card border-primary/30 p-8 text-center">
+            <Card className="bg-card border-primary/30 p-8 text-center">
               <p className="text-muted-foreground">Nenhuma notícia publicada na categoria {displayCategory}.</p>
             </Card>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedArticles.map(article => (
-                  <Card key={article.id} className="bg-gradient-card border-primary/20 overflow-hidden group">
+                  <Card key={article.id} className="bg-card border-primary/20 overflow-hidden group">
                     <Link to={getArticleLink(article)} className="block h-full">
                       {article.featured_image && (
                         <img
@@ -225,8 +195,6 @@ const NewsPage = () => {
           )}
         </div>
       </main>
-      <Footer />
-      <RadioPlayer />
     </div>
   );
 };

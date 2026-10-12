@@ -5,9 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import CommentsSection from '@/components/CommentsSection';
 import { ShareMenu } from '@/components/share/ShareMenu';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
@@ -99,17 +96,16 @@ const ColumnistArticlePage = () => {
   if (!article || !article.columnist_id) {
     // Article not found or not a columnist article
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
+          <div className="error-content text-center">
             <h1 className="text-2xl font-bold mb-4">Artigo não encontrado</h1>
             <p className="text-muted-foreground mb-4">
               O artigo que você está procurando não existe ou não é um artigo de colunista.
             </p>
             <div className="space-x-4">
               <Link to="/">
-                <Button className="bg-gradient-hero hover:shadow-glow-primary">
+                <Button className="bg-gradient-hero hover:bg-primary/90">
                   Voltar ao início
                 </Button>
               </Link>
@@ -121,18 +117,15 @@ const ColumnistArticlePage = () => {
             </div>
           </div>
         </div>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
+    <div className="min-h-screen">
       
       {/* Breadcrumb e botão voltar */}
-      <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-sm border-b border-border/50">
+      <div className="internal-breadcrumb">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Link to={`/colunista/${article.columnist_id}`} className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors">
@@ -147,7 +140,8 @@ const ColumnistArticlePage = () => {
       </div>
 
       {/* Conteúdo do artigo */}
-      <article className="max-w-4xl mx-auto px-6 py-8">
+      <main id="main-content" tabIndex={-1}>
+      <article className="reading-surface max-w-4xl mx-auto">
         
         {/* Header do artigo */}
         <header className="mb-8">
@@ -163,7 +157,7 @@ const ColumnistArticlePage = () => {
           </div>
 
           {/* Título */}
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent leading-tight">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground leading-tight">
             {article.title}
           </h1>
 
@@ -173,7 +167,7 @@ const ColumnistArticlePage = () => {
           </p>
 
           {/* Info do colunista */}
-          <div className="flex items-center justify-between mb-6 p-6 bg-gradient-card rounded-lg border border-primary/20">
+          <div className="flex items-center justify-between mb-6 p-6 bg-card rounded-lg border border-primary/20">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20 flex-shrink-0">
                 {article.columnist_avatar && (article.columnist_avatar.startsWith('http') || article.columnist_avatar.startsWith('data:image/')) ? (
@@ -285,7 +279,7 @@ const ColumnistArticlePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {relatedArticles.slice(0, 4).map((related) => (
                 <Link key={related.id} to={getArticleLink(related)}>
-                  <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-105 overflow-hidden">
+                  <Card className="group bg-card border-border hover:border-primary/40 transition-all duration-300 overflow-hidden">
                     <div className="flex gap-4 p-4">
                       <div className="relative rounded-lg flex-shrink-0 bg-muted/20">
                         <img
@@ -312,7 +306,7 @@ const ColumnistArticlePage = () => {
             {/* Link para ver todos os artigos do colunista */}
             <div className="text-center mt-6">
               <Link to={`/colunista/${article.columnist_id}`}>
-                <Button className="bg-gradient-hero hover:shadow-glow-primary">
+                <Button className="bg-gradient-hero hover:bg-primary/90">
                   <ArrowRight className="w-4 h-4 mr-2" />
                   Ver todos os artigos de {article.columnist_name}
                 </Button>
@@ -326,9 +320,7 @@ const ColumnistArticlePage = () => {
       <div className="max-w-4xl mx-auto px-6 pb-8">
         <CommentsSection articleId={article.id} articleTitle={article.title} />
       </div>
-
-      <Footer />
-      <RadioPlayer />
+      </main>
     </div>
   );
 };

@@ -42,13 +42,13 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ availableDays, st
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge className={`shrink-0 ${available 
-        ? 'bg-green-500/20 text-green-400 border border-green-500/40' 
+      <Badge data-available={available} className={`availability-status shrink-0 ${available
+        ? 'bg-green-500/20 text-green-400 border border-green-500/40'
         : 'bg-red-500/20 text-red-400 border border-red-500/40'
       }`}>
-        {available ? '🟢 DISPONÍVEL' : '🔴 INDISPONÍVEL'}
+        {available ? 'Disponível agora' : 'Fora do horário'}
       </Badge>
-      <span className="text-xs text-muted-foreground whitespace-nowrap">
+      <span className="text-xs text-muted-foreground leading-relaxed">
         {availableDays.map(d => DAY_LABELS[d] || d).join(', ')} • {startTime?.slice(0, 5)} - {endTime?.slice(0, 5)}
       </span>
     </div>

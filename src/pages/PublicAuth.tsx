@@ -1,14 +1,14 @@
+import PageHeader from '@/components/layout/PageHeader';
+import { UserRound } from 'lucide-react';
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { usePublicAuth } from '@/contexts/PublicAuthContext';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const PublicAuth: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -59,37 +59,26 @@ const PublicAuth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-      <main className="pt-24 pb-16 px-4 flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md bg-gradient-card border-primary/20">
-          <CardHeader className="text-center">
-            <Link to="/utilidade-publica" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2">
-              <ArrowLeft className="h-4 w-4" /> Voltar
-            </Link>
-            <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
-              {mode === 'login' ? 'Entrar' : 'Criar Conta'}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {mode === 'login' ? 'Acesse seu painel de serviços e vagas' : 'Cadastre-se gratuitamente'}
-            </p>
-          </CardHeader>
+    <div className="min-h-screen">
+      <main id="main-content" tabIndex={-1} className="auth-page px-4 flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md bg-card border-primary/20">
+          <CardHeader className="auth-header"><PageHeader icon={UserRound} eyebrow="Sua conta na Rádio Radar" title={mode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'} description={mode === 'login' ? 'Acesse seu painel de serviços e vagas.' : 'Divulgue seu trabalho e suas oportunidades gratuitamente.'} backTo="/utilidade-publica" backLabel="Utilidade pública" /></CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'signup' && (
                 <>
-                  <div><Label>Nome Completo *</Label><Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Seu nome" /></div>
+                  <div><Label htmlFor="full-name">Nome completo *</Label><Input id="full-name" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Seu nome" /></div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label>Telefone</Label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 9..." /></div>
-                    <div><Label>Cidade</Label><Input value={city} onChange={e => setCity(e.target.value)} /></div>
+                    <div><Label htmlFor="phone">Telefone</Label><Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 9..." /></div>
+                    <div><Label htmlFor="city">Cidade</Label><Input id="city" autoComplete="address-level2" value={city} onChange={e => setCity(e.target.value)} /></div>
                   </div>
                 </>
               )}
-              <div><Label>E-mail *</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" /></div>
+              <div><Label htmlFor="email">E-mail *</Label><Input id="email" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" /></div>
               <div className="relative">
-                <Label>Senha *</Label>
-                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" />
-                <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-8 text-muted-foreground">
+                <Label htmlFor="password">Senha *</Label>
+                <Input id="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" className="pr-12" />
+                <button type="button" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} className="absolute right-3 top-8 text-muted-foreground">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -114,7 +103,6 @@ const PublicAuth: React.FC = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
     </div>
   );
 };

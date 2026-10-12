@@ -92,7 +92,7 @@ const NewsGrid: React.FC = () => {
     <section id="news-grid" className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold">Destaques</h2>
+          <h2 className="section-title text-xl sm:text-2xl font-bold">Destaques</h2>
         </div>
 
         {/* Filtros por categoria */}

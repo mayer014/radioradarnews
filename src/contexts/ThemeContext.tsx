@@ -4,6 +4,20 @@ import { useToast } from '@/hooks/use-toast';
 
 type Theme = 'light' | 'dark';
 
+const readStoredTheme = (): Theme => {
+  if (typeof document === 'undefined') return 'dark';
+  try {
+    const cookieTheme = document.cookie.split('; ')
+      .find(row => row.startsWith('theme='))?.split('=')[1];
+    if (cookieTheme === 'light' || cookieTheme === 'dark') return cookieTheme;
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
+  } catch {
+    // Some embedded previews restrict storage. The page can still render.
+  }
+  return 'dark';
+};
+
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
@@ -25,7 +39,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
-  const [theme, setTheme] = useState<Theme>('dark'); // Sempre iniciar em dark mode
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -45,8 +59,8 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
         if (error) {
           console.error('Erro ao carregar tema do usuário:', error);
           // Em caso de erro, manter dark mode como padrão
-        } else if (profile?.theme_preference) {
-          setTheme(profile.theme_preference as Theme);
+        } else if (profile?.theme_preference === 'light' || profile?.theme_preference === 'dark') {
+          setTheme(profile.theme_preference);
         }
       } else {
         // Usuário não logado - verificar cookie/localStorage como fallback
@@ -100,7 +114,11 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     document.cookie = `theme=${theme}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax`;
     
     // Manter localStorage como backup
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      // Keep the chosen theme even when browser storage is unavailable.
+    }
   }, [theme]);
 
   const toggleTheme = async () => {

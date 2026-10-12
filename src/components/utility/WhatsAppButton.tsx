@@ -40,17 +40,17 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   };
 
   return (
-    <button type="button" onClick={handleClick} className="block w-full">
       <Button
         type="button"
-        className={`bg-green-600 hover:bg-green-700 text-white w-full ${className || ''}`}
+        onClick={handleClick}
+        variant="outline"
+        className={`whatsapp-action w-full ${className || ''}`}
         disabled={!isValid}
         title={!isValid ? 'Número de WhatsApp inválido' : undefined}
       >
         <MessageCircle className="h-4 w-4 mr-2" />
-        {isValid ? label : '⚠️ WhatsApp indisponível'}
+        {isValid ? label : 'WhatsApp indisponível'}
       </Button>
-    </button>
   );
 };
 

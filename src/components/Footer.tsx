@@ -53,7 +53,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-gradient-to-b from-background to-muted/20 border-t border-primary/20 py-16">
+    <footer className="site-footer bg-gradient-to-b from-background to-muted/20 border-t border-primary/20 py-16">
       <div className="max-w-7xl mx-auto px-6">
         {/* Seção de Notícias Recentes */}
         {recentNews.length > 0 && (

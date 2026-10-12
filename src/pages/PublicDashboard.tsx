@@ -1,11 +1,10 @@
+import PageHeader from '@/components/layout/PageHeader';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
 import ServiceProviderForm from '@/components/utility/ServiceProviderForm';
 import JobListingForm from '@/components/utility/JobListingForm';
 import { usePublicAuth } from '@/contexts/PublicAuthContext';
@@ -61,20 +60,15 @@ const PublicDashboard: React.FC = () => {
     loadData();
   };
 
-  if (authLoading) return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Carregando...</div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-      <main className="pt-24 pb-16 px-4 sm:px-6 max-w-5xl mx-auto">
-        {/* Back link */}
-        <Link to="/utilidade-publica" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="h-4 w-4" /> Utilidade Pública
-        </Link>
-
+    <div className="min-h-screen">
+      <main id="main-content" tabIndex={-1} className="page-container">
+        <PageHeader icon={User} eyebrow="Sua área" title="Meu painel" description="Gerencie seus serviços, vagas e informações de contato." backTo="/utilidade-publica" backLabel="Utilidade pública" />
         {/* Profile header */}
-        <Card className="bg-gradient-card border-primary/20 mb-8">
+        <Card className="bg-card border-primary/20 mb-8">
           <CardContent className="p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -82,7 +76,7 @@ const PublicDashboard: React.FC = () => {
                   <User className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">{profile.full_name}</h1>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">{profile.full_name}</h2>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{profile.email}</span>
                     {profile.phone && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{profile.phone}</span>}
@@ -103,14 +97,14 @@ const PublicDashboard: React.FC = () => {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <Card className="bg-gradient-card border-primary/20">
+          <Card className="bg-card border-primary/20">
             <CardContent className="p-4 sm:p-5 text-center">
               <Wrench className="h-8 w-8 text-primary mx-auto mb-2" />
               <p className="text-2xl font-bold text-foreground">{myProviders.length}</p>
               <p className="text-sm text-muted-foreground">Serviço{myProviders.length !== 1 ? 's' : ''} cadastrado{myProviders.length !== 1 ? 's' : ''}</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-card border-primary/20">
+          <Card className="bg-card border-primary/20">
             <CardContent className="p-4 sm:p-5 text-center">
               <Briefcase className="h-8 w-8 text-primary mx-auto mb-2" />
               <p className="text-2xl font-bold text-foreground">{myJobs.length}</p>
@@ -145,7 +139,7 @@ const PublicDashboard: React.FC = () => {
                 </Button>
 
                 {myProviders.length === 0 ? (
-                  <Card className="bg-gradient-card border-primary/20">
+                  <Card className="bg-card border-primary/20">
                     <CardContent className="p-8 sm:p-12 text-center">
                       <Wrench className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
                       <p className="text-lg font-medium text-foreground mb-1">Nenhum serviço cadastrado</p>
@@ -155,7 +149,7 @@ const PublicDashboard: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {myProviders.map(p => (
-                      <Card key={p.id} className="bg-gradient-card border-primary/20 hover:border-primary/30 transition-colors">
+                      <Card key={p.id} className="bg-card border-primary/20 hover:border-primary/30 transition-colors">
                         <CardContent className="p-4 sm:p-5">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex-1 min-w-0">
@@ -209,7 +203,7 @@ const PublicDashboard: React.FC = () => {
                 </Button>
 
                 {myJobs.length === 0 ? (
-                  <Card className="bg-gradient-card border-primary/20">
+                  <Card className="bg-card border-primary/20">
                     <CardContent className="p-8 sm:p-12 text-center">
                       <Briefcase className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
                       <p className="text-lg font-medium text-foreground mb-1">Nenhuma vaga publicada</p>
@@ -219,7 +213,7 @@ const PublicDashboard: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {myJobs.map(j => (
-                      <Card key={j.id} className="bg-gradient-card border-primary/20 hover:border-primary/30 transition-colors">
+                      <Card key={j.id} className="bg-card border-primary/20 hover:border-primary/30 transition-colors">
                         <CardContent className="p-4 sm:p-5">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex-1 min-w-0">
@@ -260,7 +254,6 @@ const PublicDashboard: React.FC = () => {
         </Tabs>
       </main>
       <SuccessPromoDialog open={showPromoDialog} onClose={() => setShowPromoDialog(false)} />
-      <Footer />
     </div>
   );
 };

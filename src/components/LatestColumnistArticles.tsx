@@ -75,10 +75,10 @@ const LatestColumnistArticles = () => {
 
   if (latestColumnistArticles.length === 0) {
     return (
-      <section className="py-16 px-6 bg-muted/20">
+      <section className="editorial-section py-16 px-4 sm:px-6 bg-muted/20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
-            <h2 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+            <h2 className="section-title text-3xl sm:text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
               Últimos Artigos dos Colunistas
             </h2>
             <p className="text-lg text-muted-foreground">
@@ -91,10 +91,10 @@ const LatestColumnistArticles = () => {
   }
 
   return (
-    <section className="py-16 px-6 bg-muted/20">
+    <section className="editorial-section py-16 px-4 sm:px-6 bg-muted/20">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+          <h2 className="section-title text-3xl sm:text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
             Últimos Artigos dos Colunistas
           </h2>
           <p className="text-lg text-muted-foreground">
@@ -144,8 +144,7 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
   profileId: string
 }) => {
   return (
-    <Link to={getArticleLink(article)}>
-      <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden h-full">
+      <Card className="news-card group relative bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-[1.02] overflow-hidden h-full">
         {/* Imagem do artigo */}
         <div className="relative h-40 md:h-48 bg-muted/20">
           <img
@@ -206,7 +205,9 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
 
           {/* Título */}
           <h3 className="text-sm md:text-lg font-bold mb-2 text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2 leading-tight">
-            {article.title}
+            <Link to={getArticleLink(article)} className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-primary">
+              {article.title}
+            </Link>
           </h3>
           
           {/* Excerpt - resumo do artigo */}
@@ -232,7 +233,7 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
           <div className="flex flex-col gap-1 mt-auto">
             <Link 
               to={`/colunista/${profileId}`}
-              className="flex items-center text-[10px] md:text-xs text-muted-foreground hover:text-primary transition-colors"
+              className="relative z-10 flex items-center text-[10px] md:text-xs text-muted-foreground hover:text-primary transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               <User className="w-3 h-3 mr-1 flex-shrink-0" />
@@ -244,7 +245,6 @@ const ColumnistArticleCard = ({ article, currentAvatar, profilesCache, profileId
           </div>
         </div>
       </Card>
-    </Link>
   );
 };
 

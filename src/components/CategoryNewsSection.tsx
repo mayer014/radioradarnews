@@ -65,7 +65,7 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className={`w-1 h-8 ${colors.bgClass} rounded-full`}></div>
-            <h2 className="text-2xl font-bold">{category}</h2>
+            <h2 className="section-title text-2xl font-bold">{category}</h2>
             <Badge variant="outline" className={`${colors.colorClass} ${colors.bgClass}/10 border-current`}>
               {articles.length} {articles.length === 1 ? 'artigo' : 'artigos'}
             </Badge>
@@ -86,7 +86,7 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
           {/* Featured Article - Takes 2 columns on large screens */}
           {featuredArticle && (
             <div className="lg:col-span-2">
-              <Card className="bg-gradient-card border-primary/30 overflow-hidden h-full group">
+              <Card className="news-card bg-gradient-card border-primary/30 overflow-hidden h-full group transition-all duration-300">
                 <Link to={getArticleLink(featuredArticle)} className="block h-full">
                   <div className="relative">
                     {featuredArticle.featured_image && (
@@ -130,7 +130,7 @@ const CategoryNewsSection: React.FC<CategoryNewsSectionProps> = ({
             {regularArticles.length > 0 ? (
               <div className={featuredArticle ? 'space-y-4' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'}>
                 {regularArticles.map(article => (
-                  <Card key={article.id} className="bg-gradient-card border-primary/20 overflow-hidden group">
+                  <Card key={article.id} className="news-card bg-gradient-card border-primary/20 overflow-hidden group transition-all duration-300">
                     <Link to={getArticleLink(article)} className="block">
                       {article.featured_image && (
                         <img

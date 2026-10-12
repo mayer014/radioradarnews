@@ -72,14 +72,14 @@ const PasswordResetRequestDialog: React.FC = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+        <Button variant="outline" size="sm" className="gap-2 border-border text-muted-foreground hover:bg-muted">
           <KeyRound className="h-4 w-4" /> Esqueci minha senha
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-amber-500" />
+            <KeyRound className="h-5 w-5 text-primary" />
             Solicitar Redefinição de Senha
           </DialogTitle>
           <DialogDescription>

@@ -5,9 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import RadioPlayer from '@/components/RadioPlayer';
 import CommentsSection from '@/components/CommentsSection';
 import { ShareMenu } from '@/components/share/ShareMenu';
 import { useSupabaseNews } from '@/contexts/SupabaseNewsContext';
@@ -125,44 +122,38 @@ const ArticlePage = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <SEOHead 
           title="Carregando artigo..."
           description="Portal News - Carregando conteúdo"
         />
-        <Navigation />
-        <main className="max-w-4xl mx-auto px-6 py-8" id="main-content">
+        <main className="page-container page-container-narrow" id="main-content">
           <ArticleSkeleton />
         </main>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <SEOHead 
           title="Artigo não encontrado - Portal News"
           description="O artigo solicitado não foi encontrado. Volte à página inicial para ver as últimas notícias."
         />
-        <Navigation />
         <main className="flex items-center justify-center min-h-screen" id="main-content">
-          <div className="text-center">
+          <div className="error-content text-center">
             <h1 className="text-2xl font-bold mb-4">Artigo não encontrado</h1>
             <p className="text-muted-foreground mb-6">
               O artigo que você está procurando não existe ou foi removido.
             </p>
             <Link to="/">
-              <Button className="bg-gradient-hero hover:shadow-glow-primary">
+              <Button className="bg-gradient-hero hover:bg-primary/90">
                 Voltar ao início
               </Button>
             </Link>
           </div>
         </main>
-        <Footer />
-        <RadioPlayer />
       </div>
     );
   }
@@ -195,7 +186,7 @@ const ArticlePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <SEOHead 
         title={pageTitle}
         description={metaDescription}
@@ -216,10 +207,8 @@ const ArticlePage = () => {
       
       <BreadcrumbStructuredData items={breadcrumbData} />
       
-      <Navigation />
-      
       {/* Breadcrumb e botão voltar */}
-      <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-sm border-b border-border/50">
+      <div className="internal-breadcrumb">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <Link to="/" className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -230,7 +219,7 @@ const ArticlePage = () => {
 
       {/* Conteúdo do artigo */}
       <main id="main-content" tabIndex={-1}>
-        <article className="max-w-4xl mx-auto px-6 py-8" itemScope itemType="https://schema.org/NewsArticle">
+        <article className="reading-surface max-w-4xl mx-auto" itemScope itemType="https://schema.org/NewsArticle">
         
         {/* Header do artigo */}
         <header className="mb-8">
@@ -247,7 +236,7 @@ const ArticlePage = () => {
 
           {/* Título */}
           <h1 
-            className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent leading-tight"
+            className="text-4xl md:text-5xl font-bold mb-4 text-foreground leading-tight"
             itemProp="headline"
           >
             {article.title}
@@ -262,7 +251,7 @@ const ArticlePage = () => {
           </p>
 
           {/* Stats do artigo */}
-          <div className="flex items-center justify-between mb-6 p-4 bg-gradient-card rounded-lg border border-primary/20">
+          <div className="flex items-center justify-between mb-6 p-4 bg-card rounded-lg border border-primary/20">
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
@@ -310,7 +299,7 @@ const ArticlePage = () => {
           {/* Info do autor */}
           {article.columnist_id ? (
             <Link to={`/colunista/${article.columnist_id}`}>
-              <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-lg border border-primary/20 hover:border-primary/40 transition-all duration-300 cursor-pointer">
+              <div className="flex items-center gap-4 p-4 bg-card rounded-lg border border-border hover:border-primary/40 transition-all duration-300 cursor-pointer">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 flex-shrink-0">
                   {(columnistProfile?.avatar || article.columnist_avatar) && ((columnistProfile?.avatar || article.columnist_avatar).startsWith('http') || (columnistProfile?.avatar || article.columnist_avatar).startsWith('data:image/')) ? (
                     <img
@@ -345,7 +334,7 @@ const ArticlePage = () => {
               </div>
             </Link>
           ) : (
-            <div className="flex items-center gap-4 p-4 bg-gradient-card rounded-lg border border-primary/20">
+            <div className="flex items-center gap-4 p-4 bg-card rounded-lg border border-primary/20">
               <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
                 <User className="w-6 h-6 text-primary" />
               </div>
@@ -391,7 +380,7 @@ const ArticlePage = () => {
               .slice(0, 4)
               .map((related) => (
                 <Link key={related.id} to={getArticleLink(related)}>
-                  <Card className="group bg-gradient-card backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all duration-300 hover:scale-105 overflow-hidden">
+                  <Card className="group bg-card border-border hover:border-primary/40 transition-all duration-300 overflow-hidden">
                     <div className="flex gap-4 p-4">
                         <div className="relative rounded-lg flex-shrink-0 bg-muted/20 overflow-hidden">
                           <img
@@ -418,7 +407,7 @@ const ArticlePage = () => {
           {article.columnist_id && (
             <div className="text-center mt-6">
               <Link to={`/colunista/${article.columnist_id}`}>
-                <Button className="bg-gradient-hero hover:shadow-glow-primary">
+                <Button className="bg-gradient-hero hover:bg-primary/90">
                   Ver todos os artigos de {article.columnist_name}
                 </Button>
               </Link>
@@ -439,9 +428,6 @@ const ArticlePage = () => {
         <CommentsSection articleId={article.id} articleTitle={article.title} />
       </div>
       </main>
-
-      <Footer />
-      <RadioPlayer />
     </div>
   );
 };

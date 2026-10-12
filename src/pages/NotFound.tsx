@@ -1,5 +1,10 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Link } from 'react-router-dom';
+import { Compass } from 'lucide-react';
+import InternalLayout from '@/components/layout/InternalLayout';
+import PageHeader from '@/components/layout/PageHeader';
+import { Button } from '@/components/ui/button';
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,15 +17,13 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
+    <InternalLayout narrow>
+      <PageHeader icon={Compass} eyebrow="Erro 404" title="Página não encontrada" description="O endereço pode ter mudado. Continue explorando a Rádio Radar pelos links abaixo." />
+      <div className="page-surface p-8 flex flex-wrap gap-3">
+        <Button asChild><Link to="/">Voltar ao início</Link></Button>
+        <Button asChild variant="outline"><Link to="/noticias">Explorar notícias</Link></Button>
       </div>
-    </div>
+    </InternalLayout>
   );
 };
 

@@ -46,6 +46,7 @@ import ServiceProviderDetail from "./pages/ServiceProviderDetail";
 import JobListings from "./pages/JobListings";
 import JobListingDetail from "./pages/JobListingDetail";
 import PublicDashboard from "./pages/PublicDashboard";
+import SiteExperience from '@/components/layout/SiteExperience';
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const AppContent = () => {
       <BrowserRouter>
         <PageTracker />
         <ScrollToTop />
+        <SiteExperience>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/noticias" element={<NewsPage />} />
@@ -93,6 +95,7 @@ const AppContent = () => {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </SiteExperience>
       </BrowserRouter>
     </>
   );

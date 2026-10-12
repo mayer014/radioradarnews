@@ -1,3 +1,5 @@
+import PageHeader from '@/components/layout/PageHeader';
+import { Link } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
@@ -91,21 +93,11 @@ const AdminAuth = () => {
   // Removed bootstrap function - super admin is now automatically available
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="auth-page min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-hero rounded-full flex items-center justify-center mb-6">
-            <Shield className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            RadioRadar.news
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Painel Administrativo
-          </p>
-        </div>
+        <PageHeader icon={Shield} eyebrow="Área da equipe" title="Rádio Radar" description="Entre para gerenciar suas publicações." />
 
-        <Card className="bg-gradient-card backdrop-blur-sm border-primary/30 p-8">
+        <Card className="bg-card backdrop-blur-sm border-primary/30 p-8">
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-xl font-semibold text-foreground mb-2">
@@ -156,7 +148,7 @@ const AdminAuth = () => {
               <Button
                 type="submit"
                 disabled={loading || loadingProfile}
-                className="w-full bg-gradient-hero hover:shadow-glow-primary transition-all duration-300"
+                className="w-full bg-gradient-hero hover:bg-primary/90 transition-all duration-300"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -173,6 +165,7 @@ const AdminAuth = () => {
                 )}
               </Button>
             </form>
+            <Button variant="link" asChild><Link to="/">Voltar ao site</Link></Button>
             
             {loadingProfile && (
               <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">

@@ -80,7 +80,7 @@ const CurrencyWidget: React.FC = () => {
   return (
     <section className="py-4 px-4" aria-label="Cotações do dia">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-sm relative">
+        <div className="information-panel bg-card/60 backdrop-blur-sm border border-border/50 rounded-xl p-4 shadow-sm relative">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-8">
             {/* Moeda Fiduciária */}
             <div className="flex items-center gap-3 flex-1 justify-center sm:justify-end min-h-[52px]">
