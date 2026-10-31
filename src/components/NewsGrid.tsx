@@ -90,7 +90,7 @@ const NewsGrid: React.FC = () => {
 
   return (
     <section id="news-grid" className="py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="reading-panel max-w-7xl mx-4 px-4 py-6 sm:mx-6 sm:px-6 sm:py-8 xl:mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="section-title text-xl sm:text-2xl font-bold">Destaques</h2>
         </div>

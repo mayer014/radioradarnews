@@ -355,12 +355,40 @@
     display: none;
   }
 
-  .light .textured-home .editorial-section {
-    background-color: hsl(var(--background) / 0.15);
+  /* Let the decorative background show subtly through reading surfaces. */
+  .reading-panel {
+    color: hsl(var(--foreground));
+    background: hsl(var(--card) / 0.88);
+    border: 1px solid hsl(var(--border));
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-card);
   }
 
-  .dark .textured-home .editorial-section {
-    background-color: hsl(var(--background) / 0.3);
+  .textured-home .editorial-section {
+    background-color: hsl(var(--background) / 0.88);
+  }
+
+  .textured-home .section-title {
+    color: hsl(var(--foreground));
+    background-image: none;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  .textured-home .news-card {
+    background: hsl(var(--card) / 0.92);
+  }
+
+  .textured-home .news-card :is(h3, h4, p) {
+    line-height: 1.6;
+  }
+
+  .textured-home {
+    --muted-foreground: 240 5% 76%;
+  }
+
+  .light .textured-home {
+    --muted-foreground: 220 18% 30%;
   }
 
   .dark .textured-home .site-hero {

@@ -116,7 +116,7 @@ const HomeUtilitySection = ({ showHeader = true }: { showHeader?: boolean }) => 
   return (
     <section className="py-12 px-4 sm:px-6" aria-labelledby={showHeader ? "home-utility-heading" : undefined} aria-label={showHeader ? undefined : "Serviços e vagas"} id="home-utility">
       <div className="max-w-7xl mx-auto">
-        {showHeader && <div className="max-w-2xl mb-7 sm:mb-8">
+        {showHeader && <div className="reading-panel max-w-2xl mb-7 sm:mb-8 p-5 sm:p-6">
           <p className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             <MapPin className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
             Na sua região
